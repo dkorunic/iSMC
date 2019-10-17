@@ -1,15 +1,21 @@
 iSMC
 ===
 
+[![GitHub license](https://img.shields.io/github/license/dkorunic/iSMC.svg)](https://github.com/dkorunic/iSMC/blob/master/LICENSE)
+[![GitHub release](https://img.shields.io/github/release/dkorunic/iSMC.svg)](https://github.com/dkorunic/iSMC/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dkorunic/iSMC)](https://goreportcard.com/report/github.com/dkorunic/iSMC)
+
 ## About
 
 `iSMC` is an Apple System Management Controller (SMC) CLI tool that attempts to query SMC for a number of well known keys and determine their type and value, classifying them into temperature, power, current, voltage, fan and battery readouts. It will also attempt to give a human-readable description of each found SMC key.
 
 Typically various desktop and server Apple hardware should work and most definitely all Intel-based Mac computers.
 
+[![asciicast](https://asciinema.org/a/iQPD6haQvqswJcCOaPAxhrGNr.svg)](https://asciinema.org/a/iQPD6haQvqswJcCOaPAxhrGNr)
+
 ## Installation
 
-There are two ways of installing `iSMC`:
+There are two ways of installing `iSMC` (tool works only on macOS computers):
 
 ### Manual
 
