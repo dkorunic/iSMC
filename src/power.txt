@@ -1,0 +1,134 @@
+CPU Core 1:PC0C
+CPU Core 2:PC1C
+CPU Core 3:PC2C
+CPU Core 4:PC3C
+CPU Core 5:PC4C
+CPU Core 6:PC5C
+CPU Core 7:PC6C
+CPU Core 8:PC7C
+CPU Cores:PCPC
+CPU GFX:PCPG
+CPU DRAM:PCPD
+CPU Total:PCTR
+CPU Total:PCPL
+CPU Rail:PC1R
+CPU S0 Rail:PC5R
+GPU Total:PGTR
+GPU Rail 1:PG0R
+GPU Rail 2:PG1R
+Memory Rail:PM0R
+MCH:PN0C
+PCH Rail:PN1R
+Mainboard S0 Rail:PC0R
+Mainboard S0 Rail:PD0R
+Mainboard S5 Rail:PD5R
+Main 3.3V Rail:PH02
+Main 5V Rail:PH05
+12V Rail:Pp0R
+Main 12V Rail:PD2R
+Misc. Rail:PO0R
+Battery Rail:PBLC
+Battery Rail:PB0R
+DC In Total:PDTR
+System Total:PSTR
+5V Low-Side:P50R
+Airport:PAPC
+Discrete BMON On Battery:PB1R
+CPU AXG Low-Side:PC0G
+CPU I/O High-Side:PC0I
+CPU Mem Load-Side:PC0M
+CPU SA High-Side:PC0S
+CPU Package Total:PCLT
+S2 Camera:PCMC
+CPU Package Total:PCPR
+CPU Package Total:PCPT
+Chipset Low-Side:PCS0
+Chipset IMon:PCS1
+Power Supply Trend:PD0D
+Power Supply Filtered:PD0E
+Power Supply Filtered Adjusted:PD0F
+Power Supply Max Error Filtered Output:PD0J
+Average CPU 1V5:PD1R
+GPU Aux Load-Side:PG0A
+GPU:PG0C
+GPU Frame Buf Input-Side:PG0F
+GPU VDDCI Load-Side:PG0I
+GPU Mem Ctl Load-Side:PG0M
+GPU A VDDCI Low-Side:PG0S
+GPU Uncore High-Side:PG0U
+GPU VRAM Load-Side:PG0V
+GPU Aux Load-Side:PG1A
+Ext GPU 1.8V:PG1C
+GPU Mem Ctl Load-Side:PG1F
+GPU B VDDCI Low-Side:PG1S
+Ext GPU 1.05V:PG2C
+Ext GPU 1.35V:PG3C
+GPU Package Total:PGPR
+Drive 0 Total:PH0F
+HDD1 Low-Side:PH0R
+Drive 1 Filtered Low-Side * 16:PH1F
+Drive 1:PH1R
+Drive 2:PH2R
+SSD:PHDC
+Heatpipe:PHPC
+Thunderbolt:PHSC
+Thunderbolt:PHSP
+TBT IO High-Side:PI0R
+LCD Panel:PLDC
+Average Memory:PM0C
+DIMM Load-Side / SQR(Fan RPM):PM0f
+DDR:PM1C
+DDR 1.8V CPU:PM2C
+DDR S3.:PM3C
+Memory Total:PMTR
+MCP VCore:PN0R
+Average MCP Memory:PN1C
+Other 3.3V High-Side:PO3R
+Other 5V High-Side:PO5R
+PBus:PP0R
+PBus:PPBR
+3.3V S0:PR0C
+S0 5.0V:PR0R
+Other High-Side Current.:PR1C
+S3 3.30V:PR1R
+S3 5.0V:PR2R
+3.3V In S0:PR3C
+S5 3.30V:PR3R
+3.3V S5:PR5C
+S2 Camera:PS2C
+PCH Core:PSBC
+SSD:PSDC
+HP Target:PTHC
+T101 Boost/PBus Accuator:PTPC
+T25 - Track Pad:PTPR
+Wifi Load-Side:PW0R
+Zone 0 Target:PZ0E
+Zone 0 Filtered:PZ0F
+Zone 0 Average:PZ0G
+Zone 0 Abstract Throttle:PZ0T
+Zone 1 Target:PZ1E
+Zone 1 Filtered:PZ1F
+Zone 1 Average:PZ1G
+Zone 1 Abstract Throttle:PZ1T
+Zone 2 Target:PZ2E
+Zone 2 Filtered:PZ2F
+Zone 2 Average:PZ2G
+Zone 2 Abstract Throttle:PZ2T
+Zone 3 Target:PZ3E
+Zone 3 Filtered:PZ3F
+Zone 3 Average:PZ3G
+Zone 3 Abstract Throttle:PZ3T
+Zone 4 Target:PZ4E
+Zone 4 Filtered:PZ4F
+Zone 4 Average:PZ4G
+Zone 4 Abstract Throttle:PZ4T
+Zone 5 Target:PZ5E
+Zone 5 Filtered:PZ5F
+Zone 5 Average:PZ5G
+Zone 5 Abstract Throttle:PZ5T
+Airport:PZAP
+Backlight:PZBL
+Memory:PZDM
+SSD:PZHD
+ODD(PZOD):PZOD
+Average Main Chipset:Pc0R

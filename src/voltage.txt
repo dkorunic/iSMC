@@ -1,0 +1,65 @@
+CPU Core 1:VC0C
+CPU Core 2:VC1C
+CPU Core 3:VC2C
+CPU Core 4:VC3C
+CPU Core 5:VC4C
+CPU Core 6:VC5C
+CPU Core 7:VC6C
+CPU Core 8:VC7C
+CPU VTT:VV1R
+GPU Core:VG0C
+Memory:VM0R
+PCH:VN1R
+MCH:VN0C
+Mainboard S0 Rail:VD0R
+Mainboard S5 Rail:VD5R
+12V Rail:VP0R
+12V Vcc:Vp0C
+Main 3V:VV2S
+Main 3.3V:VR3R
+Main 5V:VV1S
+Main 5V:VH05
+Main 12V:VV9S
+Main 12V:VD2R
+Auxiliary 3V:VV7S
+Standby 3V:VV3S
+Standby 5V:VV8S
+PCIe 12V:VeES
+Battery:VBAT
+CMOS Battery:Vb0R
+5V Low-Side:V50R
+ACC:VACC
+Wireless:VAPC
+Backlight Output Boosted:VBLC
+CPU AXG Low-Side:VC0G
+CPU Mem Load-Side:VC0M
+CPU VSA Low-Side:VC0S
+CPU High Side From EMC1704:VC1R
+FIVR CPU Supply:VCFR
+CPU Ripple:VCRC
+CPU Ripple:VCRP
+CPU Core:VCS0
+GPU Frame Buffer Input-Side:VG0F
+GPU VDDCI Load-Side:VG0I
+GPU A VDDCI Low-Side:VG0S
+GPU Uncore High-Side:VG0U
+GPU B Core Low-Side:VG1C
+GPU Frame Buffer Input-Side:VG1F
+GPU B VDDCI Low-Side:VG1S
+SSD 3V3 Low-Side:VH0R
+SSD 3.3V Low-Side:VH1R
+LCD IR:VL3t
+1.2V To CPU/MEM Low-Side:VM0C
+1.8V S3 Low-Side:VM1C
+Average GFX Vcore:VN0R
+MCP Memory:VN1C
+ODD:VODC
+PSU:VP0T
+PCH/GPU/TBT Load-Side:VR1R
+SD Card:VSDC
+T101 Accuator:VTPC
+WIFI:VZAP
+Backlight(VZBL):VZBL
+Memory:VZDM
+SSD:VZHD
+ODD:VZOD

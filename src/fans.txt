@@ -1,0 +1,5 @@
+Fan %d Current Speed:F%dAc
+Fan %d Minimal Speed:F%dMn
+Fan %d Maximum Speed:F%dMx
+Fan %d Safe Speed:F%dSf
+Fan %d Target Speed:F%dTg
