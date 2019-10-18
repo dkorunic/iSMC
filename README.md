@@ -70,7 +70,7 @@ I have taken a look at many Apple SMC related projects and took inspiration from
 * **VirtualSMC** Hackintosh kext: [github.com/acidanthera/VirtualSMC](https://github.com/acidanthera/VirtualSMC)
 * **osx-cpu-temp** to display CPU temperature in pure C: [github.com/lavoiesl/osx-cpu-temp](https://github.com/lavoiesl/osx-cpu-temp)
 * Linux kernel applesmc.c: [github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c](https://github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c)
-* low-level Go bindings for devnull SMC tool: [github.com/panotza/gosmc](ttps://github.com/panotza/gosmc)
+* low-level Go bindings for devnull SMC tool: [github.com/panotza/gosmc](https://github.com/panotza/gosmc)
 
 ## Todo
 
