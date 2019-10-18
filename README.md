@@ -58,6 +58,19 @@ Use "iSMC [command] --help" for more information about a command.
 
 Usage of all commands is self explanatory and all commands have short and long aliases (bat vs. batt vs. battery, cur vs. curr vs. current etc.). There are no flags and/or switches.
 
+## Related work
+
+I have taken a look at many Apple SMC related projects and took inspiration from them:
+
+* **SMCKit** Apple SMC library & tool in Swift: [github.com/beltex/SMCKit](/github.com/beltex/SMCKit)
+* SMC API in pure C: [github.com/beltex/libsmc](https://github.com/beltex/libsmc)
+* **iStats** Ruby Gem for Mac stats: [github.com/Chris911/iStats](https://github.com/Chris911/iStats)
+* **smcFanControl** tool to control fans in Objective-C (this includes **smc-command** to query raw SMC keys): [github.com/hholtmann/smcFanControl](https://github.com/hholtmann/smcFanControl)
+* **FakeSMC** Hackintosh kext: [github.com/RehabMan/OS-X-FakeSMC-kozlek](https://github.com/RehabMan/OS-X-FakeSMC-kozlek)
+* **VirtualSMC** Hackintosh kext: [github.com/acidanthera/VirtualSMC](https://github.com/acidanthera/VirtualSMC)
+* **osx-cpu-temp** to display CPU temperature in pure C: [github.com/lavoiesl/osx-cpu-temp](https://github.com/lavoiesl/osx-cpu-temp)
+* Linux kernel applesmc.c: [github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c](https://github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c)
+
 ## Bugs, feature requests, etc.
 
 Please open a PR or report an issue. Thanks!
