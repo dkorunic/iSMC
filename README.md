@@ -70,6 +70,17 @@ I have taken a look at many Apple SMC related projects and took inspiration from
 * **VirtualSMC** Hackintosh kext: [github.com/acidanthera/VirtualSMC](https://github.com/acidanthera/VirtualSMC)
 * **osx-cpu-temp** to display CPU temperature in pure C: [github.com/lavoiesl/osx-cpu-temp](https://github.com/lavoiesl/osx-cpu-temp)
 * Linux kernel applesmc.c: [github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c](https://github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c)
+* low-level Go bindings for devnull SMC tool: [github.com/panotza/gosmc](ttps://github.com/panotza/gosmc)
+
+## Todo
+
+Planned features:
+
+* fetch and decode SMC key descriptions from SMC,
+* generate random SMC keys and fetch/decode if available/usable,
+* store those extra (random) SMC keys in permanent configuration file,
+* add support for missing types (si*, hex_, pwm, etc.),
+* various code cleanups (some parts are downright horrible).
 
 ## Bugs, feature requests, etc.
 
