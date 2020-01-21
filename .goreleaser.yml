@@ -5,10 +5,10 @@ builds:
     - darwin
   goarch:
     - amd64
-archive:
-  replacements:
-    darwin: Darwin
-    amd64: x86_64
+archives:
+  - replacements:
+      darwin: Darwin
+      amd64: x86_64
 checksum:
   name_template: 'checksums.txt'
 snapshot:
