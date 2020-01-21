@@ -82,7 +82,7 @@ func printGeneric(desc, unit string, smcSlice []SensorStat) {
 			return
 		}
 
-		// TODO: Do better task at ignoring and reporting nvalid/missing values
+		// TODO: Do better task at ignoring and reporting invalid/missing values
 		if f != 0.0 && f != -127.0 && f != -0.0 {
 			if f < 0.0 {
 				f = -f
@@ -133,7 +133,7 @@ func PrintFans() {
 	t.AppendHeader(sensorOutputHeader)
 
 	n, ty, _ := getKeyUint32(c, FanNum) // Get number of fans
-	t.AppendRow([]interface{}{fmt.Sprintf("%+25v", "Fan Count"), FanNum, fmt.Sprintf("%8v", n),
+	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Fan Count"), FanNum, fmt.Sprintf("%8v", n),
 		ty})
 
 	for i := uint32(0); i < n; i++ {
@@ -178,11 +178,11 @@ func PrintBatt() {
 	i, ty2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
 	b, ty3, _ := getKeyBool(c, BattPwr)   // Get AC status
 
-	t.AppendRow([]interface{}{fmt.Sprintf("%+25v", "Battery Count"), BattNum,
+	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Battery Count"), BattNum,
 		fmt.Sprintf("%8v", n), ty1})
-	t.AppendRow([]interface{}{fmt.Sprintf("%+25v", "Battery Info"), BattInf,
+	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Battery Info"), BattInf,
 		fmt.Sprintf("%8v", i), ty2}) // TODO: Needs decoding!
-	t.AppendRow([]interface{}{fmt.Sprintf("%+25v", "Battery Powered"), BattPwr,
+	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Battery Powered"), BattPwr,
 		fmt.Sprintf("%8v", b), ty3})
 }
 

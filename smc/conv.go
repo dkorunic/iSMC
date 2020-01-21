@@ -96,3 +96,8 @@ func smcBytesToUint32(x gosmc.SMCBytes, size uint32) uint32 {
 	}
 	return total
 }
+
+// smcBytesToFloat32 converts ui8/ui16/ui32 SMC types to float32
+func smcBytesToFloat32(x gosmc.SMCBytes, size uint32) float32 {
+	return float32(smcBytesToUint32(x, size))
+}
