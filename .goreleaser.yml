@@ -1,6 +1,6 @@
 builds:
 - env:
-  - GO111MODULE=on
+  - CGO_ENABLED=1
   goos:
     - darwin
   goarch:
