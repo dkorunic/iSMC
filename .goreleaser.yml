@@ -1,21 +1,38 @@
 builds:
-- env:
-  - CGO_ENABLED=1
-  goos:
-    - darwin
-  goarch:
-    - amd64
+  - flags:
+      - -trimpath
+    env:
+      - CGO_ENABLED=1
+    ldflags: |
+      -s -w -extldflags '-static'
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+universal_binaries:
+  - replace: true
 archives:
   - replacements:
+      linux: Linux
       darwin: Darwin
+      windows: Windows
+      freebsd: FreeBSD
+      386: i386
       amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - "^docs:"
+      - "^test:"

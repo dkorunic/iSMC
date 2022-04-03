@@ -1,6 +1,6 @@
 module github.com/dkorunic/iSMC
 
-go 1.17
+go 1.18
 
 require (
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
@@ -21,5 +21,5 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.mongodb.org/mongo-driver v1.8.4 // indirect
-	golang.org/x/sys v0.0.0-20220317061510-51cd9980dadf // indirect
+	golang.org/x/sys v0.0.0-20220403020550-483a9cbc67c0 // indirect
 )

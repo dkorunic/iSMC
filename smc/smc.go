@@ -12,15 +12,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+//go:build darwin
 // +build darwin
 
 package smc
 
 import (
 	"fmt"
-	"github.com/panotza/gosmc"
 	"os"
 	"sort"
+
+	"github.com/panotza/gosmc"
 
 	"github.com/jedib0t/go-pretty/table"
 	log "github.com/sirupsen/logrus"
@@ -72,6 +74,7 @@ func printGeneric(desc, unit string, smcSlice []SensorStat) {
 		f, ty, err := getKeyFloat32(c, key)
 		if err != nil {
 			log.Errorf("unable to get SMC key %v: %v", key, err)
+
 			return
 		}
 
@@ -80,8 +83,10 @@ func printGeneric(desc, unit string, smcSlice []SensorStat) {
 			if f < 0.0 {
 				f = -f
 			}
-			t.AppendRow([]interface{}{desc,
-				key, fmt.Sprintf("%6.1f %s", f, unit), ty})
+			t.AppendRow([]interface{}{
+				desc,
+				key, fmt.Sprintf("%6.1f %s", f, unit), ty,
+			})
 		}
 	}
 }
@@ -126,8 +131,10 @@ func PrintFans() {
 	t.AppendHeader(sensorOutputHeader)
 
 	n, ty, _ := getKeyUint32(c, FanNum) // Get number of fans
-	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Fan Count"), FanNum, fmt.Sprintf("%8v", n),
-		ty})
+	t.AppendRow([]interface{}{
+		fmt.Sprintf("%v", "Fan Count"), FanNum, fmt.Sprintf("%8v", n),
+		ty,
+	})
 
 	for i := uint32(0); i < n; i++ {
 		for _, v := range AppleFans {
@@ -137,6 +144,7 @@ func PrintFans() {
 			f, ty, err := getKeyFloat32(c, key)
 			if err != nil {
 				log.Errorf("unable to get SMC key %v: %v", key, err)
+
 				return
 			}
 
@@ -171,12 +179,18 @@ func PrintBatt() {
 	i, ty2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
 	b, ty3, _ := getKeyBool(c, BattPwr)   // Get AC status
 
-	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Battery Count"), BattNum,
-		fmt.Sprintf("%8v", n), ty1})
-	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Battery Info"), BattInf,
-		fmt.Sprintf("%8v", i), ty2}) // TODO: Needs decoding!
-	t.AppendRow([]interface{}{fmt.Sprintf("%v", "Battery Powered"), BattPwr,
-		fmt.Sprintf("%8v", b), ty3})
+	t.AppendRow([]interface{}{
+		fmt.Sprintf("%v", "Battery Count"), BattNum,
+		fmt.Sprintf("%8v", n), ty1,
+	})
+	t.AppendRow([]interface{}{
+		fmt.Sprintf("%v", "Battery Info"), BattInf,
+		fmt.Sprintf("%8v", i), ty2,
+	}) // TODO: Needs decoding!
+	t.AppendRow([]interface{}{
+		fmt.Sprintf("%v", "Battery Powered"), BattPwr,
+		fmt.Sprintf("%8v", b), ty3,
+	})
 }
 
 // unknown/scan
