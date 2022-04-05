@@ -1,37 +1,49 @@
-PECI CPU:TCXC
-PECI CPU:TCXc
-CPU 1 Proximity:TC0P
-CPU 1 Heatsink:TC0H
-CPU 1 Package:TC0D
-CPU 1 Virtual:TC0E
-CPU 1 Virtual:TC0F
-CPU Core 1:TC1C
-CPU Core 2:TC2C
-CPU Core 3:TC3C
-CPU Core 4:TC4C
-CPU Core 5:TC5C
-CPU Core 6:TC6C
-CPU Core 7:TC7C
-CPU Core 8:TC8C
-CPU 1 Heatsink Alt:TCAH
-CPU 1 Package Alt:TCAD
-CPU 2 Proximity:TC1P
-CPU 2 Heatsink:TC1H
-CPU 2 Package:TC1D
-CPU 2:TC1E
-CPU 2:TC1F
-CPU 2 Heatsink Alt:TCBH
-CPU 2 Package Alt:TCBD
-PECI SA:TCSC
-PECI SA:TCSc
+Ambient %:TA%P
+Heatpipe %:Th%H
+Termal Zone %:TZ%C
+CPU Diode %:TC%D
+CPU Diode Virtual %:TC%E
+CPU Diode Filtered %:TC%F
+CPU Heatsink %:TC%H
+CPU Proximity %:TC%P
+CPU Package:TCAD
+CPU Core %:TC%c
+CPU Core %:TC%C
+GPU Intel Graphics:TCGC
+GPU Diode %:TG%D
+GPU AMD Radeon:TGDD
+GPU Heatsink %:TG%H
+GPU Proximity %:TG%P
+Mainboard %:Tm%P
+Powerboard %:Tp%P
+Battery %:TB%T
+Airport %:TW%P
+Display %:TL%P
+Thunderbolt %:TI%P
+Disk % (A):TH%A
+Disk % (B):TH%B
+Disk % (C):TH%C
+Northbridge Diode %:TN%D
+Northbridge Heatsink %:TN%H
+Northbridge Proximity %:TN%P
+CPU Efficiency Core 1:Tp09
+CPU Efficiency Core 2:Tp0T
+CPU Performance Core 1:Tp01
+CPU Performance Core 2:Tp05
+CPU Performance Core 3:Tp0D
+CPU Performance Core 4:Tp0H
+CPU Performance Core 5:Tp0L
+CPU Performance Core 6:Tp0P
+CPU Performance Core 7:Tp0X
+CPU Performance Core 8:Tp0b
+GPU 1:Tg05
+GPU 2:Tg0D
+GPU 3:Tg0L
+GPU 4:Tg0T
+Airflow Left:TaLP
+Airflow Right:TaRF
+NAND:TH0x
 PECI SA:TCSA
-PECI GPU:TCGC
-PECI GPU:TCGc
-GPU Proximity:TG0P
-GPU Die:TG0D
-GPU Die:TG1D
-GPU Heatsink:TG0H
-GPU Heatsink:TG1H
 Memory Proximity:Ts0S
 Mem Bank A1:TM0P
 Mem Bank A2:TM1P
@@ -41,42 +53,19 @@ Mem Module A1:TM0S
 Mem Module A2:TM1S
 Mem Module B1:TM8S
 Mem Module B2:TM9S
-Northbridge Die:TN0D
-Northbridge Proximity 1:TN0P
-Northbridge Proximity 2:TN1P
 MCH Die:TN0C
-MCH Heatsink:TN0H
 PCH Die:TP0D
 PCH Die:TPCD
 PCH Proximity:TP0P
-AirFlow 1:TA0P
-AirFlow 2:TA1P
-Heatpipe 1:Th0H
-Heatpipe 2:Th1H
-Heatpipe 3:Th2H
-Mainboard Proximity:Tm0P
-Powerboard Proximity:Tp0P
 Palm Rest:Ts0P
 BLC Proximity:Tb0P
-LCD Proximity:TL0P
-Airport Proximity:TW0P
 HDD Bay 1:TH0P
 HDD Bay 2:TH1P
 HDD Bay 3:TH2P
 HDD Bay 4:TH3P
 Optical Drive:TO0P
-Battery TS_MAX:TB0T
-Battery 1:TB1T
-Battery 2:TB2T
-Battery:TB3T
-Power Supply 1:Tp0P
 Power Supply 1 Alt:Tp0C
-Power Supply 2:Tp1P
 Power Supply 2 Alt:Tp1C
-Power Supply 3:Tp2P
-Power Supply 4:Tp3P
-Power Supply 5:Tp4P
-Power Supply 6:Tp5P
 Expansion Slots:TS0C
 PCI Slot 1 Pos 1:TA0S
 PCI Slot 1 Pos 2:TA1S
@@ -84,27 +73,15 @@ PCI Slot 2 Pos 1:TA2S
 PCI Slot 2 Pos 2:TA3S
 Ambient Light Sensor Temperature 1:ALT0
 Ambient Light Sensor Temperature 2:ALT1
-Thunderbolt Proximity 1:TI0P
-Thunderbolt Proximity 2:TI1P
 Ambient Virtual:TA0V
-Ambient Raw:TA0p
+Ambient 1 Raw:TA0p
 Ambient 2 Raw:TA1p
-Ambient Cooked 2:TA2P
 Ambient 3 Raw:TA2p
-Battery:TBXT
-CPU Core PECI:TC0C
 CPU PECI Die Max Error:TC0J
 CPU PECI Die Trend:TC0T
-CPU Core 0 Absolute Raw:TC0c
 CPU Die Raw:TC0d
 CPU Proximity Raw:TC0p
-CPU Core 1 Absolute Raw:TC1c
-CPU Core 2 Absolute Raw:TC2c
-CPU Core 3 Absolute Raw:TC3c
-Charger Proximity:TCHP
 Max PECI Reported:TCMX
-CPU EDRAM Hot Indicator:TCMc
-CPU PECI Die Trend:TCTD
 CPU Max Package Core Relative Cooked:TCXR
 CPU Max Package Core Relative Raw:TCXr
 GPU 0 Die Filtered For Fan Control:TG0E
@@ -114,19 +91,11 @@ GFX Memory:TG0M
 GPU Die Analog:TG0T
 GPU 0 Die Raw:TG0d
 GPU 0 Proximity Raw:TG0p
-GPU Digital Die Filtered:TG1F
-GPU A VRAM Proximity Cooked:TG1P
-GPU Digital Die Raw:TG1d
-GPU GDDR5 Proximity 1 Raw:TG1p
-GPU A VR Proximity Cooked:TG2P
-GPU VR Proximity 2 Raw:TG2p
-GPU B Proximity Cooked:TG3P
-GPU FB VR Proximity 3:TG3p
-GPU B VRAM Proximity Cooked:TG4P
-GPU B VR Proximity Cooked:TG5P
-Drive OOBv3 Absolute Cooked A:TH0A
-Drive OOBv3 Absolute Cooked B:TH0B
-Drive OOBv3 Absolute Cooked C:TH0C
+GPU 1 Die Filtered:TG1F
+GPU 1 Die Raw:TG1d
+GPU 1 Proximity Raw:TG1p
+GPU 2 Proximity Raw:TG2p
+GPU 3 Proximity Raw:TG3p
 Drive OOBv3 Relative Filtered Max:TH0F
 Drive 0 OOBv1 Mapped:TH0O
 Drive 0 OOBv3 Relative Cooked Max:TH0R
@@ -138,9 +107,6 @@ Drive 0 OOBv3 Absolute Raw C:TH0c
 Drive 0 Sensor Existence Used For TM0V:TH0e
 Drive 0 OOBv1 Raw Bit-Mapped:TH0o
 Drive 0 OOBv3 Max:TH0x
-SSD 1 OOBv3 Absolute Cooked A:TH1A
-SSD 1 OOBv3 Absolute Cooked B:TH1B
-SSD 1 OOBv3 Absolute Cooked C:TH1C
 SSD 1:TH1F
 Drive 1 OOBv1 Mapped:TH1O
 SSD 1:TH1R
@@ -155,7 +121,6 @@ Thunderbolt Proximity Cooked:TI0T
 TBT Proximity Raw:TI0p
 LCD Filtered Right Front-Of-Screen Virtual:TL0V
 LCD UnFiltered Front-Of-Screen Raw:TL0p
-LCD TCON Proximity Cooked:TL1P
 LCD TL1v-Filtered Center Front-Of-Screen For Color Compensation:TL1V
 LCD TCON Proximity Raw:TL1p
 LCD TL1v-Filtered Center Front-Of-Screen For Color Compensation:TL1v
@@ -187,7 +152,6 @@ Memory Controller/Integrated Graphics PECI:TMCD
 Dimm Proximity:TMLB
 DIMM Max Cooked:TMXD
 DIMM Proximity Max Cooked:TMXP
-MCP Die2:TN1D
 PCH Digital Die Raw:TPCd
 Speaker Remote:TS0D
 Speaker Proximity:TS0P
@@ -209,14 +173,10 @@ Nand:Th0N
 Heat Spreader Proximity:Th0P
 RIO:Th0R
 EMC1428 Internal Diode Raw:Tm0p
-MLB Bottom Side:Tm1P
 MLB Proximity 1 Raw:Tm1p
-MLB Proximity 2 Cooked:Tm2P
 MLB Proximity 2 Raw:Tm2p
-PSU Secondary H/S Diode Cooked:Tp0T
 Power Supply T2 Secondary Heatsink Filtered:Tp2F
 Power Supply T2 Secondary Heatsink Cooked:Tp2H
 Power Supply T2 Secondary Heatsink Raw:Tp2h
-Filtered Power Supply 1 Proximity:TpFP
 Actuator:Ts1P
 Synthetic Top Skin:Ts1S

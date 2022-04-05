@@ -13,7 +13,6 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 //go:build darwin
-// +build darwin
 
 package smc
 
@@ -21,19 +20,21 @@ import (
 	"fmt"
 	"os"
 	"sort"
-
-	"github.com/panotza/gosmc"
+	"strconv"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/table"
+	"github.com/panotza/gosmc"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	AppleSMC = "AppleSMC"
-	FanNum   = "FNum"
-	BattNum  = "BNum"
-	BattPwr  = "BATP"
-	BattInf  = "BSIn"
+	AppleSMC    = "AppleSMC"
+	FanNum      = "FNum"
+	BattNum     = "BNum"
+	BattPwr     = "BATP"
+	BattInf     = "BSIn"
+	KeyWildcard = "%"
 )
 
 // SensorStat is SMC key to description mapping
@@ -71,23 +72,36 @@ func printGeneric(desc, unit string, smcSlice []SensorStat) {
 		key := v.Key
 		desc := v.Desc
 
-		f, ty, err := getKeyFloat32(c, key)
-		if err != nil {
-			log.Errorf("unable to get SMC key %v: %v", key, err)
-
-			return
+		if !strings.Contains(key, KeyWildcard) {
+			getKeyAndPrint(c, key, t, desc, unit)
+			continue
 		}
 
-		// TODO: Do better task at ignoring and reporting invalid/missing values
-		if f != 0.0 && f != -127.0 && f != -0.0 {
-			if f < 0.0 {
-				f = -f
-			}
-			t.AppendRow([]interface{}{
-				desc,
-				key, fmt.Sprintf("%6.1f %s", f, unit), ty,
-			})
+		for i := 0; i < 10; i++ {
+			tmpKey := strings.Replace(key, KeyWildcard, strconv.Itoa(i), 1)
+			tmpDesc := strings.Replace(desc, KeyWildcard, strconv.Itoa(i+1), 1)
+			getKeyAndPrint(c, tmpKey, t, tmpDesc, unit)
 		}
+
+	}
+}
+
+func getKeyAndPrint(c uint, key string, t table.Writer, desc string, unit string) {
+	f, ty, err := getKeyFloat32(c, key)
+	if err != nil {
+		return
+	}
+
+	// TODO: Do better task at ignoring and reporting invalid/missing values
+	if f != 0.0 && f != -127.0 && f != -0.0 {
+		if f < 0.0 {
+			f = -f
+		}
+
+		t.AppendRow([]interface{}{
+			desc,
+			key, fmt.Sprintf("%6.1f %s", f, unit), ty,
+		})
 	}
 }
 

@@ -1,7 +1,7 @@
 CPU Core:IC0C
 CPU VccIO:IC1C
 CPU VccSA:IC2C
-CPU Rail:IC0R
+CPU High Side:IC0R
 CPU DRAM:IC5R
 CPU PLL:IC8R
 CPU GFX:IC0G
@@ -10,7 +10,7 @@ GPU Rail:IG0C
 Memory Controller:IM0C
 Memory Rail:IM0R
 MCH:IN0C
-Mainboard S0 Rail:ID0R
+Mainboard S0 Rail (DC In):ID0R
 Mainboard S5 Rail:ID5R
 Misc. Rail:IO0R
 Battery Rail:IB0R
@@ -19,14 +19,14 @@ Charger BMON:IPBR
 WLAN Low-Side:IAPC
 Battery:IBAC
 Backlight:IBLC
-CPU I/O High-Side:IC0I
-CPU SA High-Side:IC0S
-CPU High-Side From EMC1704:IC1R
+CPU I/O High Side:IC0I
+CPU SA High Side:IC0S
+CPU High Side From EMC1704:IC1R
 CPU DDR:IC3C
 Camera S2:ICMC
 CPU Core:ICS0
 CPU From CPU IMON:ICS1
-CPU Riser 12V High-Side:ICTR
+CPU Riser 12V High Side:ICTR
 CPU 1V5 Average:ID1R
 Power Supply 12V Filtered:ID2E
 Power Supply 12V Filter Input S7.8:ID2I
@@ -35,13 +35,13 @@ Power Supply 12V:ID2R
 Power Supply 12V Trend:ID2T
 GPU FB Input-Side:IG0F
 GPU VDDCI Load-Side:IG0I
-GPU High-Side Average:IG0R
+GPU High Side:IG0R
 GPU A VDDCI Low-Side:IG0S
-GPU Uncore High-Side:IG0U
+GPU Uncore High Side:IG0U
 GPU Aux Input-Side:IG1A
 GPU Core Input-Side:IG1C
 GPU FB Input-Side:IG1F
-GFX B Riser 12V High-Side:IG1R
+GFX B Riser 12V High Side:IG1R
 GPU B VDDCI Low-Side:IG1S
 Ext GPU 1.05V:IG2C
 Ext GPU VRAM & I/O:IG3C
@@ -52,12 +52,12 @@ SSD 3.3V Low-Side:IH1R
 SSD:IHDC
 Thunderbolt:IHSC
 Thunderbolt:IHSP
-TBT IO High-Side:II0R
+TBT IO High Side:II0R
 LCD Panel:ILDC
 1.8V S3 Low-Side:IM1C
 LPDDR 1.8V:IM2C
 DDR S3:IM3C
-Memory 1V5 High-Side:IMTR
+Memory 1V5 High Side:IMTR
 GFX Vcore Average:IN0R
 MCP DDR:IN1C
 PCH Low-Side:IN1R
@@ -67,8 +67,8 @@ ODD:IODC
 Battery Discrete:IP0R
 Discrete Battery:IPB1
 3.3V S0:IR0C
-Other High-Side:IR1C
-PCH/GPU/TBT 1.05V High-Side:IR1R
+Other High Side:IR1C
+PCH/GPU/TBT 1.05V High Side:IR1R
 S3 5.0V:IR2C
 3.3V S0:IR3C
 5.0V S0:IR5C
