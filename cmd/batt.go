@@ -17,10 +17,7 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/dkorunic/iSMC/smc"
-	"github.com/jedib0t/go-pretty/table"
+	"github.com/dkorunic/iSMC/output"
 	"github.com/spf13/cobra"
 )
 
@@ -30,12 +27,7 @@ var battCmd = &cobra.Command{
 	Aliases: []string{"battery", "bat"},
 	Short:   "Display battery status",
 	Run: func(cmd *cobra.Command, args []string) {
-		t := table.NewWriter()
-		defer t.Render()
-
-		setupTable(t)
-		fmt.Println("Battery:")
-		smc.PrintBatt(t)
+		output.OutputFactory(OutputFlag).Battery()
 	},
 }
 

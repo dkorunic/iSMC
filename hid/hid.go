@@ -24,8 +24,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/jedib0t/go-pretty/table"
 )
 import "github.com/fvbommel/sortorder"
 
@@ -40,8 +38,8 @@ type SensorStat struct {
 	Value float32 // HID sensor readout
 }
 
-// printGeneric prints a table of HID sensors (description) and values with units.
-func printGeneric(t table.Writer, unit string, cStr *C.char) {
+// getGeneric returns a map of HID sensor stats.
+func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 	var stats []SensorStat
 	goStr := C.GoString(cStr)
 	scanner := bufio.NewScanner(strings.NewReader(goStr))
@@ -70,14 +68,18 @@ func printGeneric(t table.Writer, unit string, cStr *C.char) {
 
 	sort.Slice(stats, func(i, j int) bool { return sortorder.NaturalLess(stats[i].Name, stats[j].Name) })
 
+	generic := make(map[string]interface{})
+
 	for _, v := range stats {
-		name := v.Name
+		desc := v.Name
 		val := v.Value
-		t.AppendRow([]interface{}{
-			name,
-			"",
-			fmt.Sprintf("%7.2f %s", val, unit),
-			SensorType,
-		})
+
+		generic[desc] = map[string]interface{}{
+			"key":   "",
+			"value": fmt.Sprintf("%.2f %s", val, unit),
+			"type":  SensorType,
+		}
 	}
+
+	return generic
 }

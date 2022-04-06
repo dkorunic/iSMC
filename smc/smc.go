@@ -25,9 +25,7 @@ import (
 	"strings"
 
 	"github.com/fvbommel/sortorder"
-	"github.com/jedib0t/go-pretty/table"
 	"github.com/panotza/gosmc"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -41,99 +39,80 @@ const (
 
 // SensorStat is SMC key to description mapping.
 type SensorStat struct {
-	Key  string // SMC key name
-	Desc string // SMC key description
+	// SMC key name
+	Key string
+	// SMC key description
+	Desc string
 }
 
 //go:generate ./gen-sensors.sh sensors.go
 
-// printGeneric prints a table of SMC keys, description and decoded values with units.
-func printGeneric(t table.Writer, unit string, smcSlice []SensorStat) {
+func GetAll() map[string]interface{} { // Get all sensors
+	sensors := make(map[string]interface{})
+
+	sensors["Battery"] = GetBattery()
+	sensors["Current"] = GetCurrent()
+	sensors["Fans"] = GetFans()
+	sensors["Temperature"] = GetTemperature()
+	sensors["Power"] = GetPower()
+	sensors["Voltage"] = GetVoltage()
+
+	return sensors
+}
+
+func GetBattery() map[string]interface{} {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
-		log.Errorf("unable to open Apple SMC; return code %v\n", res)
+		fmt.Errorf("unable to open Apple SMC; return code %v\n", res)
 		os.Exit(1)
 	}
 	defer gosmc.SMCClose(c)
 
-	sort.Slice(smcSlice, func(i, j int) bool { return sortorder.NaturalLess(smcSlice[i].Desc, smcSlice[j].Desc) })
+	n, ty1, _ := getKeyUint32(c, BattNum) // Get number of batteries
+	i, ty2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
+	b, ty3, _ := getKeyBool(c, BattPwr)   // Get AC status
 
-	for _, v := range smcSlice {
-		key := v.Key
-		desc := v.Desc
-
-		if !strings.Contains(key, KeyWildcard) {
-			getKeyAndPrint(t, c, key, desc, unit)
-
-			continue
-		}
-
-		for i := 0; i < 10; i++ {
-			tmpKey := strings.Replace(key, KeyWildcard, strconv.Itoa(i), 1)
-			tmpDesc := strings.Replace(desc, KeyWildcard, strconv.Itoa(i+1), 1)
-			getKeyAndPrint(t, c, tmpKey, tmpDesc, unit)
-		}
-	}
-}
-
-// getKeyAndPrint fetches key value for a given SMC key and prints a table entry.
-func getKeyAndPrint(t table.Writer, c uint, key string, desc string, unit string) {
-	val, smcType, err := getKeyFloat32(c, key)
-	if err != nil {
-		return
+	battery := map[string]interface{}{
+		"Battery Count": map[string]interface{}{
+			"key":   BattNum,
+			"value": n,
+			"type":  ty1,
+		},
+		"Battery Info": map[string]interface{}{
+			"key":   BattInf,
+			"value": i,
+			"type":  ty2,
+		},
+		"Battery Power": map[string]interface{}{
+			"key":   BattPwr,
+			"value": b,
+			"type":  ty3,
+		},
 	}
 
-	// TODO: Do better task at ignoring and reporting invalid/missing values
-	if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
-		if val < 0.0 {
-			val = -val
-		}
-
-		t.AppendRow([]interface{}{
-			desc,
-			key,
-			fmt.Sprintf("%7.2f %s", val, unit),
-			smcType,
-		})
-	}
+	return battery
 }
 
-// PrintTemp prints detected temperature sensor results.
-func PrintTemp(t table.Writer) {
-	printGeneric(t, "°C", AppleTemp)
+func GetCurrent() map[string]interface{} {
+	return getGeneric("Current", "A", AppleCurrent)
 }
 
-// PrintPower prints detected power sensor results.
-func PrintPower(t table.Writer) {
-	printGeneric(t, "W", ApplePower)
-}
-
-// PrintVoltage prints detected voltage sensor results.
-func PrintVoltage(t table.Writer) {
-	printGeneric(t, "V", AppleVoltage)
-}
-
-// PrintCurrent prints detected current sensor results.
-func PrintCurrent(t table.Writer) {
-	printGeneric(t, "A", AppleCurrent)
-}
-
-// PrintFans prints detected fan results.
-func PrintFans(t table.Writer) {
+func GetFans() map[string]interface{} {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
-		log.Errorf("unable to open Apple SMC; return code %v\n", res)
+		fmt.Errorf("unable to open Apple SMC; return code %v\n", res)
 		os.Exit(1)
 	}
 	defer gosmc.SMCClose(c)
+
+	fans := make(map[string]interface{})
 
 	val, smcType, _ := getKeyUint32(c, FanNum) // Get number of fans
-	t.AppendRow([]interface{}{
-		fmt.Sprintf("%v", "Fan Count"),
-		FanNum,
-		fmt.Sprintf("%9v", val),
-		smcType,
-	})
+	fans["Fan Count"] = map[string]interface{}{
+		"key":   FanNum,
+		"value": val,
+		"type":  smcType,
+	}
 
 	for i := uint32(0); i < val; i++ {
 		for _, v := range AppleFans {
@@ -142,57 +121,83 @@ func PrintFans(t table.Writer) {
 
 			val, smcType, err := getKeyFloat32(c, key)
 			if err != nil {
-				log.Errorf("unable to get SMC key %v: %v", key, err)
-
-				return
+				fmt.Errorf("unable to get SMC key %v: %v", key, err)
+				return make(map[string]interface{})
 			}
 
 			if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
 				if val < 0.0 {
 					val = -val
 				}
-
-				t.AppendRow([]interface{}{
-					desc,
-					key,
-					fmt.Sprintf("%4.0f rpm", val),
-					smcType,
-				})
+				fans[desc] = map[string]interface{}{
+					"key":   key,
+					"value": fmt.Sprintf("%4.0f rpm", val),
+					"type":  smcType,
+				}
 			}
+		}
+	}
+
+	return fans
+}
+
+func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]interface{} {
+	conn, res := gosmc.SMCOpen(AppleSMC)
+	if res != gosmc.IOReturnSuccess {
+		fmt.Errorf("unable to open Apple SMC; return code %v\n", res)
+		os.Exit(1)
+	}
+	defer gosmc.SMCClose(conn)
+
+	sort.Slice(smcSlice, func(i, j int) bool { return sortorder.NaturalLess(smcSlice[i].Desc, smcSlice[j].Desc) })
+
+	generic := make(map[string]interface{})
+
+	for _, v := range smcSlice {
+		key := v.Key
+		desc := v.Desc
+
+		if !strings.Contains(key, KeyWildcard) {
+			addGeneric(generic, conn, key, desc, unit)
+			continue
+		}
+
+		for i := 0; i < 10; i++ {
+			iKey := strings.Replace(key, KeyWildcard, strconv.Itoa(i), 1)
+			iDesc := strings.Replace(desc, KeyWildcard, strconv.Itoa(i+1), 1)
+			addGeneric(generic, conn, iKey, iDesc, unit)
+		}
+	}
+
+	return generic
+}
+
+func addGeneric(generic map[string]interface{}, conn uint, key, desc, unit string) {
+	val, smcType, err := getKeyFloat32(conn, key)
+	if err != nil {
+		return
+	}
+
+	if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
+		if val < 0.0 {
+			val = -val
+		}
+		generic[desc] = map[string]interface{}{
+			"key":   key,
+			"value": fmt.Sprintf("%.1f %s", val, unit),
+			"type":  smcType,
 		}
 	}
 }
 
-// PrintBatt prints detected battery results.
-// TODO: Needs battery info decoding (hex_ SMC key type).
-func PrintBatt(t table.Writer) {
-	c, res := gosmc.SMCOpen(AppleSMC)
-	if res != gosmc.IOReturnSuccess {
-		log.Errorf("unable to open Apple SMC; return code %v\n", res)
-		os.Exit(1)
-	}
-	defer gosmc.SMCClose(c)
+func GetPower() map[string]interface{} {
+	return getGeneric("Power", "W", ApplePower)
+}
 
-	n, smcType1, _ := getKeyUint32(c, BattNum) // Get number of batteries
-	i, smcType2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
-	b, smcType3, _ := getKeyBool(c, BattPwr)   // Get AC status
+func GetTemperature() map[string]interface{} {
+	return getGeneric("Temperature", "°C", AppleTemp)
+}
 
-	t.AppendRow([]interface{}{
-		fmt.Sprintf("%v", "Battery Count"),
-		BattNum,
-		fmt.Sprintf("%9v", n),
-		smcType1,
-	})
-	t.AppendRow([]interface{}{
-		fmt.Sprintf("%v", "Battery Info"),
-		BattInf,
-		fmt.Sprintf("%9v", i),
-		smcType2,
-	}) // TODO: Needs decoding!
-	t.AppendRow([]interface{}{
-		fmt.Sprintf("%v", "Battery Powered"),
-		BattPwr,
-		fmt.Sprintf("%9v", b),
-		smcType3,
-	})
+func GetVoltage() map[string]interface{} {
+	return getGeneric("Voltage", "V", AppleVoltage)
 }

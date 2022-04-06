@@ -189,30 +189,39 @@ import "C"
 
 import (
 	"unsafe"
-
-	"github.com/jedib0t/go-pretty/table"
 )
 
-// PrintCurrent prints detected current sensor results.
-func PrintCurrent(t table.Writer) {
+// GetAll returns all detected HID sensor results.
+func GetAll() map[string]interface{} {
+	sensors := make(map[string]interface{})
+
+	sensors["Current"] = GetCurrent()
+	sensors["Temperature"] = GetTemperature()
+	sensors["Voltage"] = GetVoltage()
+
+	return sensors
+}
+
+// GetCurrent returns detected HID current sensor results.
+func GetCurrent() map[string]interface{} {
 	cStr := C.getCurrents()
 	defer C.free(unsafe.Pointer(cStr))
 
-	printGeneric(t, "A", cStr)
+	return getGeneric("A", cStr)
 }
 
-// PrintVoltage prints detected voltage sensor results.
-func PrintVoltage(t table.Writer) {
+// GetVoltage returns detected HID voltage sensor results.
+func GetVoltage() map[string]interface{} {
 	cStr := C.getVoltages()
 	defer C.free(unsafe.Pointer(cStr))
 
-	printGeneric(t, "V", cStr)
+	return getGeneric("V", cStr)
 }
 
-// PrintTemp prints detected temperature sensor results.
-func PrintTemp(t table.Writer) {
+// GetTemp returns detected HID temperature sensor results.
+func GetTemperature() map[string]interface{} {
 	cStr := C.getThermals()
 	defer C.free(unsafe.Pointer(cStr))
 
-	printGeneric(t, "°C", cStr)
+	return getGeneric("°C", cStr)
 }

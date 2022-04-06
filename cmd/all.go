@@ -17,8 +17,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/dkorunic/iSMC/output"
 	"github.com/spf13/cobra"
 )
 
@@ -28,16 +27,6 @@ var allCmd = &cobra.Command{
 	Aliases: []string{"everything", "*"},
 	Short:   "Display all known sensors, fans and battery status",
 	Run: func(cmd *cobra.Command, args []string) {
-		tempCmd.Run(cmd, args)
-		fmt.Println("")
-		fansCmd.Run(cmd, args)
-		fmt.Println("")
-		battCmd.Run(cmd, args)
-		fmt.Println("")
-		powerCmd.Run(cmd, args)
-		fmt.Println("")
-		voltCmd.Run(cmd, args)
-		fmt.Println("")
-		currCmd.Run(cmd, args)
+		output.OutputFactory(OutputFlag).All()
 	},
 }

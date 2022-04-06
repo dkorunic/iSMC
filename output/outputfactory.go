@@ -1,4 +1,4 @@
-// Copyright (C) 2022  Dinko Korunic
+// Copyright (C) 2022 Roland Schaer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,20 +12,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package cmd
+//go:build darwin
 
-import (
-	"os"
+package output
 
-	"github.com/jedib0t/go-pretty/table"
-)
-
-var sensorOutputHeader = table.Row{"Description", "Key", "Value", "Type"} // row header definition
-
-func setupTable(t table.Writer) {
-	t.SetOutputMirror(os.Stdout)
-	if !asciiPrint {
-		t.SetStyle(table.StyleColoredBright)
+func OutputFactory(outputType string) Output {
+	switch outputType {
+	case "table":
+		return NewTableOutput(false)
+	case "json":
+		return NewJSONOutput()
+	default:
+		return NewTableOutput(true)
 	}
-	t.AppendHeader(sensorOutputHeader)
 }
