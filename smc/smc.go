@@ -18,6 +18,7 @@ package smc
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -45,8 +46,6 @@ type SensorStat struct {
 
 //go:generate ./gen-sensors.sh sensors.go
 
-var sensorOutputHeader = table.Row{"Description", "Key", "Value", "Type"} // row header definition
-
 // printGeneric prints a table of SMC keys, description and decoded values with units.
 func printGeneric(t table.Writer, desc, unit string, smcSlice []SensorStat) {
 	c, res := gosmc.SMCOpen(AppleSMC)
@@ -55,10 +54,6 @@ func printGeneric(t table.Writer, desc, unit string, smcSlice []SensorStat) {
 		os.Exit(1)
 	}
 	defer gosmc.SMCClose(c)
-
-	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleColoredBright)
-	t.AppendHeader(sensorOutputHeader)
 
 	sort.Slice(smcSlice, func(i, j int) bool { return smcSlice[i].Key < smcSlice[j].Key })
 
@@ -88,7 +83,7 @@ func getKeyAndPrint(t table.Writer, c uint, key string, desc string, unit string
 	}
 
 	// TODO: Do better task at ignoring and reporting invalid/missing values
-	if val != -127.0 && val != 0.0 {
+	if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
 		if val < 0.0 {
 			val = -val
 		}
@@ -96,7 +91,7 @@ func getKeyAndPrint(t table.Writer, c uint, key string, desc string, unit string
 		t.AppendRow([]interface{}{
 			desc,
 			key,
-			fmt.Sprintf("%6.1f %s", val, unit),
+			fmt.Sprintf("%7.2f %s", val, unit),
 			smcType,
 		})
 	}
@@ -131,15 +126,11 @@ func PrintFans(t table.Writer) {
 	}
 	defer gosmc.SMCClose(c)
 
-	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleColoredBright)
-	t.AppendHeader(sensorOutputHeader)
-
 	val, smcType, _ := getKeyUint32(c, FanNum) // Get number of fans
 	t.AppendRow([]interface{}{
 		fmt.Sprintf("%v", "Fan Count"),
 		FanNum,
-		fmt.Sprintf("%8v", val),
+		fmt.Sprintf("%9v", val),
 		smcType,
 	})
 
@@ -155,7 +146,7 @@ func PrintFans(t table.Writer) {
 				return
 			}
 
-			if val != -127.0 && val != 0.0 {
+			if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
 				if val < 0.0 {
 					val = -val
 				}
@@ -181,10 +172,6 @@ func PrintBatt(t table.Writer) {
 	}
 	defer gosmc.SMCClose(c)
 
-	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleColoredBright)
-	t.AppendHeader(sensorOutputHeader)
-
 	n, smcType1, _ := getKeyUint32(c, BattNum) // Get number of batteries
 	i, smcType2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
 	b, smcType3, _ := getKeyBool(c, BattPwr)   // Get AC status
@@ -192,19 +179,19 @@ func PrintBatt(t table.Writer) {
 	t.AppendRow([]interface{}{
 		fmt.Sprintf("%v", "Battery Count"),
 		BattNum,
-		fmt.Sprintf("%8v", n),
+		fmt.Sprintf("%9v", n),
 		smcType1,
 	})
 	t.AppendRow([]interface{}{
 		fmt.Sprintf("%v", "Battery Info"),
 		BattInf,
-		fmt.Sprintf("%8v", i),
+		fmt.Sprintf("%9v", i),
 		smcType2,
 	}) // TODO: Needs decoding!
 	t.AppendRow([]interface{}{
 		fmt.Sprintf("%v", "Battery Powered"),
 		BattPwr,
-		fmt.Sprintf("%8v", b),
+		fmt.Sprintf("%9v", b),
 		smcType3,
 	})
 }

@@ -34,8 +34,8 @@ var tempCmd = &cobra.Command{
 		t := table.NewWriter()
 		defer t.Render()
 
+		setupTable(t)
 		fmt.Println("Temperature:")
-
 		smc.PrintTemp(t)
 		hid.PrintTemp(t)
 	},

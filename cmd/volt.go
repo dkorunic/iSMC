@@ -34,8 +34,8 @@ var voltCmd = &cobra.Command{
 		t := table.NewWriter()
 		defer t.Render()
 
+		setupTable(t)
 		fmt.Println("Voltage:")
-
 		smc.PrintVoltage(t)
 		hid.PrintVoltage(t)
 	},

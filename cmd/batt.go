@@ -33,8 +33,8 @@ var battCmd = &cobra.Command{
 		t := table.NewWriter()
 		defer t.Render()
 
+		setupTable(t)
 		fmt.Println("Battery:")
-
 		smc.PrintBatt(t)
 	},
 }

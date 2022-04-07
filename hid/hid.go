@@ -20,6 +20,7 @@ import (
 	"C"
 	"bufio"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ func printGeneric(t table.Writer, unit string, cStr *C.char) {
 			continue
 		}
 
-		if val != -127.0 && val != 0.0 {
+		if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
 			if val < 0.0 {
 				val = -val
 			}
@@ -76,7 +77,7 @@ func printGeneric(t table.Writer, unit string, cStr *C.char) {
 		t.AppendRow([]interface{}{
 			name,
 			"",
-			fmt.Sprintf("%6.1f %s", val, unit),
+			fmt.Sprintf("%7.2f %s", val, unit),
 			SensorType,
 		})
 	}

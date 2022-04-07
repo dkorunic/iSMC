@@ -1,4 +1,4 @@
-// Copyright (C) 2019  Dinko Korunic
+// Copyright (C) 2022  Dinko Korunic
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,33 +12,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-//go:build darwin
-
 package cmd
 
 import (
-	"fmt"
+	"os"
 
-	"github.com/dkorunic/iSMC/smc"
 	"github.com/jedib0t/go-pretty/table"
-	"github.com/spf13/cobra"
 )
 
-// rootCmd represents fans command.
-var fansCmd = &cobra.Command{
-	Use:     "fans",
-	Aliases: []string{"fan"},
-	Short:   "Display fans status",
-	Run: func(cmd *cobra.Command, args []string) {
-		t := table.NewWriter()
-		defer t.Render()
+var sensorOutputHeader = table.Row{"Description", "Key", "Value", "Type"} // row header definition
 
-		setupTable(t)
-		fmt.Println("Fans:")
-		smc.PrintFans(t)
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(fansCmd)
+func setupTable(t table.Writer) {
+	t.SetOutputMirror(os.Stdout)
+	t.SetStyle(table.StyleColoredBright)
+	t.AppendHeader(sensorOutputHeader)
 }

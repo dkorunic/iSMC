@@ -34,8 +34,8 @@ var currCmd = &cobra.Command{
 		t := table.NewWriter()
 		defer t.Render()
 
+		setupTable(t)
 		fmt.Println("Current:")
-
 		smc.PrintCurrent(t)
 		hid.PrintCurrent(t)
 	},

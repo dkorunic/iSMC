@@ -33,8 +33,8 @@ var powerCmd = &cobra.Command{
 		t := table.NewWriter()
 		defer t.Render()
 
+		setupTable(t)
 		fmt.Println("Power:")
-
 		smc.PrintPower(t)
 	},
 }
