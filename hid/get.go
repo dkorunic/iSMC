@@ -214,5 +214,5 @@ func PrintTemp(t table.Writer) {
 	cStr := C.getThermals()
 	defer C.free(unsafe.Pointer(cStr))
 
-	printGeneric(t, "C", cStr)
+	printGeneric(t, "°C", cStr)
 }

@@ -47,7 +47,7 @@ type SensorStat struct {
 //go:generate ./gen-sensors.sh sensors.go
 
 // printGeneric prints a table of SMC keys, description and decoded values with units.
-func printGeneric(t table.Writer, desc, unit string, smcSlice []SensorStat) {
+func printGeneric(t table.Writer, unit string, smcSlice []SensorStat) {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
 		log.Errorf("unable to open Apple SMC; return code %v\n", res)
@@ -99,22 +99,22 @@ func getKeyAndPrint(t table.Writer, c uint, key string, desc string, unit string
 
 // PrintTemp prints detected temperature sensor results.
 func PrintTemp(t table.Writer) {
-	printGeneric(t, "Temperature:", "°C", AppleTemp)
+	printGeneric(t, "°C", AppleTemp)
 }
 
 // PrintPower prints detected power sensor results.
 func PrintPower(t table.Writer) {
-	printGeneric(t, "Power:", "W", ApplePower)
+	printGeneric(t, "W", ApplePower)
 }
 
 // PrintVoltage prints detected voltage sensor results.
 func PrintVoltage(t table.Writer) {
-	printGeneric(t, "Voltage:", "V", AppleVoltage)
+	printGeneric(t, "V", AppleVoltage)
 }
 
 // PrintCurrent prints detected current sensor results.
 func PrintCurrent(t table.Writer) {
-	printGeneric(t, "Current:", "A", AppleCurrent)
+	printGeneric(t, "A", AppleCurrent)
 }
 
 // PrintFans prints detected fan results.
