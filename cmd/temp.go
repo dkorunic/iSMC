@@ -17,16 +17,30 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/dkorunic/iSMC/hid"
 	"github.com/dkorunic/iSMC/smc"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents temp command
+// rootCmd represents temp command.
 var tempCmd = &cobra.Command{
 	Use:     "temp",
 	Aliases: []string{"temperature", "tmp"},
 	Short:   "Display temperature sensors",
 	Run: func(cmd *cobra.Command, args []string) {
-		smc.PrintTemp()
+		t := table.NewWriter()
+		defer t.Render()
+
+		fmt.Println("Temperature:")
+
+		smc.PrintTemp(t)
+		hid.PrintTemp(t)
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(tempCmd)
 }

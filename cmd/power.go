@@ -17,16 +17,28 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/dkorunic/iSMC/smc"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents power command
+// rootCmd represents power command.
 var powerCmd = &cobra.Command{
 	Use:     "power",
 	Aliases: []string{"pow"},
 	Short:   "Display power sensors",
 	Run: func(cmd *cobra.Command, args []string) {
-		smc.PrintPower()
+		t := table.NewWriter()
+		defer t.Render()
+
+		fmt.Println("Power:")
+
+		smc.PrintPower(t)
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(powerCmd)
 }

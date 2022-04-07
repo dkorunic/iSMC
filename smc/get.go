@@ -22,7 +22,7 @@ import (
 	"github.com/panotza/gosmc"
 )
 
-// getKeyFloat32 returns float32 value for a given SMC key
+// getKeyFloat32 returns float32 value for a given SMC key.
 func getKeyFloat32(c uint, key string) (float32, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
@@ -51,7 +51,7 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 	}
 }
 
-// getKeyUint32 returns uint32 value for a given SMC key
+// getKeyUint32 returns uint32 value for a given SMC key.
 func getKeyUint32(c uint, key string) (uint32, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
@@ -69,7 +69,7 @@ func getKeyUint32(c uint, key string) (uint32, string, error) {
 	}
 }
 
-// getKeyBool returns bool value for a given SMC key
+// getKeyBool returns bool value for a given SMC key.
 func getKeyBool(c uint, key string) (bool, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {

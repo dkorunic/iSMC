@@ -17,16 +17,28 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/dkorunic/iSMC/smc"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents batt command
+// rootCmd represents batt command.
 var battCmd = &cobra.Command{
 	Use:     "batt",
 	Aliases: []string{"battery", "bat"},
 	Short:   "Display battery status",
 	Run: func(cmd *cobra.Command, args []string) {
-		smc.PrintBatt()
+		t := table.NewWriter()
+		defer t.Render()
+
+		fmt.Println("Battery:")
+
+		smc.PrintBatt(t)
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(battCmd)
 }

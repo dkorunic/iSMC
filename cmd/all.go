@@ -17,20 +17,27 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents all command
+// rootCmd represents all commands.
 var allCmd = &cobra.Command{
 	Use:     "all",
 	Aliases: []string{"everything", "*"},
 	Short:   "Display all known sensors, fans and battery status",
 	Run: func(cmd *cobra.Command, args []string) {
 		tempCmd.Run(cmd, args)
+		fmt.Println("")
 		fansCmd.Run(cmd, args)
+		fmt.Println("")
 		battCmd.Run(cmd, args)
+		fmt.Println("")
 		powerCmd.Run(cmd, args)
+		fmt.Println("")
 		voltCmd.Run(cmd, args)
+		fmt.Println("")
 		currCmd.Run(cmd, args)
 	},
 }

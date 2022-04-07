@@ -20,7 +20,7 @@ import (
 	"github.com/dkorunic/iSMC/cmd"
 )
 
-// main initializes Cobra
+// main initializes Cobra.
 func main() {
 	cmd.Execute()
 }

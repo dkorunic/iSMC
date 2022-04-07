@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:   "iSMC",
 	Short: "Apple SMC information tool",
@@ -39,14 +39,4 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(tempCmd)
-	rootCmd.AddCommand(fansCmd)
-	rootCmd.AddCommand(battCmd)
-	rootCmd.AddCommand(powerCmd)
-	rootCmd.AddCommand(voltCmd)
-	rootCmd.AddCommand(currCmd)
-	rootCmd.AddCommand(allCmd)
 }

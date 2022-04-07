@@ -25,13 +25,13 @@ import (
 	"github.com/panotza/gosmc"
 )
 
-// FPConv type used for AppleFPConv map
+// FPConv type used for AppleFPConv map.
 type FPConv struct {
 	Div    float32
 	Signed bool
 }
 
-// AppleFPConv maps floating point type conversion constants and signedness property
+// AppleFPConv maps floating point type conversion constants and signedness property.
 var AppleFPConv = map[string]FPConv{
 	"fp1f": {Div: 32768.0},
 	"fp2e": {Div: 16384.0},
@@ -58,7 +58,7 @@ var AppleFPConv = map[string]FPConv{
 	"spf0": {Div: 1.0, Signed: true},
 }
 
-// fpToFloat32 converts fp* SMC types to float32
+// fpToFloat32 converts fp* SMC types to float32.
 func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 	if v, ok := AppleFPConv[t]; ok {
 		res := binary.BigEndian.Uint16(x[:size])
@@ -72,17 +72,17 @@ func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 	return 0.0, fmt.Errorf("unable to convert to float32 type %q, bytes %v to float32", t, x)
 }
 
-// fltToFloat32 converts flt SMC type to float32
+// fltToFloat32 converts flt SMC type to float32.
 func fltToFloat32(k string, x gosmc.SMCBytes, size uint32) (float32, error) {
 	return math.Float32frombits(binary.LittleEndian.Uint32(x[:size])), nil
 }
 
-// smcTypeToString converts UInt32Char array to regular Go string removing trailing null and whitespace
+// smcTypeToString converts UInt32Char array to regular Go string removing trailing null and whitespace.
 func smcTypeToString(x gosmc.UInt32Char) string {
 	return strings.TrimRight(x.ToString(), "\x00 ")
 }
 
-// smcBytesToUint32 converts ui8/ui16/ui32 SMC types to uint32
+// smcBytesToUint32 converts ui8/ui16/ui32 SMC types to uint32.
 func smcBytesToUint32(x gosmc.SMCBytes, size uint32) uint32 {
 	var total uint32
 	for i := uint32(0); i < size; i++ {
@@ -92,12 +92,12 @@ func smcBytesToUint32(x gosmc.SMCBytes, size uint32) uint32 {
 	return total
 }
 
-// smcBytesToFloat32 converts ui8/ui16/ui32 SMC types to float32
+// smcBytesToFloat32 converts ui8/ui16/ui32 SMC types to float32.
 func smcBytesToFloat32(x gosmc.SMCBytes, size uint32) float32 {
 	return float32(smcBytesToUint32(x, size))
 }
 
-// ioftToFloat32 converts ioft SMC type (48.16 unsigned fixed-point in LittleEndian) to float32
+// ioftToFloat32 converts ioft SMC type (48.16 unsigned fixed-point in LittleEndian) to float32.
 func ioftToFloat32(x gosmc.SMCBytes, size uint32) float32 {
 	res := binary.LittleEndian.Uint64(x[:size])
 

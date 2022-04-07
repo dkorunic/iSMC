@@ -17,16 +17,28 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/dkorunic/iSMC/smc"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents fans command
+// rootCmd represents fans command.
 var fansCmd = &cobra.Command{
 	Use:     "fans",
 	Aliases: []string{"fan"},
 	Short:   "Display fans status",
 	Run: func(cmd *cobra.Command, args []string) {
-		smc.PrintFans()
+		t := table.NewWriter()
+		defer t.Render()
+
+		fmt.Println("Fans:")
+
+		smc.PrintFans(t)
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(fansCmd)
 }

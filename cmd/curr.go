@@ -17,16 +17,30 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/dkorunic/iSMC/hid"
 	"github.com/dkorunic/iSMC/smc"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents curr command
+// rootCmd represents curr command.
 var currCmd = &cobra.Command{
 	Use:     "curr",
 	Aliases: []string{"current", "cur"},
 	Short:   "Display current sensors",
 	Run: func(cmd *cobra.Command, args []string) {
-		smc.PrintCurrent()
+		t := table.NewWriter()
+		defer t.Render()
+
+		fmt.Println("Current:")
+
+		smc.PrintCurrent(t)
+		hid.PrintCurrent(t)
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(currCmd)
 }
