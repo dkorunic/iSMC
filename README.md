@@ -1,5 +1,4 @@
-iSMC
-===
+# iSMC
 
 [![GitHub license](https://img.shields.io/github/license/dkorunic/iSMC.svg)](https://github.com/dkorunic/iSMC/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/release/dkorunic/iSMC.svg)](https://github.com/dkorunic/iSMC/releases/latest)
@@ -62,25 +61,27 @@ Usage of all commands is self explanatory and all commands have short and long a
 
 I have taken a look at many Apple SMC related projects and took inspiration from them:
 
-* **SMCKit** Apple SMC library & tool in Swift: [github.com/beltex/SMCKit](/github.com/beltex/SMCKit)
-* SMC API in pure C: [github.com/beltex/libsmc](https://github.com/beltex/libsmc)
-* **iStats** Ruby Gem for Mac stats: [github.com/Chris911/iStats](https://github.com/Chris911/iStats)
-* **smcFanControl** tool to control fans in Objective-C (this includes **smc-command** to query raw SMC keys): [github.com/hholtmann/smcFanControl](https://github.com/hholtmann/smcFanControl)
-* **FakeSMC** Hackintosh kext: [github.com/RehabMan/OS-X-FakeSMC-kozlek](https://github.com/RehabMan/OS-X-FakeSMC-kozlek)
-* **VirtualSMC** Hackintosh kext: [github.com/acidanthera/VirtualSMC](https://github.com/acidanthera/VirtualSMC)
-* **osx-cpu-temp** to display CPU temperature in pure C: [github.com/lavoiesl/osx-cpu-temp](https://github.com/lavoiesl/osx-cpu-temp)
-* Linux kernel applesmc.c: [github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c](https://github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c)
-* low-level Go bindings for devnull SMC tool: [github.com/panotza/gosmc](https://github.com/panotza/gosmc)
+- **SMCKit** Apple SMC library & tool in Swift: [github.com/beltex/SMCKit](/github.com/beltex/SMCKit)
+- SMC API in pure C: [github.com/beltex/libsmc](https://github.com/beltex/libsmc)
+- **iStats** Ruby Gem for Mac stats: [github.com/Chris911/iStats](https://github.com/Chris911/iStats)
+- **smcFanControl** tool to control fans in Objective-C (this includes **smc-command** to query raw SMC keys): [github.com/hholtmann/smcFanControl](https://github.com/hholtmann/smcFanControl)
+- **FakeSMC** Hackintosh kext: [github.com/RehabMan/OS-X-FakeSMC-kozlek](https://github.com/RehabMan/OS-X-FakeSMC-kozlek)
+- **VirtualSMC** Hackintosh kext: [github.com/acidanthera/VirtualSMC](https://github.com/acidanthera/VirtualSMC)
+- **osx-cpu-temp** to display CPU temperature in pure C: [github.com/lavoiesl/osx-cpu-temp](https://github.com/lavoiesl/osx-cpu-temp)
+- Linux kernel applesmc.c: [github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c](https://github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c)
+- low-level Go bindings for devnull SMC tool: [github.com/panotza/gosmc](https://github.com/panotza/gosmc)
+- Koan-Sin Tan's IOKit demo code: [https://github.com/freedomtan/sensors](https://github.com/freedomtan/sensors)
+- Koan-Sin Tan's M1 exploration slides: [https://www.slideshare.net/kstan2/exploring-your-apple-m1-devices-with-open-source-tools](https://www.slideshare.net/kstan2/exploring-your-apple-m1-devices-with-open-source-tools)
 
 ## Todo
 
 Planned features:
 
-* fetch and decode SMC key descriptions from SMC,
-* generate random SMC keys and fetch/decode if available/usable,
-* store those extra (random) SMC keys in permanent configuration file,
-* add support for missing types (si*, hex_, pwm, etc.),
-* various code cleanups (some parts are downright horrible).
+- fetch and decode SMC key descriptions from SMC,
+- generate random SMC keys and fetch/decode if available/usable,
+- store those extra (random) SMC keys in permanent configuration file,
+- add support for missing types (si\*, hex\_, pwm, etc.),
+- various code cleanups (some parts are downright horrible).
 
 ## Bugs, feature requests, etc.
 
