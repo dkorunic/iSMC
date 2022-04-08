@@ -24,6 +24,8 @@ var sensorOutputHeader = table.Row{"Description", "Key", "Value", "Type"} // row
 
 func setupTable(t table.Writer) {
 	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleColoredBright)
+	if !asciiPrint {
+		t.SetStyle(table.StyleColoredBright)
+	}
 	t.AppendHeader(sensorOutputHeader)
 }

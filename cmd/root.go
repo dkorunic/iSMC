@@ -23,6 +23,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var asciiPrint bool
+
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:   "iSMC",
@@ -39,4 +41,9 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func init() {
+	rootCmd.PersistentFlags().BoolVarP(&asciiPrint, "ascii", "a", false,
+		"use only ASCII characters when displaying table")
 }
