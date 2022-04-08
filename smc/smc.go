@@ -20,11 +20,9 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/fvbommel/sortorder"
 	"github.com/panotza/gosmc"
 )
 
@@ -147,8 +145,6 @@ func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]interface{}
 		os.Exit(1)
 	}
 	defer gosmc.SMCClose(conn)
-
-	sort.Slice(smcSlice, func(i, j int) bool { return sortorder.NaturalLess(smcSlice[i].Desc, smcSlice[j].Desc) })
 
 	generic := make(map[string]interface{})
 

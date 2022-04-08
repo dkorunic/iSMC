@@ -22,6 +22,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/fvbommel/sortorder"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -46,7 +47,7 @@ func (to TableOutput) All() {
 	for k := range all {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sort.Sort(sortorder.Natural(keys))
 
 	for _, key := range keys {
 		value := all[key]
@@ -94,7 +95,7 @@ func (to TableOutput) print(name string, smcdata map[string]interface{}) {
 		for k := range smcdata {
 			keys = append(keys, k)
 		}
-		sort.Strings(keys)
+		sort.Sort(sortorder.Natural(keys))
 
 		for _, k := range keys {
 			v := smcdata[k]

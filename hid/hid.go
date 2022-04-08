@@ -21,11 +21,9 @@ import (
 	"bufio"
 	"fmt"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 )
-import "github.com/fvbommel/sortorder"
 
 const (
 	SensorSeparator = ":"
@@ -65,8 +63,6 @@ func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 			})
 		}
 	}
-
-	sort.Slice(stats, func(i, j int) bool { return sortorder.NaturalLess(stats[i].Name, stats[j].Name) })
 
 	generic := make(map[string]interface{})
 
