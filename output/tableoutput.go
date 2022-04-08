@@ -35,6 +35,7 @@ func NewTableOutput(isASCII bool) Output {
 	o := TableOutput{}
 	o.isASCII = isASCII
 	o.writer = io.Writer(os.Stdout)
+
 	return o
 }
 

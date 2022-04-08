@@ -54,7 +54,7 @@ func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 			continue
 		}
 
-		if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
+		if val != -127.0 && val != 0.0 && math.Round(val*100)/100 != 0.0 {
 			if val < 0.0 {
 				val = -val
 			}

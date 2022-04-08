@@ -17,10 +17,11 @@
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type JSONOutput struct {
@@ -30,6 +31,7 @@ type JSONOutput struct {
 func NewJSONOutput() Output {
 	o := JSONOutput{}
 	o.writer = io.Writer(os.Stdout)
+
 	return o
 }
 
@@ -62,6 +64,7 @@ func (jo JSONOutput) Voltage() {
 }
 
 func (jo JSONOutput) print(v interface{}) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	out, _ := json.MarshalIndent(v, "", "  ")
 	fmt.Fprint(jo.writer, string(out))
 }

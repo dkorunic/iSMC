@@ -17,7 +17,7 @@
 package output
 
 import (
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/dkorunic/iSMC/hid"
 	"github.com/dkorunic/iSMC/smc"
@@ -63,6 +63,7 @@ func getCurrent() map[string]interface{} {
 	merged := make(map[string]interface{})
 	deepCopy(merged, smc.GetCurrent())
 	deepCopy(merged, hid.GetCurrent())
+
 	return merged
 }
 
@@ -74,6 +75,7 @@ func getTemperature() map[string]interface{} {
 	merged := make(map[string]interface{})
 	deepCopy(merged, smc.GetTemperature())
 	deepCopy(merged, hid.GetTemperature())
+
 	return merged
 }
 
@@ -85,11 +87,13 @@ func getVoltage() map[string]interface{} {
 	merged := make(map[string]interface{})
 	deepCopy(merged, smc.GetVoltage())
 	deepCopy(merged, hid.GetVoltage())
+
 	return merged
 }
 
 // TODO replace with a variant from an utility package
 func deepCopy(dest, src map[string]interface{}) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonStr, _ := json.Marshal(src)
 	_ = json.Unmarshal(jsonStr, &dest)
 }
@@ -104,11 +108,13 @@ func merge(a, b map[string]interface{}) map[string]interface{} {
 			if bv, ok := out[k]; ok {
 				if bv, ok := bv.(map[string]interface{}); ok {
 					out[k] = merge(bv, v)
+
 					continue
 				}
 			}
 		}
 		out[k] = v
 	}
+
 	return out
 }

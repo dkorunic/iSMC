@@ -63,7 +63,7 @@ func GetAll() map[string]interface{} { // Get all sensors
 func GetBattery() map[string]interface{} {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
-		fmt.Errorf("unable to open Apple SMC; return code %v\n", res)
+		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
 		os.Exit(1)
 	}
 	defer gosmc.SMCClose(c)
@@ -100,7 +100,7 @@ func GetCurrent() map[string]interface{} {
 func GetFans() map[string]interface{} {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
-		fmt.Errorf("unable to open Apple SMC; return code %v\n", res)
+		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
 		os.Exit(1)
 	}
 	defer gosmc.SMCClose(c)
@@ -121,8 +121,7 @@ func GetFans() map[string]interface{} {
 
 			val, smcType, err := getKeyFloat32(c, key)
 			if err != nil {
-				fmt.Errorf("unable to get SMC key %v: %v", key, err)
-				return make(map[string]interface{})
+				continue
 			}
 
 			if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
@@ -144,7 +143,7 @@ func GetFans() map[string]interface{} {
 func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]interface{} {
 	conn, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
-		fmt.Errorf("unable to open Apple SMC; return code %v\n", res)
+		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
 		os.Exit(1)
 	}
 	defer gosmc.SMCClose(conn)
@@ -159,6 +158,7 @@ func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]interface{}
 
 		if !strings.Contains(key, KeyWildcard) {
 			addGeneric(generic, conn, key, desc, unit)
+
 			continue
 		}
 
