@@ -17,10 +17,7 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/dkorunic/iSMC/smc"
-	"github.com/jedib0t/go-pretty/table"
+	"github.com/dkorunic/iSMC/output"
 	"github.com/spf13/cobra"
 )
 
@@ -30,12 +27,7 @@ var powerCmd = &cobra.Command{
 	Aliases: []string{"pow"},
 	Short:   "Display power sensors",
 	Run: func(cmd *cobra.Command, args []string) {
-		t := table.NewWriter()
-		defer t.Render()
-
-		setupTable(t)
-		fmt.Println("Power:")
-		smc.PrintPower(t)
+		output.OutputFactory(OutputFlag).Power()
 	},
 }
 

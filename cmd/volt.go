@@ -17,11 +17,7 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/dkorunic/iSMC/hid"
-	"github.com/dkorunic/iSMC/smc"
-	"github.com/jedib0t/go-pretty/table"
+	"github.com/dkorunic/iSMC/output"
 	"github.com/spf13/cobra"
 )
 
@@ -31,13 +27,7 @@ var voltCmd = &cobra.Command{
 	Aliases: []string{"voltage", "vol"},
 	Short:   "Display voltage sensors",
 	Run: func(cmd *cobra.Command, args []string) {
-		t := table.NewWriter()
-		defer t.Render()
-
-		setupTable(t)
-		fmt.Println("Voltage:")
-		smc.PrintVoltage(t)
-		hid.PrintVoltage(t)
+		output.OutputFactory(OutputFlag).Voltage()
 	},
 }
 

@@ -50,7 +50,8 @@ Available Commands:
   volt        Display voltage sensors
 
 Flags:
-  -h, --help   help for iSMC
+  -h, --help             help for iSMC
+  -o, --output string    Output format (ascii, table, json) (default "table")
 
 Use "iSMC [command] --help" for more information about a command.
 ```
