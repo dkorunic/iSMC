@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fvbommel/sortorder"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/panotza/gosmc"
 	log "github.com/sirupsen/logrus"
@@ -55,7 +56,7 @@ func printGeneric(t table.Writer, unit string, smcSlice []SensorStat) {
 	}
 	defer gosmc.SMCClose(c)
 
-	sort.Slice(smcSlice, func(i, j int) bool { return smcSlice[i].Key < smcSlice[j].Key })
+	sort.Slice(smcSlice, func(i, j int) bool { return sortorder.NaturalLess(smcSlice[i].Desc, smcSlice[j].Desc) })
 
 	for _, v := range smcSlice {
 		key := v.Key

@@ -3,6 +3,7 @@ module github.com/dkorunic/iSMC
 go 1.18
 
 require (
+	github.com/fvbommel/sortorder v1.0.2
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/panotza/gosmc v1.0.0
 	github.com/sirupsen/logrus v1.8.1
@@ -20,6 +21,6 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	go.mongodb.org/mongo-driver v1.8.4 // indirect
-	golang.org/x/sys v0.0.0-20220403020550-483a9cbc67c0 // indirect
+	go.mongodb.org/mongo-driver v1.9.0 // indirect
+	golang.org/x/sys v0.0.0-20220406163625-3f8b81556e12 // indirect
 )

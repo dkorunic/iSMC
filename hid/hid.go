@@ -27,6 +27,7 @@ import (
 
 	"github.com/jedib0t/go-pretty/table"
 )
+import "github.com/fvbommel/sortorder"
 
 const (
 	SensorSeparator = ":"
@@ -67,9 +68,7 @@ func printGeneric(t table.Writer, unit string, cStr *C.char) {
 		}
 	}
 
-	sort.Slice(stats, func(i, j int) bool {
-		return stats[i].Name < stats[j].Name
-	})
+	sort.Slice(stats, func(i, j int) bool { return sortorder.NaturalLess(stats[i].Name, stats[j].Name) })
 
 	for _, v := range stats {
 		name := v.Name
