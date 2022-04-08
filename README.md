@@ -8,7 +8,7 @@
 
 `iSMC` is an Apple System Management Controller (SMC) CLI tool that attempts to query SMC for a number of well known keys and determine their type and value, classifying them into temperature, power, current, voltage, fan and battery readouts. It will also attempt to give a human-readable description of each found SMC key.
 
-Typically various desktop and server Apple hardware should work and most definitely all Intel-based Mac computers.
+Apart from regular support for regular (PPC and Intel hardware), it also supports M1 ARM-based SoC hardware which has temperature/voltage/current/power sensors connected to a HID sensor hub.
 
 [![asciicast](https://asciinema.org/a/iQPD6haQvqswJcCOaPAxhrGNr.svg)](https://asciinema.org/a/iQPD6haQvqswJcCOaPAxhrGNr)
 
@@ -23,7 +23,7 @@ Download your preferred flavor from [the releases](https://github.com/dkorunic/i
 ### Using go get
 
 ```shell
-go get github.com/dkorunic/iSMC
+CGO_ENABLED=1 go get github.com/dkorunic/iSMC
 ```
 
 ## Usage
@@ -40,8 +40,8 @@ Usage:
   iSMC [command]
 
 Available Commands:
-  all         Display all known sensors, fans and battery status
   batt        Display battery status
+  completion  Generate the autocompletion script for the specified shell
   curr        Display current sensors
   fans        Display fans status
   help        Help about any command
@@ -68,10 +68,11 @@ I have taken a look at many Apple SMC related projects and took inspiration from
 - **FakeSMC** Hackintosh kext: [github.com/RehabMan/OS-X-FakeSMC-kozlek](https://github.com/RehabMan/OS-X-FakeSMC-kozlek)
 - **VirtualSMC** Hackintosh kext: [github.com/acidanthera/VirtualSMC](https://github.com/acidanthera/VirtualSMC)
 - **osx-cpu-temp** to display CPU temperature in pure C: [github.com/lavoiesl/osx-cpu-temp](https://github.com/lavoiesl/osx-cpu-temp)
-- Linux kernel applesmc.c: [github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c](https://github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c)
+- Linux kernel **applesmc.c**: [github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c](https://github.com/torvalds/linux/blob/master/drivers/hwmon/applesmc.c)
 - low-level Go bindings for devnull SMC tool: [github.com/panotza/gosmc](https://github.com/panotza/gosmc)
-- Koan-Sin Tan's IOKit demo code: [https://github.com/freedomtan/sensors](https://github.com/freedomtan/sensors)
+- Koan-Sin Tan's M1 IOKit demo code: [https://github.com/freedomtan/sensors](https://github.com/freedomtan/sensors)
 - Koan-Sin Tan's M1 exploration slides: [https://www.slideshare.net/kstan2/exploring-your-apple-m1-devices-with-open-source-tools](https://www.slideshare.net/kstan2/exploring-your-apple-m1-devices-with-open-source-tools)
+- Serhiy Mytrovtsiy's MacOS **Stats** app: [https://github.com/exelban/stats](https://github.com/exelban/stats)
 
 ## Todo
 
