@@ -51,8 +51,9 @@ func (to TableOutput) All() {
 
 	for _, key := range keys {
 		value := all[key]
-		smcdata := value.(map[string]interface{})
-		to.print(key, smcdata)
+		if smcdata, ok := value.(map[string]interface{}); ok {
+			to.print(key, smcdata)
+		}
 	}
 }
 
@@ -99,13 +100,14 @@ func (to TableOutput) print(name string, smcdata map[string]interface{}) {
 
 		for _, k := range keys {
 			v := smcdata[k]
-			value := v.(map[string]interface{})
-			t.AppendRow([]interface{}{
-				fmt.Sprintf("%v", k),
-				value["key"],
-				fmt.Sprintf("%8v", value["value"]),
-				value["type"],
-			})
+			if value, ok := v.(map[string]interface{}); ok {
+				t.AppendRow([]interface{}{
+					fmt.Sprintf("%v", k),
+					value["key"],
+					fmt.Sprintf("%8v", value["value"]),
+					value["type"],
+				})
+			}
 		}
 
 		t.Render()
