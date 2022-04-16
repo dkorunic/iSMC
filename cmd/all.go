@@ -30,3 +30,7 @@ var allCmd = &cobra.Command{
 		output.OutputFactory(OutputFlag).All()
 	},
 }
+
+func init() {
+	rootCmd.AddCommand(allCmd)
+}
