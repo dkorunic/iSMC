@@ -35,6 +35,7 @@ var asciiTpl = `+-------------------------------------+
 
 `
 
+//lint:ignore ST1018 stick to unicode characters for test output
 var tableTpl = `[96;100;1m%s[0m
 [106;30m DESCRIPTION [0m[106;30m KEY [0m[106;30m VALUE    [0m[106;30m TYPE [0m
 [107;30m sensor      [0m[107;30m key [0m[107;30m    value [0m[107;30m type [0m
