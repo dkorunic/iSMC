@@ -20,10 +20,10 @@ There are two ways of installing `iSMC` (tool works only on macOS computers):
 
 Download your preferred flavor from [the releases](https://github.com/dkorunic/iSMC/releases/latest) page and install manually.
 
-### Using go get
+### Using go install
 
 ```shell
-CGO_ENABLED=1 go get github.com/dkorunic/iSMC
+CGO_ENABLED=1 go install github.com/dkorunic/iSMC@latest
 ```
 
 ## Usage
