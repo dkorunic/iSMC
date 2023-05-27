@@ -22,6 +22,8 @@ func OutputFactory(outputType string) Output {
 		return NewTableOutput(false)
 	case "json":
 		return NewJSONOutput()
+	case "influx":
+		return NewInfluxOutput()
 	default:
 		return NewTableOutput(true)
 	}

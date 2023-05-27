@@ -44,5 +44,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&OutputFlag, "output", "o", "table", "Output format (ascii, table, json)")
+	rootCmd.PersistentFlags().StringVarP(&OutputFlag, "output", "o", "table", "Output format (ascii, table, json, influx)")
 }
