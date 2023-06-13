@@ -127,7 +127,7 @@ func (jo JSONOutput) Voltage() {
 }
 
 func (jo JSONOutput) print(v any) {
-	data, err := convert(v)
+	data, err := format(v)
 	if err != nil {
 		fmt.Println("Convert error:", v)
 		return
