@@ -37,7 +37,6 @@ func TestOutputFactory(t *testing.T) {
 			args{outputType: "table"},
 			NewTableOutput(false),
 		}, {
-
 			"Returns JSONOutput for table output type",
 			args{outputType: "json"},
 			NewJSONOutput(),

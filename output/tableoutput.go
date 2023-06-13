@@ -51,7 +51,7 @@ func (to TableOutput) All() {
 
 	for _, key := range keys {
 		value := all[key]
-		if smcdata, ok := value.(map[string]interface{}); ok {
+		if smcdata, ok := value.(map[string]any); ok {
 			to.print(key, smcdata)
 		}
 	}
@@ -81,7 +81,7 @@ func (to TableOutput) Voltage() {
 	to.print("Voltage", GetVoltage())
 }
 
-func (to TableOutput) print(name string, smcdata map[string]interface{}) {
+func (to TableOutput) print(name string, smcdata map[string]any) {
 	if len(smcdata) != 0 {
 		t := table.NewWriter()
 		t.SetOutputMirror(to.writer)
@@ -100,8 +100,8 @@ func (to TableOutput) print(name string, smcdata map[string]interface{}) {
 
 		for _, k := range keys {
 			v := smcdata[k]
-			if value, ok := v.(map[string]interface{}); ok {
-				t.AppendRow([]interface{}{
+			if value, ok := v.(map[string]any); ok {
+				t.AppendRow([]any{
 					fmt.Sprintf("%v", k),
 					value["key"],
 					fmt.Sprintf("%8v", value["value"]),

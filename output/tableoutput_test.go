@@ -52,24 +52,24 @@ func TestTableOutput_ASCII(t *testing.T) {
 		{
 			"All sensors",
 			func() {
-				GetAll = func() map[string]interface{} {
-					return map[string]interface{}{
-						"battery": map[string]interface{}{
-							"sensor": map[string]interface{}{
+				GetAll = func() map[string]any {
+					return map[string]any{
+						"battery": map[string]any{
+							"sensor": map[string]any{
 								"key":   "key",
 								"value": "value",
 								"type":  "type",
 							},
 						},
-						"fans": map[string]interface{}{
-							"sensor": map[string]interface{}{
+						"fans": map[string]any{
+							"sensor": map[string]any{
 								"key":   "key",
 								"value": "value",
 								"type":  "type",
 							},
 						},
-						"temperature": map[string]interface{}{
-							"sensor": map[string]interface{}{
+						"temperature": map[string]any{
+							"sensor": map[string]any{
 								"key":   "key",
 								"value": "value",
 								"type":  "type",
@@ -86,7 +86,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 		{
 			"Battery sensor",
 			func() {
-				GetBattery = func() map[string]interface{} {
+				GetBattery = func() map[string]any {
 					return getMapForSensor("sensor")
 				}
 			},
@@ -98,7 +98,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 		{
 			"Current sensor",
 			func() {
-				GetCurrent = func() map[string]interface{} {
+				GetCurrent = func() map[string]any {
 					return getMapForSensor("sensor")
 				}
 			},
@@ -110,7 +110,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 		{
 			"Fans sensor",
 			func() {
-				GetFans = func() map[string]interface{} {
+				GetFans = func() map[string]any {
 					return getMapForSensor("sensor")
 				}
 			},
@@ -122,7 +122,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 		{
 			"Power sensor",
 			func() {
-				GetPower = func() map[string]interface{} {
+				GetPower = func() map[string]any {
 					return getMapForSensor("sensor")
 				}
 			},
@@ -134,7 +134,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 		{
 			"Temperature sensor",
 			func() {
-				GetTemperature = func() map[string]interface{} {
+				GetTemperature = func() map[string]any {
 					return getMapForSensor("sensor")
 				}
 			},
@@ -146,7 +146,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 		{
 			"Voltage sensor",
 			func() {
-				GetVoltage = func() map[string]interface{} {
+				GetVoltage = func() map[string]any {
 					return getMapForSensor("sensor")
 				}
 			},
@@ -180,17 +180,17 @@ func TestTableOutput_Table(t *testing.T) {
 		{
 			"All sensors",
 			func() {
-				GetAll = func() map[string]interface{} {
-					return map[string]interface{}{
-						"battery": map[string]interface{}{
-							"sensor": map[string]interface{}{
+				GetAll = func() map[string]any {
+					return map[string]any{
+						"battery": map[string]any{
+							"sensor": map[string]any{
 								"key":   "key",
 								"value": "value",
 								"type":  "type",
 							},
 						},
-						"fans": map[string]interface{}{
-							"sensor": map[string]interface{}{
+						"fans": map[string]any{
+							"sensor": map[string]any{
 								"key":   "key",
 								"value": "value",
 								"type":  "type",

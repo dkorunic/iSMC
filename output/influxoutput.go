@@ -49,7 +49,7 @@ func (io InfluxOutput) All() {
 
 	for _, key := range keys {
 		value := all[key]
-		if smcdata, ok := value.(map[string]interface{}); ok {
+		if smcdata, ok := value.(map[string]any); ok {
 			io.print(key, smcdata)
 		}
 	}
@@ -80,7 +80,7 @@ func (io InfluxOutput) Voltage() {
 }
 
 func influx_string_convert(s string) string {
-	s = strings.Replace(s, " ", "_", -1)
+	s = strings.ReplaceAll(s, " ", "_")
 	s = strings.ToLower(s)
 	return s
 }
@@ -94,7 +94,7 @@ func influx_get_unit(s string) string {
 	s = strings.Trim(s, "value=")
 	if len(strings.Split(s, " ")) > 1 {
 		s = strings.Split(s, " ")[1]
-		s = strings.Replace(s, "°", "", -1)
+		s = strings.ReplaceAll(s, "°", "")
 		s = strings.ToLower(s)
 	} else {
 		s = "none"
@@ -102,7 +102,7 @@ func influx_get_unit(s string) string {
 	return s
 }
 
-func (io InfluxOutput) print(name string, smcdata map[string]interface{}) {
+func (io InfluxOutput) print(name string, smcdata map[string]any) {
 	if len(smcdata) != 0 {
 		ct := time.Now().UnixNano()
 
@@ -113,7 +113,7 @@ func (io InfluxOutput) print(name string, smcdata map[string]interface{}) {
 
 		for _, k := range keys {
 			v := smcdata[k]
-			if value, ok := v.(map[string]interface{}); ok {
+			if value, ok := v.(map[string]any); ok {
 				key := fmt.Sprint(value["key"])
 				if len(key) > 0 {
 					key = influx_string_convert(fmt.Sprintf(",key=%s", value["key"]))

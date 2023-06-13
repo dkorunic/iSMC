@@ -27,8 +27,8 @@ import (
 
 func Test_deepCopy(t *testing.T) {
 	type args struct {
-		dest map[string]interface{}
-		src  map[string]interface{}
+		dest map[string]any
+		src  map[string]any
 	}
 	tests := []struct {
 		name     string
@@ -38,15 +38,15 @@ func Test_deepCopy(t *testing.T) {
 		{
 			"Verify dest",
 			args{
-				dest: map[string]interface{}{
+				dest: map[string]any{
 					"key-1": "value-1",
 				},
-				src: map[string]interface{}{
-					"key-2": map[string]interface{}{
+				src: map[string]any{
+					"key-2": map[string]any{
 						"key-2-1": "value-2-1",
 					},
-					"key-3": map[string]interface{}{
-						"key-3-1": map[string]interface{}{
+					"key-3": map[string]any{
+						"key-3-1": map[string]any{
 							"key-3-1-1": "value-3-1-1",
 						},
 					},
@@ -57,10 +57,10 @@ func Test_deepCopy(t *testing.T) {
 		{
 			"Verify empty dest",
 			args{
-				dest: map[string]interface{}{},
-				src: map[string]interface{}{
+				dest: map[string]any{},
+				src: map[string]any{
 					"key-1": "value-1",
-					"key-2": map[string]interface{}{
+					"key-2": map[string]any{
 						"key-2-1": "value-2-1",
 					},
 				},
@@ -80,42 +80,42 @@ func Test_deepCopy(t *testing.T) {
 
 func Test_merge(t *testing.T) {
 	type args struct {
-		a map[string]interface{}
-		b map[string]interface{}
+		a map[string]any
+		b map[string]any
 	}
 	tests := []struct {
 		name     string
 		args     args
-		expected map[string]interface{}
+		expected map[string]any
 	}{
 		{
 			"Verify merge",
 			args{
-				map[string]interface{}{
+				map[string]any{
 					"key-1": "value-1-a",
-					"key-3": map[string]interface{}{
-						"key-3-2": map[string]interface{}{
+					"key-3": map[string]any{
+						"key-3-2": map[string]any{
 							"key-3-2-1": "value-3-2-1-a",
 						},
 					},
 				},
-				map[string]interface{}{
+				map[string]any{
 					"key-1": "value-2-b",
 					"key-2": "value-2-b",
-					"key-3": map[string]interface{}{
+					"key-3": map[string]any{
 						"key-3-1": "value-3-1-b",
-						"key-3-2": map[string]interface{}{
+						"key-3-2": map[string]any{
 							"key-3-2-1": "value-3-2-1-b",
 						},
 					},
 				},
 			},
-			map[string]interface{}{
+			map[string]any{
 				"key-1": "value-2-b",
 				"key-2": "value-2-b",
-				"key-3": map[string]interface{}{
+				"key-3": map[string]any{
 					"key-3-1": "value-3-1-b",
-					"key-3-2": map[string]interface{}{
+					"key-3-2": map[string]any{
 						"key-3-2-1": "value-3-2-1-b",
 					},
 				},
@@ -134,15 +134,15 @@ func Test_merge(t *testing.T) {
 	}
 }
 
-func toJson(src map[string]interface{}) string {
+func toJson(src map[string]any) string {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonStr, _ := json.Marshal(src)
 	return string(jsonStr)
 }
 
-func getMapForSensor(sensorName string) map[string]interface{} {
-	return map[string]interface{}{
-		sensorName: map[string]interface{}{
+func getMapForSensor(sensorName string) map[string]any {
+	return map[string]any{
+		sensorName: map[string]any{
 			"key":   "key",
 			"value": "value",
 			"type":  "type",

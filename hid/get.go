@@ -192,8 +192,8 @@ import (
 )
 
 // GetAll returns all detected HID sensor results.
-func GetAll() map[string]interface{} {
-	sensors := make(map[string]interface{})
+func GetAll() map[string]any {
+	sensors := make(map[string]any)
 
 	sensors["Current"] = GetCurrent()
 	sensors["Temperature"] = GetTemperature()
@@ -203,7 +203,7 @@ func GetAll() map[string]interface{} {
 }
 
 // GetCurrent returns detected HID current sensor results.
-func GetCurrent() map[string]interface{} {
+func GetCurrent() map[string]any {
 	cStr := C.getCurrents()
 	defer C.free(unsafe.Pointer(cStr))
 
@@ -211,7 +211,7 @@ func GetCurrent() map[string]interface{} {
 }
 
 // GetVoltage returns detected HID voltage sensor results.
-func GetVoltage() map[string]interface{} {
+func GetVoltage() map[string]any {
 	cStr := C.getVoltages()
 	defer C.free(unsafe.Pointer(cStr))
 
@@ -219,7 +219,7 @@ func GetVoltage() map[string]interface{} {
 }
 
 // GetTemp returns detected HID temperature sensor results.
-func GetTemperature() map[string]interface{} {
+func GetTemperature() map[string]any {
 	cStr := C.getThermals()
 	defer C.free(unsafe.Pointer(cStr))
 

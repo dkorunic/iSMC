@@ -17,7 +17,6 @@
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -47,59 +46,63 @@ type newstruct struct {
 }
 
 func format(d any) (any, error) {
-	v := d.(map[string]any)
-	var err error
+	v, ok := d.(map[string]any)
+	if !ok {
+		return v, fmt.Errorf("not a map")
+	}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	for key, entry := range v {
-		t := make([]byte, 0)
-		buf := new(newstruct)
-		s := make([]string, 0)
-		t, err = json.Marshal(entry)
+		t, err := json.Marshal(entry)
 		if err != nil {
-			fmt.Println("json.Marshal error:", err)
-			break
+			return v, err
 		}
-		err = json.Unmarshal(t, buf)
+
+		buf := newstruct{}
+		err = json.Unmarshal(t, &buf)
 		if err != nil {
-			fmt.Println("json.Unmarshal error:", err)
-			break
+			return v, err
 		}
+
 		// Process only string values
 		switch buf.Value.(type) {
 		case string:
 			if !strings.Contains(buf.Value.(string), " ") {
 				continue
 			}
-			s = strings.Split(buf.Value.(string), " ")
+			s := strings.Split(buf.Value.(string), " ")
 			switch buf.Type {
-			case "flt", "sp78", "sp87":
+			case "flt", "sp78", "sp87", "hid":
 				f, err := strconv.ParseFloat(s[0], 64)
 				if err != nil {
-					break
+					return v, err
 				}
+
 				buf.Quantity = f
 				buf.Unit = s[1]
 			}
 		}
+
 		v[key] = buf
 	}
-	return v, err
 
+	return v, nil
 }
 
 func (jo JSONOutput) All() {
 	var err error
-	data := make(map[string]any)
-	data = GetAll()
+	data := GetAll()
 	for key, d := range data {
 		if data[key], err = format(d); err != nil {
-			fmt.Printf("Convert error:%v\n", err)
 			jo.print(GetAll())
 			return
 		}
 	}
+
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	out, _ := json.MarshalIndent(data, "", "  ")
-	fmt.Fprint(jo.writer, string(out))
+	out, _ := json.Marshal(data)
+	fmt.Println(string(out))
 }
 
 func (jo JSONOutput) Battery() {
@@ -129,10 +132,11 @@ func (jo JSONOutput) Voltage() {
 func (jo JSONOutput) print(v any) {
 	data, err := format(v)
 	if err != nil {
-		fmt.Println("Convert error:", v)
+		fmt.Printf("could not format data: %v\n", err)
 		return
 	}
+
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	out, _ := json.MarshalIndent(data, "", "  ")
-	fmt.Fprint(jo.writer, string(out))
+	out, _ := json.Marshal(data)
+	fmt.Println(string(out))
 }

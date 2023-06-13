@@ -45,8 +45,8 @@ type SensorStat struct {
 
 //go:generate ./gen-sensors.sh sensors.go
 
-func GetAll() map[string]interface{} { // Get all sensors
-	sensors := make(map[string]interface{})
+func GetAll() map[string]any { // Get all sensors
+	sensors := make(map[string]any)
 
 	sensors["Battery"] = GetBattery()
 	sensors["Current"] = GetCurrent()
@@ -58,7 +58,7 @@ func GetAll() map[string]interface{} { // Get all sensors
 	return sensors
 }
 
-func GetBattery() map[string]interface{} {
+func GetBattery() map[string]any {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
 		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
@@ -70,18 +70,18 @@ func GetBattery() map[string]interface{} {
 	i, ty2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
 	b, ty3, _ := getKeyBool(c, BattPwr)   // Get AC status
 
-	battery := map[string]interface{}{
-		"Battery Count": map[string]interface{}{
+	battery := map[string]any{
+		"Battery Count": map[string]any{
 			"key":   BattNum,
 			"value": n,
 			"type":  ty1,
 		},
-		"Battery Info": map[string]interface{}{
+		"Battery Info": map[string]any{
 			"key":   BattInf,
 			"value": i,
 			"type":  ty2,
 		},
-		"Battery Power": map[string]interface{}{
+		"Battery Power": map[string]any{
 			"key":   BattPwr,
 			"value": b,
 			"type":  ty3,
@@ -91,11 +91,11 @@ func GetBattery() map[string]interface{} {
 	return battery
 }
 
-func GetCurrent() map[string]interface{} {
+func GetCurrent() map[string]any {
 	return getGeneric("Current", "A", AppleCurrent)
 }
 
-func GetFans() map[string]interface{} {
+func GetFans() map[string]any {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
 		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
@@ -103,10 +103,10 @@ func GetFans() map[string]interface{} {
 	}
 	defer gosmc.SMCClose(c)
 
-	fans := make(map[string]interface{})
+	fans := make(map[string]any)
 
 	val, smcType, _ := getKeyUint32(c, FanNum) // Get number of fans
-	fans["Fan Count"] = map[string]interface{}{
+	fans["Fan Count"] = map[string]any{
 		"key":   FanNum,
 		"value": val,
 		"type":  smcType,
@@ -126,7 +126,7 @@ func GetFans() map[string]interface{} {
 				if val < 0.0 {
 					val = -val
 				}
-				fans[desc] = map[string]interface{}{
+				fans[desc] = map[string]any{
 					"key":   key,
 					"value": fmt.Sprintf("%4.0f rpm", val),
 					"type":  smcType,
@@ -138,7 +138,7 @@ func GetFans() map[string]interface{} {
 	return fans
 }
 
-func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]interface{} {
+func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]any {
 	conn, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
 		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
@@ -146,7 +146,7 @@ func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]interface{}
 	}
 	defer gosmc.SMCClose(conn)
 
-	generic := make(map[string]interface{})
+	generic := make(map[string]any)
 
 	for _, v := range smcSlice {
 		key := v.Key
@@ -168,7 +168,7 @@ func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]interface{}
 	return generic
 }
 
-func addGeneric(generic map[string]interface{}, conn uint, key, desc, unit string) {
+func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 	val, smcType, err := getKeyFloat32(conn, key)
 	if err != nil {
 		return
@@ -178,7 +178,7 @@ func addGeneric(generic map[string]interface{}, conn uint, key, desc, unit strin
 		if val < 0.0 {
 			val = -val
 		}
-		generic[desc] = map[string]interface{}{
+		generic[desc] = map[string]any{
 			"key":   key,
 			"value": fmt.Sprintf("%.1f %s", val, unit),
 			"type":  smcType,
@@ -186,14 +186,14 @@ func addGeneric(generic map[string]interface{}, conn uint, key, desc, unit strin
 	}
 }
 
-func GetPower() map[string]interface{} {
+func GetPower() map[string]any {
 	return getGeneric("Power", "W", ApplePower)
 }
 
-func GetTemperature() map[string]interface{} {
+func GetTemperature() map[string]any {
 	return getGeneric("Temperature", "°C", AppleTemp)
 }
 
-func GetVoltage() map[string]interface{} {
+func GetVoltage() map[string]any {
 	return getGeneric("Voltage", "V", AppleVoltage)
 }

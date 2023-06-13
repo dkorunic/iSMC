@@ -34,19 +34,19 @@ func TestJSONOutput(t *testing.T) {
 		{
 			"All sensors",
 			func() {
-				GetAll = func() map[string]interface{} {
-					return map[string]interface{}{
-						"sensor-1": map[string]interface{}{
+				GetAll = func() map[string]any {
+					return map[string]any{
+						"sensor-1": map[string]any{
 							"key":   "key",
 							"value": "string",
 							"type":  "type",
 						},
-						"sensor-2": map[string]interface{}{
+						"sensor-2": map[string]any{
 							"key":   "key",
 							"value": true,
 							"type":  "type",
 						},
-						"sensor-3": map[string]interface{}{
+						"sensor-3": map[string]any{
 							"key":   "key",
 							"value": 99,
 							"type":  "type",
@@ -62,7 +62,7 @@ func TestJSONOutput(t *testing.T) {
 		{
 			"Battery sensor",
 			func() {
-				GetBattery = func() map[string]interface{} {
+				GetBattery = func() map[string]any {
 					return getMapForSensor("battery")
 				}
 			},
@@ -74,7 +74,7 @@ func TestJSONOutput(t *testing.T) {
 		{
 			"Current sensor",
 			func() {
-				GetCurrent = func() map[string]interface{} {
+				GetCurrent = func() map[string]any {
 					return getMapForSensor("current")
 				}
 			},
@@ -86,7 +86,7 @@ func TestJSONOutput(t *testing.T) {
 		{
 			"Fans sensor",
 			func() {
-				GetFans = func() map[string]interface{} {
+				GetFans = func() map[string]any {
 					return getMapForSensor("fans")
 				}
 			},
@@ -98,7 +98,7 @@ func TestJSONOutput(t *testing.T) {
 		{
 			"Power sensor",
 			func() {
-				GetPower = func() map[string]interface{} {
+				GetPower = func() map[string]any {
 					return getMapForSensor("power")
 				}
 			},
@@ -110,7 +110,7 @@ func TestJSONOutput(t *testing.T) {
 		{
 			"Temperature sensor",
 			func() {
-				GetTemperature = func() map[string]interface{} {
+				GetTemperature = func() map[string]any {
 					return getMapForSensor("temperature")
 				}
 			},
@@ -122,7 +122,7 @@ func TestJSONOutput(t *testing.T) {
 		{
 			"Voltage sensor",
 			func() {
-				GetVoltage = func() map[string]interface{} {
+				GetVoltage = func() map[string]any {
 					return getMapForSensor("voltage")
 				}
 			},

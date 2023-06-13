@@ -17,10 +17,9 @@
 package output
 
 import (
-	jsoniter "github.com/json-iterator/go"
-
 	"github.com/dkorunic/iSMC/hid"
 	"github.com/dkorunic/iSMC/smc"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // monkey patching for testing
@@ -51,40 +50,40 @@ type Output interface {
 	Voltage()
 }
 
-func getAll() map[string]interface{} {
+func getAll() map[string]any {
 	return merge(smc.GetAll(), hid.GetAll())
 }
 
-func getBattery() map[string]interface{} {
+func getBattery() map[string]any {
 	return smc.GetBattery()
 }
 
-func getCurrent() map[string]interface{} {
-	merged := make(map[string]interface{})
+func getCurrent() map[string]any {
+	merged := make(map[string]any)
 	deepCopy(merged, smc.GetCurrent())
 	deepCopy(merged, hid.GetCurrent())
 
 	return merged
 }
 
-func getFans() map[string]interface{} {
+func getFans() map[string]any {
 	return smc.GetFans()
 }
 
-func getTemperature() map[string]interface{} {
-	merged := make(map[string]interface{})
+func getTemperature() map[string]any {
+	merged := make(map[string]any)
 	deepCopy(merged, smc.GetTemperature())
 	deepCopy(merged, hid.GetTemperature())
 
 	return merged
 }
 
-func getPower() map[string]interface{} {
+func getPower() map[string]any {
 	return smc.GetPower()
 }
 
-func getVoltage() map[string]interface{} {
-	merged := make(map[string]interface{})
+func getVoltage() map[string]any {
+	merged := make(map[string]any)
 	deepCopy(merged, smc.GetVoltage())
 	deepCopy(merged, hid.GetVoltage())
 
@@ -92,21 +91,21 @@ func getVoltage() map[string]interface{} {
 }
 
 // TODO replace with a variant from an utility package
-func deepCopy(dest, src map[string]interface{}) {
+func deepCopy(dest, src map[string]any) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonStr, _ := json.Marshal(src)
 	_ = json.Unmarshal(jsonStr, &dest)
 }
 
 // TODO replace with a variant from an utility package
-func merge(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{})
+func merge(a, b map[string]any) map[string]any {
+	out := make(map[string]any)
 	deepCopy(out, a)
 
 	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
+		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
+				if bv, ok := bv.(map[string]any); ok {
 					out[k] = merge(bv, v)
 
 					continue
