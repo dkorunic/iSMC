@@ -17,9 +17,12 @@
 package output
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -35,8 +38,69 @@ func NewJSONOutput() Output {
 	return o
 }
 
+type newstruct struct {
+	Key   string `json:"key"`
+	Type  string `json:"type"`
+	Value any    `json:"value"`
+	Unit  string `json:"unit"`
+}
+
+func convert(d any) (any, error) {
+	v := d.(map[string]any)
+	var err error
+	for key, entry := range v {
+		t := make([]byte, 0)
+		buf := new(newstruct)
+		s := make([]string, 0)
+		t, err = json.Marshal(entry)
+		if err != nil {
+			fmt.Println("json.Marshal error:", err)
+			break
+		}
+		err = json.Unmarshal(t, buf)
+		if err != nil {
+			fmt.Println("json.Unmarshal error:", err)
+			break
+		}
+		// Process only string values
+		switch buf.Value.(type) {
+		case string:
+			if !strings.Contains(buf.Value.(string), " ") {
+				continue
+			}
+			s = strings.Split(buf.Value.(string), " ")
+			switch buf.Type {
+			case "flt", "sp78", "sp87":
+				f, err := strconv.ParseFloat(s[0], 64)
+				if err != nil {
+					break
+				}
+				buf.Value = f
+				buf.Unit = s[1]
+			case "flag", "hex_", "ui8":
+			}
+		}
+
+		v[key] = buf
+	}
+	return v, err
+
+}
+
 func (jo JSONOutput) All() {
-	jo.print(GetAll())
+	var err error
+	data := make(map[string]any)
+	data = GetAll()
+	for key, d := range data {
+		if data[key], err = convert(d); err != nil {
+			fmt.Printf("Convert error:%v\n", err)
+			jo.print(GetAll())
+			return
+		}
+	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	out, _ := json.MarshalIndent(data, "", "  ")
+	fmt.Fprint(jo.writer, string(out))
 }
 
 func (jo JSONOutput) Battery() {
@@ -63,8 +127,13 @@ func (jo JSONOutput) Voltage() {
 	jo.print(GetVoltage())
 }
 
-func (jo JSONOutput) print(v interface{}) {
+func (jo JSONOutput) print(v any) {
+	data, err := convert(v)
+	if err != nil {
+		fmt.Println("Convert error:", v)
+		return
+	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	out, _ := json.MarshalIndent(v, "", "  ")
+	out, _ := json.MarshalIndent(data, "", "  ")
 	fmt.Fprint(jo.writer, string(out))
 }
