@@ -39,13 +39,14 @@ func NewJSONOutput() Output {
 }
 
 type newstruct struct {
-	Key   string `json:"key"`
-	Type  string `json:"type"`
-	Value any    `json:"value"`
-	Unit  string `json:"unit"`
+	Key      string `json:"key"`
+	Type     string `json:"type"`
+	Value    any    `json:"value"`
+	Quantity any    `json:"quantity"`
+	Unit     string `json:"unit"`
 }
 
-func convert(d any) (any, error) {
+func format(d any) (any, error) {
 	v := d.(map[string]any)
 	var err error
 	for key, entry := range v {
@@ -75,12 +76,10 @@ func convert(d any) (any, error) {
 				if err != nil {
 					break
 				}
-				buf.Value = f
+				buf.Quantity = f
 				buf.Unit = s[1]
-			case "flag", "hex_", "ui8":
 			}
 		}
-
 		v[key] = buf
 	}
 	return v, err
@@ -92,7 +91,7 @@ func (jo JSONOutput) All() {
 	data := make(map[string]any)
 	data = GetAll()
 	for key, d := range data {
-		if data[key], err = convert(d); err != nil {
+		if data[key], err = format(d); err != nil {
 			fmt.Printf("Convert error:%v\n", err)
 			jo.print(GetAll())
 			return
