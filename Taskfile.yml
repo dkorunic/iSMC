@@ -1,0 +1,64 @@
+version: "3"
+
+vars:
+  TARGET: iSMC
+  GIT_LAST_TAG:
+    sh: git describe --abbrev=0 --tags 2>/dev/null || echo latest
+  GIT_HEAD_COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo unknown
+  GIT_TAG_COMMIT:
+    sh: git rev-parse --short {{.GIT_LAST_TAG}} 2>/dev/null || echo unknown
+  GIT_MODIFIED1:
+    sh: git diff {{.GIT_HEAD_COMMIT}} {{.GIT_TAG_COMMIT}} --quiet 2>/dev/null || echo .dev
+  GIT_MODIFIED2:
+    sh: git diff --quiet 2>/dev/null || echo .dirty
+  GIT_MODIFIED:
+    sh: echo "{{.GIT_MODIFIED1}}{{.GIT_MODIFIED2}}"
+  BUILD_DATE:
+    sh: date -u '+%Y-%m-%dT%H:%M:%SZ'
+
+env:
+  CGO_ENABLED: 1
+
+tasks:
+  default:
+    cmds:
+      - task: update
+      - task: build
+
+  update:
+    cmds:
+      - go get -u
+      - go mod tidy
+
+  check:
+    cmds:
+      - gomajor list
+
+  fmt:
+    cmds:
+      - gci write .
+      - gofumpt -l -w .
+
+  build:
+    cmds:
+      - task: update
+      - task: fmt
+      - go build -trimpath -pgo=auto -ldflags="-s -w -X main.GitTag={{.GIT_LAST_TAG}} -X main.GitCommit={{.GIT_HEAD_COMMIT}} -X main.GitDirty={{.GIT_MODIFIED}} -X main.BuildTime={{.BUILD_DATE}}" -o {{.TARGET}}
+
+  build-debug:
+    env:
+      CGO_ENABLED: 1
+    cmds:
+      - task: update
+      - task: fmt
+      - go build -ldflags="-X main.GitTag={{.GIT_LAST_TAG}} -X main.GitCommit={{.GIT_HEAD_COMMIT}} -X main.GitDirty={{.GIT_MODIFIED}} -X main.BuildTime={{.BUILD_DATE}}" -race -o {{.TARGET}}
+
+  lint:
+    cmds:
+      - task: fmt
+      - golangci-lint run --timeout 5m
+
+  release:
+    cmds:
+      - goreleaser release --clean -p 4
