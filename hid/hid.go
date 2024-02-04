@@ -16,8 +16,9 @@
 
 package hid
 
+import "C"
+
 import (
-	"C"
 	"bufio"
 	"fmt"
 	"math"
