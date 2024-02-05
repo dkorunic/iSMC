@@ -28,8 +28,8 @@ import (
 )
 
 type TableOutput struct {
-	isASCII bool
 	writer  io.Writer
+	isASCII bool
 }
 
 func NewTableOutput(isASCII bool) Output {
