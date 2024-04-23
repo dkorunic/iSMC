@@ -10,7 +10,7 @@
 
 Apart from regular support for regular (PPC and Intel hardware), it also supports M1 ARM-based SoC hardware which has temperature/voltage/current/power sensors connected to a HID sensor hub.
 
-[![asciicast](https://asciinema.org/a/iQPD6haQvqswJcCOaPAxhrGNr.svg)](https://asciinema.org/a/iQPD6haQvqswJcCOaPAxhrGNr)
+![Demo](demo.gif)
 
 ## Installation
 
