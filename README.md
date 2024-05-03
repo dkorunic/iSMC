@@ -88,3 +88,7 @@ Planned features:
 ## Bugs, feature requests, etc.
 
 Please open a PR or report an issue. Thanks!
+
+## Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=dkorunic/iSMC&type=Date)](https://star-history.com/#dkorunic/iSMC&Date)
