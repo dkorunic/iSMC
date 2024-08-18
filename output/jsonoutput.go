@@ -73,7 +73,7 @@ func format(d any) (any, error) {
 			}
 			s := strings.Split(buf.Value.(string), " ")
 			switch buf.Type {
-			case "flt", "sp78", "sp87", "hid":
+			case "flt", "hid", "fp1f", "fp2e", "fp3d", "fp4c", "fp5b", "fp6a", "fp79", "fp88", "fpa6", "fpc4", "fpe2", "sp1e", "sp2d", "sp3c", "sp4b", "sp5a", "sp69", "sp78", "sp87", "sp96", "spa5", "spb4", "spf0":
 				f, err := strconv.ParseFloat(s[0], 64)
 				if err != nil {
 					return v, err

@@ -71,8 +71,15 @@ func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 		desc := v.Name
 		val := v.Value
 
+		key := ""
+		str := strings.Fields(desc)
+		strLen := len(str)
+		if strLen > 1 {
+			key = str[strLen-1]
+		}
+
 		generic[desc] = map[string]interface{}{
-			"key":   "",
+			"key":   key,
 			"value": fmt.Sprintf("%.2f %s", val, unit),
 			"type":  SensorType,
 		}
