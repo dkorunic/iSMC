@@ -124,3 +124,4 @@ Memory:PZDM
 SSD:PZHD
 ODD(PZOD):PZOD
 Average Main Chipset:Pc0R
+Power Delivery Brightness:PDBR

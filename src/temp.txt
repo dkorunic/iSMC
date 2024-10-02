@@ -40,6 +40,54 @@ GPU 1:Tg05
 GPU 2:Tg0D
 GPU 3:Tg0L
 GPU 4:Tg0T
+Memory 1:Tm02
+Memory 2:Tm06
+Memory 3:Tm08
+Memory 4:Tm09
+CPU Efficiency Core 1:Tp1h
+CPU Efficiency Core 2:Tp1t
+CPU Efficiency Core 3:Tp1p
+CPU Efficiency Core 4:Tp1l
+CPU Performance Core 1:Tp01
+CPU Performance Core 2:Tp05
+CPU Performance Core 3:Tp09
+CPU Performance Core 4:Tp0D
+CPU Performance Core 5:Tp0X
+CPU Performance Core 6:Tp0b
+CPU Performance Core 7:Tp0f
+CPU Performance Core 8:Tp0j
+GPU 1:Tg0f
+GPU 2:Tg0j
+CPU Efficiency Core 1:Te05
+CPU Efficiency Core 2:Te0L
+CPU Efficiency Core 3:Te0P
+CPU Efficiency Core 4:Te0S
+CPU Performance Core 1:Tf04
+CPU Performance Core 2:Tf09
+CPU Performance Core 3:Tf0A
+CPU Performance Core 4:Tf0B
+CPU Performance Core 5:Tf0D
+CPU Performance Core 6:Tf0E
+CPU Performance Core 7:Tf44
+CPU Performance Core 8:Tf49
+CPU Performance Core 9:Tf4A
+CPU Performance Core 10:Tf4B
+CPU Performance Core 11:Tf4D
+CPU Performance Core 12:Tf4E
+GPU 1:Tf14
+GPU 2:Tf18
+GPU 3:Tf19
+GPU 4:Tf1A
+GPU 5:Tf24
+GPU 6:Tf28
+GPU 7:Tf29
+GPU 8:Tf2A
+Airflow Left:TaLP
+Airflow Right:TaRF
+NAND:TH0x
+Battery 1:TB1T
+Battery 2:TB2T
+Airport:TW0P
 Airflow Left:TaLP
 Airflow Right:TaRF
 NAND:TH0x

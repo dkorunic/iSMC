@@ -42,8 +42,13 @@ tasks:
       - gofumpt -l -w .
       - betteralign -apply ./...
 
+  generate:
+    cmds:
+      - go generate ./smc
+
   build:
     cmds:
+      - task: generate
       - task: fmt
       - go build -trimpath -pgo=auto -ldflags="-s -w -X main.GitTag={{.GIT_LAST_TAG}} -X main.GitCommit={{.GIT_HEAD_COMMIT}} -X main.GitDirty={{.GIT_MODIFIED}} -X main.BuildTime={{.BUILD_DATE}}" -o {{.TARGET}}
 
