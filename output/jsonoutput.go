@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 type JSONOutput struct {
@@ -50,8 +50,6 @@ func format(d any) (any, error) {
 	if !ok {
 		return v, fmt.Errorf("not a map")
 	}
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	for key, entry := range v {
 		t, err := json.Marshal(entry)
@@ -100,7 +98,6 @@ func (jo JSONOutput) All() {
 		}
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	out, _ := json.Marshal(data)
 	fmt.Println(string(out))
 }
@@ -136,7 +133,6 @@ func (jo JSONOutput) print(v any) {
 		return
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	out, _ := json.Marshal(data)
 	fmt.Println(string(out))
 }

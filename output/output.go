@@ -19,7 +19,7 @@ package output
 import (
 	"github.com/dkorunic/iSMC/hid"
 	"github.com/dkorunic/iSMC/smc"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 // monkey patching for testing
@@ -92,7 +92,6 @@ func getVoltage() map[string]any {
 
 // TODO replace with a variant from an utility package
 func deepCopy(dest, src map[string]any) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonStr, _ := json.Marshal(src)
 	_ = json.Unmarshal(jsonStr, &dest)
 }

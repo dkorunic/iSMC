@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -135,7 +135,6 @@ func Test_merge(t *testing.T) {
 }
 
 func toJson(src map[string]any) string {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonStr, _ := json.Marshal(src)
 	return string(jsonStr)
 }
