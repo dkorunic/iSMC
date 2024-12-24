@@ -19,6 +19,7 @@ Charger BMON:IPBR
 WLAN Low-Side:IAPC
 Battery:IBAC
 Backlight:IBLC
+Brightness:IDBR
 CPU I/O High Side:IC0I
 CPU SA High Side:IC0S
 CPU High Side From EMC1704:IC1R

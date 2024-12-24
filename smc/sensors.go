@@ -472,6 +472,7 @@ var AppleCurrent = []SensorStat{
 	{Key: "IAPC", Desc: "WLAN Low-Side"},
 	{Key: "IBAC", Desc: "Battery"},
 	{Key: "IBLC", Desc: "Backlight"},
+	{Key: "IDBR", Desc: "Brightness"},
 	{Key: "IC0I", Desc: "CPU I/O High Side"},
 	{Key: "IC0S", Desc: "CPU SA High Side"},
 	{Key: "IC1R", Desc: "CPU High Side From EMC1704"},
