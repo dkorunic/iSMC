@@ -22,3 +22,12 @@ linters:
     - varcheck
     - structcheck
     - ifshort
+    - mnd
+    - revive
+    - godot
+    - err113
+    - paralleltest
+    - testpackage
+    - ireturn
+    - gochecknoinits
+    - godox

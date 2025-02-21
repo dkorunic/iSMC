@@ -16,7 +16,7 @@
 
 package output
 
-func OutputFactory(outputType string) Output {
+func Factory(outputType string) Output {
 	switch outputType {
 	case "table":
 		return NewTableOutput(false)

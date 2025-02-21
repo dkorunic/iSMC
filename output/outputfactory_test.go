@@ -19,10 +19,11 @@ import (
 	"testing"
 )
 
-func TestOutputFactory(t *testing.T) {
+func TestFactory(t *testing.T) {
 	type args struct {
 		outputType string
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -46,10 +47,11 @@ func TestOutputFactory(t *testing.T) {
 			NewTableOutput(false),
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := OutputFactory(tt.args.outputType); reflect.TypeOf(got) != reflect.TypeOf(tt.want) {
-				t.Errorf("OutputFactory() = %v, want %v", reflect.TypeOf(got), reflect.TypeOf(tt.want))
+			if got := Factory(tt.args.outputType); reflect.TypeOf(got) != reflect.TypeOf(tt.want) {
+				t.Errorf("Factory() = %v, want %v", reflect.TypeOf(got), reflect.TypeOf(tt.want))
 			}
 		})
 	}

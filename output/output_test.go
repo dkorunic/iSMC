@@ -17,7 +17,6 @@
 package output
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -30,6 +29,7 @@ func Test_deepCopy(t *testing.T) {
 		dest map[string]any
 		src  map[string]any
 	}
+
 	tests := []struct {
 		name     string
 		args     args
@@ -68,12 +68,13 @@ func Test_deepCopy(t *testing.T) {
 			`{"key-1":"value-1","key-2":{"key-2-1":"value-2-1"}}`,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			deepCopy(tt.args.dest, tt.args.src)
 
-			actual := toJson(tt.args.dest)
-			assert.JSONEq(t, actual, tt.expected)
+			actual := toJSON(tt.args.dest)
+			assert.JSONEq(t, tt.expected, actual)
 		})
 	}
 }
@@ -83,6 +84,7 @@ func Test_merge(t *testing.T) {
 		a map[string]any
 		b map[string]any
 	}
+
 	tests := []struct {
 		name     string
 		args     args
@@ -128,14 +130,16 @@ func Test_merge(t *testing.T) {
 			assert.True(
 				t,
 				reflect.DeepEqual(actual, tt.expected),
-				fmt.Sprintf("Expected %v but was %v", tt.expected, actual),
+				"Expected %v but was %v",
+				tt.expected, actual,
 			)
 		})
 	}
 }
 
-func toJson(src map[string]any) string {
+func toJSON(src map[string]any) string {
 	jsonStr, _ := json.Marshal(src)
+
 	return string(jsonStr)
 }
 

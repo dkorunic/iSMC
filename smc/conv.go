@@ -63,6 +63,10 @@ func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 	if v, ok := AppleFPConv[t]; ok {
 		res := binary.BigEndian.Uint16(x[:size])
 		if v.Signed {
+			if res > math.MaxInt16 {
+				return 0.0, fmt.Errorf("unable to convert to float32 type %q, bytes %v to float32", t, x)
+			}
+
 			return float32(int16(res)) / v.Div, nil
 		}
 
@@ -73,7 +77,9 @@ func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 }
 
 // fltToFloat32 converts flt SMC type to float32.
-func fltToFloat32(k string, x gosmc.SMCBytes, size uint32) (float32, error) {
+//
+//nolint:unparam
+func fltToFloat32(_ string, x gosmc.SMCBytes, size uint32) (float32, error) {
 	return math.Float32frombits(binary.LittleEndian.Uint32(x[:size])), nil
 }
 
@@ -85,7 +91,7 @@ func smcTypeToString(x gosmc.UInt32Char) string {
 // smcBytesToUint32 converts ui8/ui16/ui32 SMC types to uint32.
 func smcBytesToUint32(x gosmc.SMCBytes, size uint32) uint32 {
 	var total uint32
-	for i := uint32(0); i < size; i++ {
+	for i := range size {
 		total += uint32(x[i]) << ((size - 1 - i) * 8)
 	}
 

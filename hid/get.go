@@ -205,7 +205,7 @@ func GetAll() map[string]any {
 // GetCurrent returns detected HID current sensor results.
 func GetCurrent() map[string]any {
 	cStr := C.getCurrents()
-	defer C.free(unsafe.Pointer(cStr))
+	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
 
 	return getGeneric("A", cStr)
 }
@@ -213,7 +213,7 @@ func GetCurrent() map[string]any {
 // GetVoltage returns detected HID voltage sensor results.
 func GetVoltage() map[string]any {
 	cStr := C.getVoltages()
-	defer C.free(unsafe.Pointer(cStr))
+	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
 
 	return getGeneric("V", cStr)
 }
@@ -221,7 +221,7 @@ func GetVoltage() map[string]any {
 // GetTemp returns detected HID temperature sensor results.
 func GetTemperature() map[string]any {
 	cStr := C.getThermals()
-	defer C.free(unsafe.Pointer(cStr))
+	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
 
 	return getGeneric("°C", cStr)
 }

@@ -111,6 +111,7 @@ func merge(a, b map[string]any) map[string]any {
 				}
 			}
 		}
+
 		out[k] = v
 	}
 

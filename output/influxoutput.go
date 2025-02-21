@@ -45,6 +45,7 @@ func (io InfluxOutput) All() {
 	for k := range all {
 		keys = append(keys, k)
 	}
+
 	sort.Sort(sortorder.Natural(keys))
 
 	for _, key := range keys {
@@ -79,18 +80,20 @@ func (io InfluxOutput) Voltage() {
 	io.print("Voltage", GetVoltage())
 }
 
-func influx_string_convert(s string) string {
+func influxStringConvert(s string) string {
 	s = strings.ReplaceAll(s, " ", "_")
 	s = strings.ToLower(s)
+
 	return s
 }
 
-func influx_get_value(s string) string {
+func influxGetValue(s string) string {
 	s = strings.Split(s, " ")[0]
+
 	return s
 }
 
-func influx_get_unit(s string) string {
+func influxGetUnit(s string) string {
 	s = strings.Trim(s, "value=")
 	if len(strings.Split(s, " ")) > 1 {
 		s = strings.Split(s, " ")[1]
@@ -99,6 +102,7 @@ func influx_get_unit(s string) string {
 	} else {
 		s = "none"
 	}
+
 	return s
 }
 
@@ -116,18 +120,20 @@ func (io InfluxOutput) print(name string, smcdata map[string]any) {
 			if value, ok := v.(map[string]any); ok {
 				key := fmt.Sprint(value["key"])
 				if len(key) > 0 {
-					key = influx_string_convert(fmt.Sprintf(",key=%s", value["key"]))
+					key = influxStringConvert(fmt.Sprintf(",key=%s", value["key"]))
 				} else {
 					key = ""
 				}
+
 				value := fmt.Sprintf("value=%v", value["value"])
-				unit := influx_get_unit(fmt.Sprintf("%v", value))
+				unit := influxGetUnit(value)
+
 				fmt.Printf("%v,sensortype=%s,unit=%s%s %s %d\n",
-					influx_string_convert(k),
-					influx_string_convert(name),
+					influxStringConvert(k),
+					influxStringConvert(name),
 					unit,
 					key,
-					influx_get_value(value),
+					influxGetValue(value),
 					ct)
 			}
 		}

@@ -17,6 +17,7 @@
 package output
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -48,7 +49,7 @@ type newstruct struct {
 func format(d any) (any, error) {
 	v, ok := d.(map[string]any)
 	if !ok {
-		return v, fmt.Errorf("not a map")
+		return v, errors.New("not a map")
 	}
 
 	for key, entry := range v {
@@ -58,6 +59,7 @@ func format(d any) (any, error) {
 		}
 
 		buf := newstruct{}
+
 		err = json.Unmarshal(t, &buf)
 		if err != nil {
 			return v, err
@@ -66,10 +68,14 @@ func format(d any) (any, error) {
 		// Process only string values
 		switch buf.Value.(type) {
 		case string:
+			//nolint:forcetypeassert
 			if !strings.Contains(buf.Value.(string), " ") {
 				continue
 			}
+
+			//nolint:forcetypeassert
 			s := strings.Split(buf.Value.(string), " ")
+
 			switch buf.Type {
 			case "flt", "hid", "fp1f", "fp2e", "fp3d", "fp4c", "fp5b", "fp6a", "fp79", "fp88", "fpa6", "fpc4", "fpe2", "sp1e", "sp2d", "sp3c", "sp4b", "sp5a", "sp69", "sp78", "sp87", "sp96", "spa5", "spb4", "spf0":
 				f, err := strconv.ParseFloat(s[0], 64)
@@ -90,10 +96,13 @@ func format(d any) (any, error) {
 
 func (jo JSONOutput) All() {
 	var err error
+
 	data := GetAll()
+
 	for key, d := range data {
 		if data[key], err = format(d); err != nil {
 			jo.print(GetAll())
+
 			return
 		}
 	}
@@ -130,6 +139,7 @@ func (jo JSONOutput) print(v any) {
 	data, err := format(v)
 	if err != nil {
 		fmt.Printf("could not format data: %v\n", err)
+
 		return
 	}
 

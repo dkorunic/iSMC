@@ -40,7 +40,9 @@ type SensorStat struct {
 // getGeneric returns a map of HID sensor stats.
 func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 	var stats []SensorStat
+
 	goStr := C.GoString(cStr)
+
 	scanner := bufio.NewScanner(strings.NewReader(goStr))
 	for scanner.Scan() {
 		split := strings.Split(scanner.Text(), SensorSeparator)
@@ -73,6 +75,7 @@ func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 
 		key := ""
 		str := strings.Fields(desc)
+
 		strLen := len(str)
 		if strLen > 1 {
 			key = str[strLen-1]

@@ -126,6 +126,7 @@ func GetFans() map[string]any {
 				if val < 0.0 {
 					val = -val
 				}
+
 				fans[desc] = map[string]any{
 					"key":   key,
 					"value": fmt.Sprintf("%4.0f rpm", val),
@@ -138,7 +139,7 @@ func GetFans() map[string]any {
 	return fans
 }
 
-func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]any {
+func getGeneric(_, unit string, smcSlice []SensorStat) map[string]any {
 	conn, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
 		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
@@ -158,7 +159,7 @@ func getGeneric(desc, unit string, smcSlice []SensorStat) map[string]any {
 			continue
 		}
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			iKey := strings.Replace(key, KeyWildcard, strconv.Itoa(i), 1)
 			iDesc := strings.Replace(desc, KeyWildcard, strconv.Itoa(i+1), 1)
 			addGeneric(generic, conn, iKey, iDesc, unit)
@@ -178,6 +179,7 @@ func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 		if val < 0.0 {
 			val = -val
 		}
+
 		generic[desc] = map[string]any{
 			"key":   key,
 			"value": fmt.Sprintf("%.1f %s", val, unit),

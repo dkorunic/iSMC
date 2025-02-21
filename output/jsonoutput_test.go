@@ -134,6 +134,7 @@ func TestJSONOutput(t *testing.T) {
 	}
 	for _, tt := range tests {
 		var out bytes.Buffer
+
 		t.Run(tt.name, func(t *testing.T) {
 			tt.monkeyPatch()
 

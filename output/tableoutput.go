@@ -47,6 +47,7 @@ func (to TableOutput) All() {
 	for k := range all {
 		keys = append(keys, k)
 	}
+
 	sort.Sort(sortorder.Natural(keys))
 
 	for _, key := range keys {
@@ -85,10 +86,13 @@ func (to TableOutput) print(name string, smcdata map[string]any) {
 	if len(smcdata) != 0 {
 		t := table.NewWriter()
 		t.SetOutputMirror(to.writer)
+
 		if !to.isASCII {
 			t.SetStyle(table.StyleColoredBright)
 		}
+
 		t.SetTitle(name)
+
 		t.Style().Title.Align = text.AlignCenter
 		t.AppendHeader(table.Row{"Description", "Key", "Value", "Type"})
 
@@ -96,13 +100,14 @@ func (to TableOutput) print(name string, smcdata map[string]any) {
 		for k := range smcdata {
 			keys = append(keys, k)
 		}
+
 		sort.Sort(sortorder.Natural(keys))
 
 		for _, k := range keys {
 			v := smcdata[k]
 			if value, ok := v.(map[string]any); ok {
 				t.AppendRow([]any{
-					fmt.Sprintf("%v", k),
+					k,
 					value["key"],
 					fmt.Sprintf("%8v", value["value"]),
 					value["type"],

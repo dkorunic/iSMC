@@ -26,8 +26,8 @@ var powerCmd = &cobra.Command{
 	Use:     "power",
 	Aliases: []string{"pow"},
 	Short:   "Display power sensors",
-	Run: func(cmd *cobra.Command, args []string) {
-		output.OutputFactory(OutputFlag).Power()
+	Run: func(_ *cobra.Command, args []string) {
+		output.Factory(OutputFlag).Power()
 	},
 }
 

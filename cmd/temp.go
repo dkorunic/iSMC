@@ -26,8 +26,8 @@ var tempCmd = &cobra.Command{
 	Use:     "temp",
 	Aliases: []string{"temperature", "tmp"},
 	Short:   "Display temperature sensors",
-	Run: func(cmd *cobra.Command, args []string) {
-		output.OutputFactory(OutputFlag).Temperature()
+	Run: func(_ *cobra.Command, args []string) {
+		output.Factory(OutputFlag).Temperature()
 	},
 }
 

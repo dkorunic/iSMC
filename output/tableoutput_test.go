@@ -40,7 +40,7 @@ var tableTpl = `[96;100;1m%s[0m
 [106;30m DESCRIPTION [0m[106;30m KEY [0m[106;30m VALUE    [0m[106;30m TYPE [0m
 [107;30m sensor      [0m[107;30m key [0m[107;30m    value [0m[107;30m type [0m
 
-`
+` //nolint:stylecheck
 
 func TestTableOutput_ASCII(t *testing.T) {
 	tests := []struct {
@@ -81,7 +81,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 			func(to TableOutput) {
 				to.All()
 			},
-			getAsciiTpl("battery", "fans", "temperature"),
+			getASCIITpl("battery", "fans", "temperature"),
 		},
 		{
 			"Battery sensor",
@@ -93,7 +93,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 			func(to TableOutput) {
 				to.Battery()
 			},
-			getAsciiTpl("Battery"),
+			getASCIITpl("Battery"),
 		},
 		{
 			"Current sensor",
@@ -105,7 +105,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 			func(to TableOutput) {
 				to.Current()
 			},
-			getAsciiTpl("Current"),
+			getASCIITpl("Current"),
 		},
 		{
 			"Fans sensor",
@@ -117,7 +117,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 			func(to TableOutput) {
 				to.Fans()
 			},
-			getAsciiTpl("Fans"),
+			getASCIITpl("Fans"),
 		},
 		{
 			"Power sensor",
@@ -129,7 +129,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 			func(to TableOutput) {
 				to.Power()
 			},
-			getAsciiTpl("Power"),
+			getASCIITpl("Power"),
 		},
 		{
 			"Temperature sensor",
@@ -141,7 +141,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 			func(to TableOutput) {
 				to.Temperature()
 			},
-			getAsciiTpl("Temperature"),
+			getASCIITpl("Temperature"),
 		},
 		{
 			"Voltage sensor",
@@ -153,11 +153,13 @@ func TestTableOutput_ASCII(t *testing.T) {
 			func(to TableOutput) {
 				to.Voltage()
 			},
-			getAsciiTpl("Voltage"),
+			getASCIITpl("Voltage"),
 		},
 	}
+
 	for _, tt := range tests {
 		var out bytes.Buffer
+
 		t.Run(tt.name, func(t *testing.T) {
 			tt.monkeyPatch()
 
@@ -207,6 +209,7 @@ func TestTableOutput_Table(t *testing.T) {
 	}
 	for _, tt := range tests {
 		var out bytes.Buffer
+
 		t.Run(tt.name, func(t *testing.T) {
 			tt.monkeyPatch()
 
@@ -219,24 +222,29 @@ func TestTableOutput_Table(t *testing.T) {
 	}
 }
 
-func getAsciiTpl(title ...string) string {
+func getASCIITpl(title ...string) string {
 	var out string
+
 	for _, t := range title {
 		// center title
 		width := 37
 		even := 0
+
 		if len(t)%2 == 0 {
 			even = 1
 		}
+
 		centeredTitle := fmt.Sprintf("%*s", -width, fmt.Sprintf("%*s", (width+len(t)+even)/2, t))
 
 		out += fmt.Sprintf(asciiTpl, centeredTitle)
 	}
+
 	return out
 }
 
 func getTableTpl(title ...string) string {
 	var out string
+
 	for _, t := range title {
 		// center title
 		width := 35
@@ -244,5 +252,6 @@ func getTableTpl(title ...string) string {
 
 		out += fmt.Sprintf(tableTpl, centeredTitle)
 	}
+
 	return out
 }
