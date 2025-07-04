@@ -250,6 +250,8 @@ var AppleTemp = []SensorStat{
 	{Key: "Tp2h", Desc: "Power Supply T2 Secondary Heatsink Raw"},
 	{Key: "Ts1P", Desc: "Actuator"},
 	{Key: "Ts1S", Desc: "Synthetic Top Skin"},
+	{Key: "TTLD", Desc: "Thunderbolt Left"},
+	{Key: "TTRD", Desc: "Thunderbolt Right"},
 }
 
 var AppleFans = []SensorStat{
@@ -388,6 +390,8 @@ var ApplePower = []SensorStat{
 	{Key: "PZOD", Desc: "ODD(PZOD)"},
 	{Key: "Pc0R", Desc: "Average Main Chipset"},
 	{Key: "PDBR", Desc: "Power Delivery Brightness"},
+	{Key: "PU1R", Desc: "Thunderbolt Left"},
+	{Key: "PU2R", Desc: "Thunderbolt Right"},
 }
 
 var AppleVoltage = []SensorStat{

@@ -125,3 +125,5 @@ SSD:PZHD
 ODD(PZOD):PZOD
 Average Main Chipset:Pc0R
 Power Delivery Brightness:PDBR
+Thunderbolt Left:PU1R
+Thunderbolt Right:PU2R

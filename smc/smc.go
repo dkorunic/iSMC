@@ -112,7 +112,7 @@ func GetFans() map[string]any {
 		"type":  smcType,
 	}
 
-	for i := uint32(0); i < val; i++ {
+	for i := range val {
 		for _, v := range AppleFans {
 			key := fmt.Sprintf(v.Key, i)
 			desc := fmt.Sprintf(v.Desc, i+1)
