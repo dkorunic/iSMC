@@ -4,7 +4,6 @@ go 1.25
 
 require (
 	github.com/fvbommel/sortorder v1.1.0
-	github.com/goccy/go-json v0.10.5
 	github.com/panotza/gosmc v1.0.0
 	github.com/spf13/cobra v1.10.1
 )

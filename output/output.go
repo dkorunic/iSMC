@@ -17,9 +17,10 @@
 package output
 
 import (
+	"encoding/json"
+
 	"github.com/dkorunic/iSMC/hid"
 	"github.com/dkorunic/iSMC/smc"
-	"github.com/goccy/go-json"
 )
 
 // monkey patching for testing

@@ -17,14 +17,13 @@
 package output
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/goccy/go-json"
 )
 
 type JSONOutput struct {
