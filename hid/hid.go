@@ -38,7 +38,7 @@ type SensorStat struct {
 }
 
 // getGeneric returns a map of HID sensor stats.
-func getGeneric(unit string, cStr *C.char) map[string]interface{} {
+func getGeneric(unit string, cStr *C.char) map[string]any {
 	var stats []SensorStat
 
 	goStr := C.GoString(cStr)
@@ -67,7 +67,7 @@ func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 		}
 	}
 
-	generic := make(map[string]interface{})
+	generic := make(map[string]any)
 
 	for _, v := range stats {
 		desc := v.Name
@@ -81,9 +81,9 @@ func getGeneric(unit string, cStr *C.char) map[string]interface{} {
 			key = str[strLen-1]
 		}
 
-		generic[desc] = map[string]interface{}{
+		generic[desc] = map[string]any{
 			"key":   key,
-			"value": fmt.Sprintf("%.2f %s", val, unit),
+			"value": fmt.Sprintf("%g %s", val, unit),
 			"type":  SensorType,
 		}
 	}

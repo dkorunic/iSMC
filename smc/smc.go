@@ -182,7 +182,7 @@ func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 
 		generic[desc] = map[string]any{
 			"key":   key,
-			"value": fmt.Sprintf("%.1f %s", val, unit),
+			"value": fmt.Sprintf("%g %s", val, unit),
 			"type":  smcType,
 		}
 	}
