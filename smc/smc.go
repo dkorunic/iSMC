@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/panotza/gosmc"
+	"github.com/dkorunic/iSMC/gosmc"
 )
 
 const (

@@ -4,7 +4,6 @@ go 1.25
 
 require (
 	github.com/fvbommel/sortorder v1.1.0
-	github.com/panotza/gosmc v1.0.0
 	github.com/spf13/cobra v1.10.2
 )
 
@@ -25,5 +24,3 @@ require (
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sys v0.39.0 // indirect
 )
-
-replace github.com/panotza/gosmc => ./gosmc

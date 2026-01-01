@@ -19,7 +19,7 @@ package smc
 import (
 	"fmt"
 
-	"github.com/panotza/gosmc"
+	"github.com/dkorunic/iSMC/gosmc"
 )
 
 // getKeyFloat32 returns float32 value for a given SMC key.

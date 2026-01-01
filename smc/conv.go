@@ -22,7 +22,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/panotza/gosmc"
+	"github.com/dkorunic/iSMC/gosmc"
 )
 
 // FPConv type used for AppleFPConv map.
