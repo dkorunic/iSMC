@@ -19,9 +19,11 @@ require (
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/jedib0t/go-pretty/v6 v6.7.5
+	github.com/jedib0t/go-pretty/v6 v6.7.8
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sys v0.39.0 // indirect
 )
+
+replace github.com/panotza/gosmc => ./gosmc
