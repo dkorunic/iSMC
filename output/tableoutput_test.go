@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -223,7 +224,7 @@ func TestTableOutput_Table(t *testing.T) {
 }
 
 func getASCIITpl(title ...string) string {
-	var out string
+	var out strings.Builder
 
 	for _, t := range title {
 		// center title
@@ -236,22 +237,22 @@ func getASCIITpl(title ...string) string {
 
 		centeredTitle := fmt.Sprintf("%*s", -width, fmt.Sprintf("%*s", (width+len(t)+even)/2, t))
 
-		out += fmt.Sprintf(asciiTpl, centeredTitle)
+		out.WriteString(fmt.Sprintf(asciiTpl, centeredTitle))
 	}
 
-	return out
+	return out.String()
 }
 
 func getTableTpl(title ...string) string {
-	var out string
+	var out strings.Builder
 
 	for _, t := range title {
 		// center title
 		width := 35
 		centeredTitle := fmt.Sprintf("%*s", -width+1, fmt.Sprintf("%*s", (width+len(t))/2, t))
 
-		out += fmt.Sprintf(tableTpl, centeredTitle)
+		out.WriteString(fmt.Sprintf(tableTpl, centeredTitle))
 	}
 
-	return out
+	return out.String()
 }
