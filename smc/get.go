@@ -30,6 +30,18 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 	}
 
 	t := smcTypeToString(v.DataType)
+
+	// Some sensors are mislabeled as 'flt' but actually use 'sp78' format (2-byte fixed-point)
+	// The first 2 bytes contain the sp78 value
+	// Ta0P is known to be affected on M1/M2 Macs
+	if t == gosmc.TypeFLT && v.DataSize >= 2 {
+		if key == "Ta0P" {
+			// Read first 2 bytes as big-endian int16 and convert to sp78 format
+			raw := uint16(v.Bytes[0])<<8 | uint16(v.Bytes[1])
+			return float32(int16(raw)) / 256.0, t, nil
+		}
+	}
+
 	switch t {
 	// flt SMC type
 	case gosmc.TypeFLT:

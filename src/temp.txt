@@ -230,3 +230,5 @@ Actuator:Ts1P
 Synthetic Top Skin:Ts1S
 Thunderbolt Left:TTLD
 Thunderbolt Right:TTRD
+Thunderbolt Left Proximity:TaLT
+Thunderbolt Right Proximity:TaRT

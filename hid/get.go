@@ -133,7 +133,40 @@ NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
     int             count = [kvsN count];
 
     for (int i = 0; i < count; i++) {
-        NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [kvsN[i] UTF8String], [kvsV[i] doubleValue]];
+        NSString *name = kvsN[i];
+        double   value = [kvsV[i] doubleValue];
+
+        NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
+        [valueString appendString:output];
+    }
+
+    return valueString;
+}
+
+// dumpThermalNamesValues formats thermal sensor names and values, applying sp78 conversion
+// for specific HID thermal sensors that use the sp78 fixed-point format (e.g., PMU tdev sensors)
+static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
+    NSMutableString *valueString = [[NSMutableString alloc] init];
+    int             count = [kvsN count];
+
+    for (int i = 0; i < count; i++) {
+        NSString *name = kvsN[i];
+        double   value = [kvsV[i] doubleValue];
+
+        // PMU tdev sensors (e.g., "PMU tdev1") use sp78 format and need /256 conversion
+        // Check for "tdev" followed by a digit to avoid false matches
+        NSRange range = [name rangeOfString:@"tdev"];
+        if (range.location != NSNotFound) {
+            // Verify the pattern is "tdev" followed by a number (e.g., "tdev1", "PMU tdev2")
+            if (range.location + 4 < [name length]) {
+                unichar nextChar = [name characterAtIndex:range.location + 4];
+                if (nextChar >= '1' && nextChar <= '9') {
+                    value = value / 256.0;
+                }
+            }
+        }
+
+        NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
         [valueString appendString:output];
     }
 
@@ -174,7 +207,7 @@ char *getThermals() {
     NSDictionary    *thermalSensors = matching(0xff00, 5);
     NSArray         *thermalNames = getProductNames(thermalSensors);
     NSArray         *thermalValues = getThermalValues(thermalSensors);
-    NSString        *result = dumpNamesValues(thermalNames, thermalValues);
+    NSString        *result = dumpThermalNamesValues(thermalNames, thermalValues);
     char            *finalStr = strdup([result UTF8String]);
 
     CFRelease(thermalSensors);
