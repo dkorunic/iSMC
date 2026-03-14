@@ -51,7 +51,8 @@ NSArray *getProductNames(NSDictionary *sensors) {
     IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
     IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
-    NSArray *matchingsrvs = (__bridge NSArray *)IOHIDEventSystemClientCopyServices(system);
+    CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
+    NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
 
     long            count = [matchingsrvs count];
     NSMutableArray  *array = [[NSMutableArray alloc] init];
@@ -62,10 +63,14 @@ NSArray *getProductNames(NSDictionary *sensors) {
 
         if (name) {
             [array addObject:name];
+            [name release];
         } else {
             [array addObject:@"noname"];
         }
     }
+
+    if (matchingsrvsRef) CFRelease(matchingsrvsRef);
+    CFRelease(system);
 
     return array;
 }
@@ -78,7 +83,8 @@ NSArray *getPowerValues(NSDictionary *sensors) {
     IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
     IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
-    NSArray *matchingsrvs = (NSArray *)IOHIDEventSystemClientCopyServices(system);
+    CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
+    NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
 
     long            count = [matchingsrvs count];
     NSMutableArray  *array = [[NSMutableArray alloc] init];
@@ -92,11 +98,15 @@ NSArray *getPowerValues(NSDictionary *sensors) {
 
         if (event != 0) {
             temp = IOHIDEventGetFloatValue(event, IOHIDEventFieldBase(kIOHIDEventTypePower)) / 1000.0;
+            CFRelease(event);
         }
 
         value = [NSNumber numberWithDouble:temp];
         [array addObject:value];
     }
+
+    if (matchingsrvsRef) CFRelease(matchingsrvsRef);
+    CFRelease(system);
 
     return array;
 }
@@ -105,7 +115,8 @@ NSArray *getThermalValues(NSDictionary *sensors) {
     IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
     IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
-    NSArray *matchingsrvs = (__bridge NSArray *)IOHIDEventSystemClientCopyServices(system);
+    CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
+    NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
 
     long            count = [matchingsrvs count];
     NSMutableArray  *array = [[NSMutableArray alloc] init];
@@ -119,18 +130,22 @@ NSArray *getThermalValues(NSDictionary *sensors) {
 
         if (event != 0) {
             temp = IOHIDEventGetFloatValue(event, IOHIDEventFieldBase(kIOHIDEventTypeTemperature));
+            CFRelease(event);
         }
 
         value = [NSNumber numberWithDouble:temp];
         [array addObject:value];
     }
 
+    if (matchingsrvsRef) CFRelease(matchingsrvsRef);
+    CFRelease(system);
+
     return array;
 }
 
-NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
+static NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
     NSMutableString *valueString = [[NSMutableString alloc] init];
-    int             count = [kvsN count];
+    int             count = (int)MIN([kvsN count], [kvsV count]);
 
     for (int i = 0; i < count; i++) {
         NSString *name = kvsN[i];
@@ -147,7 +162,7 @@ NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
 // for specific HID thermal sensors that use the sp78 fixed-point format (e.g., PMU tdev sensors)
 static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
     NSMutableString *valueString = [[NSMutableString alloc] init];
-    int             count = [kvsN count];
+    int             count = (int)MIN([kvsN count], [kvsV count]);
 
     for (int i = 0; i < count; i++) {
         NSString *name = kvsN[i];
@@ -174,46 +189,55 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
 }
 
 char *getCurrents() {
-    NSDictionary    *currentSensors = matching(0xff08, 2);
-    NSArray         *currentNames = getProductNames(currentSensors);
-    NSArray         *currentValues = getPowerValues(currentSensors);
-    NSString        *result = dumpNamesValues(currentNames, currentValues);
-    char            *finalStr = strdup([result UTF8String]);
+    char *finalStr;
 
-    CFRelease(currentSensors);
-    CFRelease(currentNames);
-    CFRelease(currentValues);
-    CFRelease(result);
+    @autoreleasepool {
+        NSDictionary    *currentSensors = matching(0xff08, 2);
+        NSArray         *currentNames = getProductNames(currentSensors);
+        NSArray         *currentValues = getPowerValues(currentSensors);
+        NSString        *result = dumpNamesValues(currentNames, currentValues);
+        finalStr = strdup([result UTF8String]);
+
+        CFRelease(currentNames);
+        CFRelease(currentValues);
+        CFRelease(result);
+    }
 
     return finalStr;
 }
 
 char *getVoltages() {
-    NSDictionary    *voltageSensors = matching(0xff08, 3);
-    NSArray         *voltageNames = getProductNames(voltageSensors);
-    NSArray         *voltageValues = getPowerValues(voltageSensors);
-    NSString        *result = dumpNamesValues(voltageNames, voltageValues);
-    char            *finalStr = strdup([result UTF8String]);
+    char *finalStr;
 
-    CFRelease(voltageSensors);
-    CFRelease(voltageNames);
-    CFRelease(voltageValues);
-    CFRelease(result);
+    @autoreleasepool {
+        NSDictionary    *voltageSensors = matching(0xff08, 3);
+        NSArray         *voltageNames = getProductNames(voltageSensors);
+        NSArray         *voltageValues = getPowerValues(voltageSensors);
+        NSString        *result = dumpNamesValues(voltageNames, voltageValues);
+        finalStr = strdup([result UTF8String]);
+
+        CFRelease(voltageNames);
+        CFRelease(voltageValues);
+        CFRelease(result);
+    }
 
     return finalStr;
 }
 
 char *getThermals() {
-    NSDictionary    *thermalSensors = matching(0xff00, 5);
-    NSArray         *thermalNames = getProductNames(thermalSensors);
-    NSArray         *thermalValues = getThermalValues(thermalSensors);
-    NSString        *result = dumpThermalNamesValues(thermalNames, thermalValues);
-    char            *finalStr = strdup([result UTF8String]);
+    char *finalStr;
 
-    CFRelease(thermalSensors);
-    CFRelease(thermalNames);
-    CFRelease(thermalValues);
-    CFRelease(result);
+    @autoreleasepool {
+        NSDictionary    *thermalSensors = matching(0xff00, 5);
+        NSArray         *thermalNames = getProductNames(thermalSensors);
+        NSArray         *thermalValues = getThermalValues(thermalSensors);
+        NSString        *result = dumpThermalNamesValues(thermalNames, thermalValues);
+        finalStr = strdup([result UTF8String]);
+
+        CFRelease(thermalNames);
+        CFRelease(thermalValues);
+        CFRelease(result);
+    }
 
     return finalStr;
 }

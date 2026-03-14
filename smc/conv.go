@@ -61,12 +61,12 @@ var AppleFPConv = map[string]FPConv{
 // fpToFloat32 converts fp* SMC types to float32.
 func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 	if v, ok := AppleFPConv[t]; ok {
+		if size < 2 {
+			return 0.0, fmt.Errorf("fpToFloat32: size %d too small for type %q", size, t)
+		}
+
 		res := binary.BigEndian.Uint16(x[:size])
 		if v.Signed {
-			if res > math.MaxInt16 {
-				return 0.0, fmt.Errorf("unable to convert to float32 type %q, bytes %v to float32", t, x)
-			}
-
 			return float32(int16(res)) / v.Div, nil
 		}
 
@@ -80,6 +80,10 @@ func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 //
 //nolint:unparam
 func fltToFloat32(_ string, x gosmc.SMCBytes, size uint32) (float32, error) {
+	if size < 4 {
+		return 0.0, fmt.Errorf("fltToFloat32: size %d too small for flt type", size)
+	}
+
 	return math.Float32frombits(binary.LittleEndian.Uint32(x[:size])), nil
 }
 
@@ -104,8 +108,12 @@ func smcBytesToFloat32(x gosmc.SMCBytes, size uint32) float32 {
 }
 
 // ioftToFloat32 converts ioft SMC type (48.16 unsigned fixed-point in LittleEndian) to float32.
-func ioftToFloat32(x gosmc.SMCBytes, size uint32) float32 {
+func ioftToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
+	if size < 8 {
+		return 0.0, fmt.Errorf("ioftToFloat32: size %d too small for ioft type", size)
+	}
+
 	res := binary.LittleEndian.Uint64(x[:size])
 
-	return float32(res) / 65536.0
+	return float32(res) / 65536.0, nil
 }
