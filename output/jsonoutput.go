@@ -68,7 +68,7 @@ func format(d any) (any, error) {
 			return v, err
 		}
 
-		// Process only string values
+		// Process only string values that contain a space-separated unit
 		switch buf.Value.(type) {
 		case string:
 			//nolint:forcetypeassert
@@ -89,6 +89,8 @@ func format(d any) (any, error) {
 				buf.Quantity = f
 				buf.Unit = s[1]
 			}
+		default:
+			continue
 		}
 
 		v[key] = buf
@@ -111,7 +113,7 @@ func (jo JSONOutput) All() {
 	}
 
 	out, _ := json.Marshal(data)
-	fmt.Println(string(out))
+	fmt.Fprintln(jo.writer, string(out))
 }
 
 func (jo JSONOutput) Battery() {
@@ -138,16 +140,16 @@ func (jo JSONOutput) Voltage() {
 	jo.print(GetVoltage())
 }
 
-// print formats v via format and writes the resulting JSON to stdout.
-// Formatting errors are reported to stdout and the function returns without printing sensor data.
+// print formats v via format and writes the resulting JSON to the writer.
+// Formatting errors are reported to the writer and the function returns without printing sensor data.
 func (jo JSONOutput) print(v any) {
 	data, err := format(v)
 	if err != nil {
-		fmt.Printf("could not format data: %v\n", err)
+		fmt.Fprintf(jo.writer, "could not format data: %v\n", err)
 
 		return
 	}
 
 	out, _ := json.Marshal(data)
-	fmt.Println(string(out))
+	fmt.Fprintln(jo.writer, string(out))
 }

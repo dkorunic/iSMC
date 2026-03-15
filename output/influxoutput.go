@@ -136,7 +136,7 @@ func (io InfluxOutput) print(name string, smcdata map[string]any) {
 				value := fmt.Sprintf("value=%v", value["value"])
 				unit := influxGetUnit(value)
 
-				fmt.Printf("%v,sensortype=%s,unit=%s%s %s %d\n",
+				fmt.Fprintf(io.writer, "%v,sensortype=%s,unit=%s%s %s %d\n",
 					influxStringConvert(k),
 					influxStringConvert(name),
 					unit,
