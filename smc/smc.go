@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -205,7 +206,12 @@ func filterForPlatform(smcSlice []SensorStat) []SensorStat {
 
 	family := platform.GetFamily()
 	if family == "" || family == "Unknown" {
-		family = "Apple"
+		switch runtime.GOARCH {
+		case "arm64":
+			family = "Apple"
+		case "amd64", "386":
+			family = "Intel"
+		}
 	}
 
 	familyApple := strings.HasPrefix(family, "M") || family == "Neo"
