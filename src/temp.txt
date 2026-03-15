@@ -1,10 +1,10 @@
 // All
-Termal Zone %:TZ%C:All
+Thermal Zone %:TZ%C:All
 CPU Diode %:TC%D:All
-CPU Heatsink %:TC%E:All
-CPU Proximity %:TC%F:All
-CPU Hot Spot %:TC%H:All
-CPU Package %:TC%P:All
+CPU Diode Virtual %:TC%E:All
+CPU Diode Filtered %:TC%F:All
+CPU Heatsink %:TC%H:All
+CPU Proximity %:TC%P:All
 CPU Package:TCAD:All
 CPU Core %:TC%c:All
 CPU Core %:TC%C:All
@@ -36,7 +36,7 @@ PCIe Slot % Front:Te%F:All
 PCIe Slot % Side:Te%S:All
 PCIe Slot % Bottom:Te%T:All
 PCIe Slot % Ambient:Te%P:All
-Termal Diode %:TD%P:All
+Thermal Diode %:TD%P:All
 Drive Bay Front %:TH%F:All
 Drive Bay SATA %:TH%V:All
 Drive Bay Proximity %:TH%P:All
@@ -56,7 +56,7 @@ Northbridge Sensor %:TN%S:All
 Voltage Regulator %:TV%R:All
 // Intel
 Heatpipe %:Th%H:Intel
-Graphics Cluster:TCGC:All
+GPU Intel Graphics:TCGC:All
 System Agent:TCSA:Intel
 System Cluster:TCSC:All
 Powerboard %:Tp%P:Intel
