@@ -36,6 +36,7 @@ information for various hardware in your Apple Mac hardware.`,
 	},
 }
 
+// Execute runs the root Cobra command and exits with a non-zero status on error.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -43,6 +44,7 @@ func Execute() {
 	}
 }
 
+// init registers the persistent --output flag on the root command.
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&OutputFlag, "output", "o", "table", "Output format (ascii, table, json, influx)")
 }

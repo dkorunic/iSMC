@@ -137,12 +137,14 @@ func Test_merge(t *testing.T) {
 	}
 }
 
+// toJSON marshals src to a JSON string for use in test assertions.
 func toJSON(src map[string]any) string {
 	jsonStr, _ := json.Marshal(src)
 
 	return string(jsonStr)
 }
 
+// getMapForSensor returns a minimal sensor map keyed by sensorName for use in table-driven tests.
 func getMapForSensor(sensorName string) map[string]any {
 	return map[string]any{
 		sensorName: map[string]any{

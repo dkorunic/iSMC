@@ -223,6 +223,8 @@ func TestTableOutput_Table(t *testing.T) {
 	}
 }
 
+// getASCIITpl returns the expected ASCII table output string for the given section titles,
+// used to build golden strings in table-driven tests.
 func getASCIITpl(title ...string) string {
 	var out strings.Builder
 
@@ -243,6 +245,8 @@ func getASCIITpl(title ...string) string {
 	return out.String()
 }
 
+// getTableTpl returns the expected coloured table output string for the given section titles,
+// used to build golden strings in table-driven tests.
 func getTableTpl(title ...string) string {
 	var out strings.Builder
 

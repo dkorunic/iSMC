@@ -31,6 +31,7 @@ var allCmd = &cobra.Command{
 	},
 }
 
+// init registers the all subcommand with the root command.
 func init() {
 	rootCmd.AddCommand(allCmd)
 }

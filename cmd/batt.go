@@ -31,6 +31,7 @@ var battCmd = &cobra.Command{
 	},
 }
 
+// init registers the batt subcommand with the root command.
 func init() {
 	rootCmd.AddCommand(battCmd)
 }

@@ -32,6 +32,8 @@ type TableOutput struct {
 	isASCII bool
 }
 
+// NewTableOutput returns a TableOutput that writes to stdout. When isASCII is true
+// the output uses plain ASCII borders; otherwise a coloured style is applied.
 func NewTableOutput(isASCII bool) Output {
 	o := TableOutput{}
 	o.isASCII = isASCII
@@ -82,6 +84,8 @@ func (to TableOutput) Voltage() {
 	to.print("Voltage", GetVoltage())
 }
 
+// print renders smcdata as a formatted table with the given title, sorted by natural key order.
+// It is a no-op when smcdata is empty.
 func (to TableOutput) print(name string, smcdata map[string]any) {
 	if len(smcdata) != 0 {
 		t := table.NewWriter()

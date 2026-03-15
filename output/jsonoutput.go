@@ -30,6 +30,7 @@ type JSONOutput struct {
 	writer io.Writer
 }
 
+// NewJSONOutput returns a JSONOutput that writes to stdout.
 func NewJSONOutput() Output {
 	o := JSONOutput{}
 	o.writer = io.Writer(os.Stdout)
@@ -45,6 +46,9 @@ type newstruct struct {
 	Unit     string `json:"unit"`
 }
 
+// format enriches sensor map entries that carry a space-separated "value unit" string by
+// parsing the numeric part into a Quantity field and the unit into a Unit field.
+// It returns the enriched value or an error if d is not a map or JSON marshalling fails.
 func format(d any) (any, error) {
 	v, ok := d.(map[string]any)
 	if !ok {
@@ -100,7 +104,7 @@ func (jo JSONOutput) All() {
 
 	for key, d := range data {
 		if data[key], err = format(d); err != nil {
-			jo.print(GetAll())
+			jo.print(data)
 
 			return
 		}
@@ -134,6 +138,8 @@ func (jo JSONOutput) Voltage() {
 	jo.print(GetVoltage())
 }
 
+// print formats v via format and writes the resulting JSON to stdout.
+// Formatting errors are reported to stdout and the function returns without printing sensor data.
 func (jo JSONOutput) print(v any) {
 	data, err := format(v)
 	if err != nil {

@@ -31,6 +31,7 @@ var powerCmd = &cobra.Command{
 	},
 }
 
+// init registers the power subcommand with the root command.
 func init() {
 	rootCmd.AddCommand(powerCmd)
 }

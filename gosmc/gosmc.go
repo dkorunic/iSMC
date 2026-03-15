@@ -62,6 +62,7 @@ type SMCVal struct {
 // UInt32Char is IOKit UInt32Char type
 type UInt32Char [5]byte
 
+// toC converts a Go UInt32Char to the equivalent C UInt32Char_t representation.
 func (bs UInt32Char) toC() C.UInt32Char_t {
 	var xs C.UInt32Char_t
 	for i := range bs {
@@ -70,11 +71,12 @@ func (bs UInt32Char) toC() C.UInt32Char_t {
 	return xs
 }
 
-// ToString return as string
+// ToString returns the UInt32Char as a Go string.
 func (bs UInt32Char) ToString() string {
 	return string(bs[:])
 }
 
+// uint32CharFromC converts a C UInt32Char_t to its Go UInt32Char representation.
 func uint32CharFromC(xs C.UInt32Char_t) UInt32Char {
 	var bs UInt32Char
 	for i := range xs {
@@ -86,6 +88,7 @@ func uint32CharFromC(xs C.UInt32Char_t) UInt32Char {
 // SMCBytes is IOKit UInt32Char SMCBytes
 type SMCBytes [32]byte
 
+// toC converts a Go SMCBytes to the equivalent C uchar array.
 func (bs SMCBytes) toC() [32]C.uchar {
 	var xs [32]C.uchar
 	for i := range bs {
@@ -94,6 +97,7 @@ func (bs SMCBytes) toC() [32]C.uchar {
 	return xs
 }
 
+// smcBytesFromC converts a C SMCBytes_t to its Go SMCBytes representation.
 func smcBytesFromC(xs C.SMCBytes_t) SMCBytes {
 	var bs SMCBytes
 	for i := range xs {
@@ -210,7 +214,7 @@ func SMCWriteKey(connection uint, val *SMCVal) int {
 
 // SMCWriteKeyUnsafe wrapper for Apple IOKit SMCWriteKeyUnsafe
 func SMCWriteKeyUnsafe(connection uint, val *SMCVal) int {
-	result := C.SMCWriteKey(C.uint(connection), &C.SMCVal_t{
+	result := C.SMCWriteKeyUnsafe(C.uint(connection), &C.SMCVal_t{
 		key:      val.Key.toC(),
 		dataSize: C.uint(val.DataSize),
 		dataType: val.DataType.toC(),

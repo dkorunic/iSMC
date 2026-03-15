@@ -31,6 +31,7 @@ type InfluxOutput struct {
 	writer io.Writer
 }
 
+// NewInfluxOutput returns an InfluxOutput that writes to stdout.
 func NewInfluxOutput() Output {
 	o := InfluxOutput{}
 	o.writer = io.Writer(os.Stdout)
@@ -80,6 +81,8 @@ func (io InfluxOutput) Voltage() {
 	io.print("Voltage", GetVoltage())
 }
 
+// influxStringConvert returns s converted to lowercase with spaces replaced by underscores,
+// suitable for use as an InfluxDB measurement or tag value.
 func influxStringConvert(s string) string {
 	s = strings.ReplaceAll(s, " ", "_")
 	s = strings.ToLower(s)
@@ -87,14 +90,17 @@ func influxStringConvert(s string) string {
 	return s
 }
 
+// influxGetValue returns the numeric part of a "value unit" formatted sensor string.
 func influxGetValue(s string) string {
 	s = strings.Split(s, " ")[0]
 
 	return s
 }
 
+// influxGetUnit returns the unit portion of a "value=<number> <unit>" sensor string,
+// stripped of any degree symbol and lowercased. Returns "none" when no unit is present.
 func influxGetUnit(s string) string {
-	s = strings.Trim(s, "value=")
+	s = strings.TrimPrefix(s, "value=")
 	if len(strings.Split(s, " ")) > 1 {
 		s = strings.Split(s, " ")[1]
 		s = strings.ReplaceAll(s, "°", "")
@@ -106,6 +112,8 @@ func influxGetUnit(s string) string {
 	return s
 }
 
+// print writes smcdata to stdout in InfluxDB line protocol format, tagged with the sensor type name.
+// It is a no-op when smcdata is empty.
 func (io InfluxOutput) print(name string, smcdata map[string]any) {
 	if len(smcdata) != 0 {
 		ct := time.Now().UnixNano()

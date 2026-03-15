@@ -31,6 +31,7 @@ var currCmd = &cobra.Command{
 	},
 }
 
+// init registers the curr subcommand with the root command.
 func init() {
 	rootCmd.AddCommand(currCmd)
 }

@@ -31,6 +31,7 @@ var voltCmd = &cobra.Command{
 	},
 }
 
+// init registers the volt subcommand with the root command.
 func init() {
 	rootCmd.AddCommand(voltCmd)
 }

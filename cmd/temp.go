@@ -31,6 +31,7 @@ var tempCmd = &cobra.Command{
 	},
 }
 
+// init registers the temp subcommand with the root command.
 func init() {
 	rootCmd.AddCommand(tempCmd)
 }

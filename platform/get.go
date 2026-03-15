@@ -26,6 +26,8 @@ import (
 	"unsafe"
 )
 
+// getModel returns the hardware model identifier (e.g. "Mac16,1") via the hw.model sysctl,
+// or an empty string if the sysctl call fails.
 func getModel() string {
 	name := C.CString("hw.model")
 	defer C.free(unsafe.Pointer(name))
@@ -44,6 +46,8 @@ func getModel() string {
 	return C.GoString((*C.char)(buf))
 }
 
+// GetFamily returns the CPU platform family name (e.g. "M4", "Intel") for the current hardware,
+// or "Unknown" when the model identifier is not in the products map.
 func GetFamily() string {
 	p, ok := products[getModel()]
 	if !ok {

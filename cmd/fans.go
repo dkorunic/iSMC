@@ -31,6 +31,7 @@ var fansCmd = &cobra.Command{
 	},
 }
 
+// init registers the fans subcommand with the root command.
 func init() {
 	rootCmd.AddCommand(fansCmd)
 }

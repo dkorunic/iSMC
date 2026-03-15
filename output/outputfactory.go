@@ -16,6 +16,8 @@
 
 package output
 
+// Factory returns the Output implementation for the given format name.
+// Recognised values are "table", "json", and "influx"; anything else falls back to ASCII table output.
 func Factory(outputType string) Output {
 	switch outputType {
 	case "table":

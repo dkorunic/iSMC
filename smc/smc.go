@@ -46,7 +46,8 @@ type SensorStat struct {
 
 //go:generate ./gen-sensors.sh sensors.go
 
-func GetAll() map[string]any { // Get all sensors
+// GetAll returns all SMC sensor readings grouped by category (Battery, Current, Fans, Temperature, Power, Voltage).
+func GetAll() map[string]any {
 	sensors := make(map[string]any)
 
 	sensors["Battery"] = GetBattery()
@@ -59,6 +60,7 @@ func GetAll() map[string]any { // Get all sensors
 	return sensors
 }
 
+// GetBattery returns battery count, status flags, and AC power state read from SMC keys.
 func GetBattery() map[string]any {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
@@ -92,10 +94,12 @@ func GetBattery() map[string]any {
 	return battery
 }
 
+// GetCurrent returns current sensor readings (in amperes) from SMC.
 func GetCurrent() map[string]any {
 	return getGeneric("Current", "A", AppleCurrent)
 }
 
+// GetFans returns fan count and per-fan speed readings (in RPM) from SMC.
 func GetFans() map[string]any {
 	c, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
@@ -140,6 +144,8 @@ func GetFans() map[string]any {
 	return fans
 }
 
+// getGeneric reads each sensor in smcSlice from SMC, expanding wildcard keys (%) to indices 0–9,
+// and returns a map of description → sensor entry formatted with the given unit string.
 func getGeneric(_, unit string, smcSlice []SensorStat) map[string]any {
 	conn, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
@@ -170,6 +176,8 @@ func getGeneric(_, unit string, smcSlice []SensorStat) map[string]any {
 	return generic
 }
 
+// addGeneric reads a single SMC key and adds the result to generic under desc if the value is
+// valid (non-zero, non-negative sentinel, and non-negligible after rounding).
 func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 	val, smcType, err := getKeyFloat32(conn, key)
 	if err != nil {
@@ -189,18 +197,25 @@ func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 	}
 }
 
+// GetPower returns power sensor readings (in watts) from SMC.
 func GetPower() map[string]any {
 	return getGeneric("Power", "W", ApplePower)
 }
 
+// GetTemperature returns temperature sensor readings (in °C) from SMC, filtered to the detected platform family.
 func GetTemperature() map[string]any {
 	return getGeneric("Temperature", "°C", filterForPlatform(AppleTemp))
 }
 
+// GetVoltage returns voltage sensor readings (in volts) from SMC.
 func GetVoltage() map[string]any {
 	return getGeneric("Voltage", "V", AppleVoltage)
 }
 
+// filterForPlatform returns the subset of smcSlice whose Platform tag matches the detected hardware
+// family (e.g. "M1", "Intel"). Sensors tagged "All" or "" are always included; sensors tagged
+// "Apple" are included for any Apple Silicon family. Falls back to runtime architecture when the
+// model cannot be identified.
 func filterForPlatform(smcSlice []SensorStat) []SensorStat {
 	filteredSensors := make([]SensorStat, 0, len(smcSlice))
 
@@ -214,7 +229,7 @@ func filterForPlatform(smcSlice []SensorStat) []SensorStat {
 		}
 	}
 
-	familyApple := strings.HasPrefix(family, "M") || family == "Neo"
+	familyApple := strings.HasPrefix(family, "M") || family == "Neo" || family == "Apple"
 
 	for _, v := range smcSlice {
 		// Generic/common sensors in Apple Silicon family

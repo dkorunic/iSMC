@@ -275,7 +275,7 @@ func GetVoltage() map[string]any {
 	return getGeneric("V", cStr)
 }
 
-// GetTemp returns detected HID temperature sensor results.
+// GetTemperature returns detected HID temperature sensor results.
 func GetTemperature() map[string]any {
 	cStr := C.getThermals()
 	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
