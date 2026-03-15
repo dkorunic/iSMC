@@ -50,6 +50,8 @@ NSDictionary *matching(int page, int usage) {
 NSArray *getProductNames(NSDictionary *sensors) {
     IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
+    if (!system) return [[NSArray alloc] init];
+
     IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
     CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
     NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
@@ -82,6 +84,8 @@ NSArray *getProductNames(NSDictionary *sensors) {
 NSArray *getPowerValues(NSDictionary *sensors) {
     IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
+    if (!system) return [[NSArray alloc] init];
+
     IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
     CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
     NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
@@ -113,6 +117,8 @@ NSArray *getPowerValues(NSDictionary *sensors) {
 
 NSArray *getThermalValues(NSDictionary *sensors) {
     IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
+
+    if (!system) return [[NSArray alloc] init];
 
     IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
     CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
@@ -148,11 +154,13 @@ static NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
     int             count = (int)MIN([kvsN count], [kvsV count]);
 
     for (int i = 0; i < count; i++) {
-        NSString *name = kvsN[i];
-        double   value = [kvsV[i] doubleValue];
+        @autoreleasepool {
+            NSString *name = kvsN[i];
+            double   value = [kvsV[i] doubleValue];
 
-        NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
-        [valueString appendString:output];
+            NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
+            [valueString appendString:output];
+        }
     }
 
     return valueString;
@@ -165,24 +173,27 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
     int             count = (int)MIN([kvsN count], [kvsV count]);
 
     for (int i = 0; i < count; i++) {
-        NSString *name = kvsN[i];
-        double   value = [kvsV[i] doubleValue];
+        @autoreleasepool {
+            NSString *name = kvsN[i];
+            double   value = [kvsV[i] doubleValue];
 
-        // PMU tdev sensors (e.g., "PMU tdev1") use sp78 format and need /256 conversion
-        // Check for "tdev" followed by a digit to avoid false matches
-        NSRange range = [name rangeOfString:@"td(ev|ie)" options:NSRegularExpressionSearch];
-        if (range.location != NSNotFound) {
-            // Verify the pattern is "tdev" or "tdie" followed by a number (e.g., "tdev0", "tdie0")
-            if (range.location + range.length < [name length]) {
-                unichar nextChar = [name characterAtIndex:range.location + range.length];
-                if (value > 256.0 && nextChar >= '0' && nextChar <= '9') {
-                    value = value / 256.0;
+            // PMU tdev sensors (e.g., "PMU tdev1") use sp78 fixed-point format and need /256
+            // conversion. The value > 256.0 guard distinguishes a raw sp78 value (e.g. 6400.0
+            // for 25°C) from an already-converted float (25.0); without it, an already-converted
+            // value would be corrupted by a second division.
+            NSRange range = [name rangeOfString:@"tdev"];
+            if (range.location != NSNotFound) {
+                if (range.location + 4 < [name length]) {
+                    unichar nextChar = [name characterAtIndex:range.location + 4];
+                    if (value > 256.0 && nextChar >= '1' && nextChar <= '9') {
+                        value = value / 256.0;
+                    }
                 }
             }
-        }
 
-        NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
-        [valueString appendString:output];
+            NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
+            [valueString appendString:output];
+        }
     }
 
     return valueString;

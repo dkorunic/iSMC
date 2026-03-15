@@ -45,7 +45,7 @@ func getGeneric(unit string, cStr *C.char) map[string]any {
 
 	scanner := bufio.NewScanner(strings.NewReader(goStr))
 	for scanner.Scan() {
-		split := strings.Split(scanner.Text(), SensorSeparator)
+		split := strings.SplitN(scanner.Text(), SensorSeparator, 2)
 		if len(split) != 2 {
 			continue
 		}
@@ -56,10 +56,6 @@ func getGeneric(unit string, cStr *C.char) map[string]any {
 		}
 
 		if val != -127.0 && val != 0.0 && math.Round(val*100)/100 != 0.0 {
-			if val < 0.0 {
-				val = -val
-			}
-
 			stats = append(stats, SensorStat{
 				Name:  split[0],
 				Value: float32(val),
