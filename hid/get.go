@@ -170,12 +170,12 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
 
         // PMU tdev sensors (e.g., "PMU tdev1") use sp78 format and need /256 conversion
         // Check for "tdev" followed by a digit to avoid false matches
-        NSRange range = [name rangeOfString:@"tdev"];
+        NSRange range = [name rangeOfString:@"td(ev|ie)" options:NSRegularExpressionSearch];
         if (range.location != NSNotFound) {
-            // Verify the pattern is "tdev" followed by a number (e.g., "tdev1", "PMU tdev2")
-            if (range.location + 4 < [name length]) {
-                unichar nextChar = [name characterAtIndex:range.location + 4];
-                if (nextChar >= '1' && nextChar <= '9') {
+            // Verify the pattern is "tdev" or "tdie" followed by a number (e.g., "tdev0", "tdie0")
+            if (range.location + range.length < [name length]) {
+                unichar nextChar = [name characterAtIndex:range.location + range.length];
+                if (value > 256.0 && nextChar >= '0' && nextChar <= '9') {
                     value = value / 256.0;
                 }
             }

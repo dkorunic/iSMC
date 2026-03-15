@@ -1,234 +1,162 @@
-Ambient %:TA%P
-Heatpipe %:Th%H
-Termal Zone %:TZ%C
-CPU Diode %:TC%D
-CPU Diode Virtual %:TC%E
-CPU Diode Filtered %:TC%F
-CPU Heatsink %:TC%H
-CPU Proximity %:TC%P
-CPU Package:TCAD
-CPU Core %:TC%c
-CPU Core %:TC%C
-GPU Intel Graphics:TCGC
-GPU Diode %:TG%D
-GPU AMD Radeon:TGDD
-GPU Heatsink %:TG%H
-GPU Proximity %:TG%P
-Mainboard %:Tm%P
-Powerboard %:Tp%P
-Battery %:TB%T
-Airport %:TW%P
-Display %:TL%P
-Thunderbolt %:TI%P
-Disk % (A):TH%A
-Disk % (B):TH%B
-Disk % (C):TH%C
-Northbridge Diode %:TN%D
-Northbridge Heatsink %:TN%H
-Northbridge Proximity %:TN%P
-CPU Efficiency Core 1:Tp09
-CPU Efficiency Core 2:Tp0T
-CPU Performance Core 1:Tp01
-CPU Performance Core 2:Tp05
-CPU Performance Core 3:Tp0D
-CPU Performance Core 4:Tp0H
-CPU Performance Core 5:Tp0L
-CPU Performance Core 6:Tp0P
-CPU Performance Core 7:Tp0X
-CPU Performance Core 8:Tp0b
-GPU 1:Tg05
-GPU 2:Tg0D
-GPU 3:Tg0L
-GPU 4:Tg0T
-Memory 1:Tm02
-Memory 2:Tm06
-Memory 3:Tm08
-Memory 4:Tm09
-CPU Efficiency Core 1:Tp1h
-CPU Efficiency Core 2:Tp1t
-CPU Efficiency Core 3:Tp1p
-CPU Efficiency Core 4:Tp1l
-CPU Performance Core 1:Tp01
-CPU Performance Core 2:Tp05
-CPU Performance Core 3:Tp09
-CPU Performance Core 4:Tp0D
-CPU Performance Core 5:Tp0X
-CPU Performance Core 6:Tp0b
-CPU Performance Core 7:Tp0f
-CPU Performance Core 8:Tp0j
-GPU 1:Tg0f
-GPU 2:Tg0j
-CPU Efficiency Core 1:Te05
-CPU Efficiency Core 2:Te0L
-CPU Efficiency Core 3:Te0P
-CPU Efficiency Core 4:Te0S
-CPU Performance Core 1:Tf04
-CPU Performance Core 2:Tf09
-CPU Performance Core 3:Tf0A
-CPU Performance Core 4:Tf0B
-CPU Performance Core 5:Tf0D
-CPU Performance Core 6:Tf0E
-CPU Performance Core 7:Tf44
-CPU Performance Core 8:Tf49
-CPU Performance Core 9:Tf4A
-CPU Performance Core 10:Tf4B
-CPU Performance Core 11:Tf4D
-CPU Performance Core 12:Tf4E
-GPU 1:Tf14
-GPU 2:Tf18
-GPU 3:Tf19
-GPU 4:Tf1A
-GPU 5:Tf24
-GPU 6:Tf28
-GPU 7:Tf29
-GPU 8:Tf2A
-Airflow Left:TaLP
-Airflow Right:TaRF
-NAND:TH0x
-Battery 1:TB1T
-Battery 2:TB2T
-Airport:TW0P
-Airflow Left:TaLP
-Airflow Right:TaRF
-NAND:TH0x
-PECI SA:TCSA
-Memory Proximity:Ts0S
-Mem Bank A1:TM0P
-Mem Bank A2:TM1P
-Mem Bank B1:TM8P
-Mem Bank B2:TM9P
-Mem Module A1:TM0S
-Mem Module A2:TM1S
-Mem Module B1:TM8S
-Mem Module B2:TM9S
-MCH Die:TN0C
-PCH Die:TP0D
-PCH Die:TPCD
-PCH Proximity:TP0P
-Palm Rest:Ts0P
-BLC Proximity:Tb0P
-HDD Bay 1:TH0P
-HDD Bay 2:TH1P
-HDD Bay 3:TH2P
-HDD Bay 4:TH3P
-Optical Drive:TO0P
-Power Supply 1 Alt:Tp0C
-Power Supply 2 Alt:Tp1C
-Expansion Slots:TS0C
-PCI Slot 1 Pos 1:TA0S
-PCI Slot 1 Pos 2:TA1S
-PCI Slot 2 Pos 1:TA2S
-PCI Slot 2 Pos 2:TA3S
-Ambient Light Sensor Temperature 1:ALT0
-Ambient Light Sensor Temperature 2:ALT1
-Ambient Virtual:TA0V
-Ambient 1 Raw:TA0p
-Ambient 2 Raw:TA1p
-Ambient 3 Raw:TA2p
-CPU PECI Die Max Error:TC0J
-CPU PECI Die Trend:TC0T
-CPU Die Raw:TC0d
-CPU Proximity Raw:TC0p
-Max PECI Reported:TCMX
-CPU Max Package Core Relative Cooked:TCXR
-CPU Max Package Core Relative Raw:TCXr
-GPU 0 Die Filtered For Fan Control:TG0E
-GPU 0 Die Filtered And Adjusted For Power Control:TG0F
-GPU 0 Die Max Error Used In TG0F=TG0E+:TG0J
-GFX Memory:TG0M
-GPU Die Analog:TG0T
-GPU 0 Die Raw:TG0d
-GPU 0 Proximity Raw:TG0p
-GPU 1 Die Filtered:TG1F
-GPU 1 Die Raw:TG1d
-GPU 1 Proximity Raw:TG1p
-GPU 2 Proximity Raw:TG2p
-GPU 3 Proximity Raw:TG3p
-Drive OOBv3 Relative Filtered Max:TH0F
-Drive 0 OOBv1 Mapped:TH0O
-Drive 0 OOBv3 Relative Cooked Max:TH0R
-SSD B Foreign Drive Prediction:TH0V
-SSD 0 OOBv3 Cooked Max:TH0X
-Drive 0 OOBv3 Absolute Raw A:TH0a
-Drive 0 OOBv3 Absolute Raw B:TH0b
-Drive 0 OOBv3 Absolute Raw C:TH0c
-Drive 0 Sensor Existence Used For TM0V:TH0e
-Drive 0 OOBv1 Raw Bit-Mapped:TH0o
-Drive 0 OOBv3 Max:TH0x
-SSD 1:TH1F
-Drive 1 OOBv1 Mapped:TH1O
-SSD 1:TH1R
-SSD 1 OOBv3 Cooked Max:TH1X
-Drive 1 OOBv3 Absolute Raw A:TH1a
-Drive 1 OOBv3 Absolute Raw B:TH1b
-Drive 1 OOBv3 Absolute Raw C:TH1c
-Drive 1 OOBv1 Raw Bit-Mapped:TH1o
-Fin Stack:THFH
-Thunderbolt Die:THSP
-Thunderbolt Proximity Cooked:TI0T
-TBT Proximity Raw:TI0p
-LCD Filtered Right Front-Of-Screen Virtual:TL0V
-LCD UnFiltered Front-Of-Screen Raw:TL0p
-LCD TL1v-Filtered Center Front-Of-Screen For Color Compensation:TL1V
-LCD TCON Proximity Raw:TL1p
-LCD TL1v-Filtered Center Front-Of-Screen For Color Compensation:TL1v
-LCD IR Target Hotspot Raw:TL2p
-LCD IR Sensor Die Raw:TL3p
-DIMM 0 PECI Cooked:TM0D
-Drive 0 Sensor Existence Used For TM0V:TM0V
-DIMM 0 Proximity Raw:TM0p
-DIMM 1 PECI Cooked:TM1D
-DIMM Virtual For 2x DIMM Slot1+2+3+4 Config:TM1a
-DIMM 1 Proximity Raw:TM1p
-DIMM 2 PECI Cooked:TM2D
-DIMM 0/1 VR Proximity Cooked:TM2P
-DIMM Virtual For 2x DIMM Slot1+3 Config:TM2a
-DIMM Virtual For 2x DIMM Slot1+2 Or Slot2+3 Config:TM2b
-DIMM Virtual For 2x DIMM Slot1+4 Or Slot2+4 Config:TM2c
-DIMM Virtual For 2x DIMM Slot3+4 Config:TM2d
-DIMM 2 Proximity Raw:TM2p
-DIMM 3 PECI Cooked:TM3D
-DIMM 2/3 VR Proximity Cooked:TM3P
-DIMM Virtual For 3x DIMM Slot2+3+4 Config:TM3a
-DIMM Virtual For 3x DIMM Slot1+3+4 Config:TM3b
-DIMM Virtual For 3x DIMM Slot1+2+4 Config:TM3c
-DIMM Virtual For 3x DIMM Slot1+2+3 Config:TM3d
-DIMM 3 Proximity Raw:TM3p
-DIMM Virtual For 4x DIMM Slot1+2+3+4 Config:TM4a
-DIMM Bandwidth Estimate:TMBS
-Memory Controller/Integrated Graphics PECI:TMCD
-Dimm Proximity:TMLB
-DIMM Max Cooked:TMXD
-DIMM Proximity Max Cooked:TMXP
-PCH Digital Die Raw:TPCd
-Speaker Remote:TS0D
-Speaker Proximity:TS0P
-Skin 0 Virtual:TS0V
-Skin 0 Raw:TS0p
-Speaker Remote 2:TS1D
-Speaker Proximity 2:TS1P
-S2 Camera Proximity:TS2P
-Fan Target:TTF0
-Vent Proximity:TV0P
-Filtered Vent Proximity:TVFP
-Wifi Proximity Raw:TW0p
-DCIn Air Flow:Ta0P
-DCIn Air Flow Adjusted:TaSP
-Backlight Controller Proximity Raw:Tb0p
-TBT Thermal Diode:Te0T
-TBT Thermal Diode Raw:Te0t
-Nand:Th0N
-Heat Spreader Proximity:Th0P
-RIO:Th0R
-EMC1428 Internal Diode Raw:Tm0p
-MLB Proximity 1 Raw:Tm1p
-MLB Proximity 2 Raw:Tm2p
-Power Supply T2 Secondary Heatsink Filtered:Tp2F
-Power Supply T2 Secondary Heatsink Cooked:Tp2H
-Power Supply T2 Secondary Heatsink Raw:Tp2h
-Actuator:Ts1P
-Synthetic Top Skin:Ts1S
-Thunderbolt Left:TTLD
-Thunderbolt Right:TTRD
-Thunderbolt Left Proximity:TaLT
-Thunderbolt Right Proximity:TaRT
+// All
+Termal Zone %:TZ%C:All
+CPU Diode %:TC%D:All
+CPU Heatsink %:TC%E:All
+CPU Proximity %:TC%F:All
+CPU Hot Spot %:TC%H:All
+CPU Package %:TC%P:All
+CPU Package:TCAD:All
+CPU Core %:TC%c:All
+CPU Core %:TC%C:All
+GPU Diode %:TG%D:All
+GPU AMD Radeon:TGDD:All
+GPU Heatsink %:TG%H:All
+GPU Proximity %:TG%P:All
+GPU Sensor %:TG%S:All
+GPU Die %:TG%T:All
+Memory Bank Proximity %:Tm%P:All
+Memory Proximity %:TM%P:All
+Memory Slot %:TM%S:All
+Memory Virtual %:TM%V:All
+Airport %:TW%P:All
+Airport Sensor %:TW%S:All
+Display Proximity %:TL%P:All
+Thunderbolt %:TI%P:All
+Disk % (A):TH%A:All
+Disk % (B):TH%B:All
+Disk % (C):TH%C:All
+Thunderbolt Left:TTLD:All
+Thunderbolt Right:TTRD:All
+Northbridge Diode %:TN%D:All
+Northbridge Heatsink %:TN%H:All
+Northbridge Proximity %:TN%P:All
+Battery %:TB%T:All
+Battery Sensor %:TB%S:All
+PCIe Slot % Front:Te%F:All
+PCIe Slot % Side:Te%S:All
+PCIe Slot % Bottom:Te%T:All
+PCIe Slot % Ambient:Te%P:All
+Termal Diode %:TD%P:All
+Drive Bay Front %:TH%F:All
+Drive Bay SATA %:TH%V:All
+Drive Bay Proximity %:TH%P:All
+Power Supply %:Tp%C:All
+Power Supply Diode %:Tp%D:All
+Power Supply Proximity %:Tp%P:All
+Ambient Diode %v:TA%D:All
+Ambient Enclosure %v:TA%E:All
+Ambient Front %v:TA%P:All
+Ambient Sensor %v:TA%S:All
+Ambient Top %v:TA%T:All
+Ambient Air %v:TA%V:All
+Northbridge Diode %:TN%D:All
+Northbridge Heatsink %:TN%H:All
+Northbridge Proximity %:TN%P:All
+Northbridge Sensor %:TN%S:All
+Voltage Regulator %:TV%R:All
+// Intel
+Heatpipe %:Th%H:Intel
+Graphics Cluster:TCGC:All
+System Agent:TCSA:Intel
+System Cluster:TCSC:All
+Powerboard %:Tp%P:Intel
+GPU %:TG%G:Intel
+Embedded Device:TIED:Intel
+Thermal Group Target:THTG:Intel
+PCH SD:TPSD:Intel
+Thunderbolt TD:TTTD:Intel
+Thunderbolt XD:TTXD:Intel
+// Apple
+Airflow Left:TaLP:Apple
+Airflow Right:TaRF:Apple
+NAND:TH0x:Apple
+Thunderbolt Left Proximity:TaLT:Apple
+Thunderbolt Right Proximity:TaRT:Apple
+NVME % (A):TH%a:All
+NVME % (B):TH%b:All
+NVME % (C):TH%c:All
+// M1
+CPU Efficiency Core 1:Tp09:M1
+CPU Efficiency Core 2:Tp0T:M1
+CPU Performance Core 1:Tp01:M1
+CPU Performance Core 2:Tp05:M1
+CPU Performance Core 3:Tp0D:M1
+CPU Performance Core 4:Tp0H:M1
+CPU Performance Core 5:Tp0L:M1
+CPU Performance Core 6:Tp0P:M1
+CPU Performance Core 7:Tp0X:M1
+CPU Performance Core 8:Tp0b:M1
+GPU 1:Tg05:M1
+GPU 2:Tg0D:M1
+GPU 3:Tg0L:M1
+GPU 4:Tg0T:M1
+Memory 1:Tm02:M1
+Memory 2:Tm06:M1
+Memory 3:Tm08:M1
+Memory 4:Tm09:M1
+// M2
+CPU Efficiency Core 1:Tp1h:M2
+CPU Efficiency Core 2:Tp1t:M2
+CPU Efficiency Core 3:Tp1p:M2
+CPU Efficiency Core 4:Tp1l:M2
+CPU Performance Core 1:Tp01:M2
+CPU Performance Core 2:Tp05:M2
+CPU Performance Core 3:Tp09:M2
+CPU Performance Core 4:Tp0D:M2
+CPU Performance Core 5:Tp0X:M2
+CPU Performance Core 6:Tp0b:M2
+CPU Performance Core 7:Tp0f:M2
+CPU Performance Core 8:Tp0j:M2
+GPU 1:Tg0f:M2
+GPU 2:Tg0j:M2
+// M3
+CPU Efficiency Core 1:Te05:M3
+CPU Efficiency Core 2:Te0L:M3
+CPU Efficiency Core 3:Te0P:M3
+CPU Efficiency Core 4:Te0S:M3
+CPU Performance Core 1:Tf04:M3
+CPU Performance Core 2:Tf09:M3
+CPU Performance Core 3:Tf0A:M3
+CPU Performance Core 4:Tf0B:M3
+CPU Performance Core 5:Tf0D:M3
+CPU Performance Core 6:Tf0E:M3
+CPU Performance Core 7:Tf44:M3
+CPU Performance Core 8:Tf49:M3
+CPU Performance Core 9:Tf4A:M3
+CPU Performance Core 10:Tf4B:M3
+CPU Performance Core 11:Tf4D:M3
+CPU Performance Core 12:Tf4E:M3
+GPU 1:Tf14:M3
+GPU 2:Tf18:M3
+GPU 3:Tf19:M3
+GPU 4:Tf1A:M3
+GPU 5:Tf24:M3
+GPU 6:Tf28:M3
+GPU 7:Tf29:M3
+GPU 8:Tf2A:M3
+// M4
+CPU Efficiency Core 1:Te05:M4
+CPU Efficiency Core 2:Te0S:M4
+CPU Efficiency Core 3:Te09:M4
+CPU Efficiency Core 4:Te0H:M4
+CPU Performance Core 1:Tp01:M4
+CPU Performance Core 2:Tp05:M4
+CPU Performance Core 3:Tp09:M4
+CPU Performance Core 4:Tp0D:M4
+CPU Performance Core 5:Tp0V:M4
+CPU Performance Core 6:Tp0Y:M4
+CPU Performance Core 7:Tp0b:M4
+CPU Performance Core 8:Tp0e:M4
+GPU 1:Tg0G:M4
+GPU 1:Tg1U:M4
+GPU 2:Tg0H:M4
+GPU 2:Tg1k:M4
+GPU 3:Tg0K:M4
+GPU 4:Tg0L:M4
+GPU 5:Tg0d:M4
+GPU 6:Tg0e:M4
+GPU 7:Tg0j:M4
+GPU 8:Tg0k:M4
+Memory 1:Tm0p:M4
+Memory 2:Tm1p:M4
+Memory 3:Tm2p:M4

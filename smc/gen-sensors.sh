@@ -6,11 +6,11 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-T=$(awk -F: '{ print "    {Key:\"" $2 "\", Desc:\"" $1 "\"}," }' < ../src/temp.txt)
-F=$(awk -F: '{ print "    {Key:\"" $2 "\", Desc:\"" $1 "\"}," }' < ../src/fans.txt)
-P=$(awk -F: '{ print "    {Key:\"" $2 "\", Desc:\"" $1 "\"}," }' < ../src/power.txt)
-V=$(awk -F: '{ print "    {Key:\"" $2 "\", Desc:\"" $1 "\"}," }' < ../src/voltage.txt)
-C=$(awk -F: '{ print "    {Key:\"" $2 "\", Desc:\"" $1 "\"}," }' < ../src/current.txt)
+T=$(awk -F: '!/^[[:space:]]*\/\// { print "    {Key:\"" $2 "\", Desc:\"" $1 "\", Platform:\"" $3 "\"}," }' < ../src/temp.txt)
+F=$(awk -F: '!/^[[:space:]]*\/\// { print "    {Key:\"" $2 "\", Desc:\"" $1 "\", Platform:\"" $3 "\"}," }' < ../src/fans.txt)
+P=$(awk -F: '!/^[[:space:]]*\/\// { print "    {Key:\"" $2 "\", Desc:\"" $1 "\", Platform:\"" $3 "\"}," }' < ../src/power.txt)
+V=$(awk -F: '!/^[[:space:]]*\/\// { print "    {Key:\"" $2 "\", Desc:\"" $1 "\", Platform:\"" $3 "\"}," }' < ../src/voltage.txt)
+C=$(awk -F: '!/^[[:space:]]*\/\// { print "    {Key:\"" $2 "\", Desc:\"" $1 "\", Platform:\"" $3 "\"}," }' < ../src/current.txt)
 
 echo "
 // Copyright (C) 2019  Dinko Korunic
@@ -37,17 +37,22 @@ package smc
 var AppleTemp = []SensorStat{
 $T
 }
+
 var AppleFans = []SensorStat{
 $F
+
 }
 var ApplePower = []SensorStat{
 $P
+
 }
 var AppleVoltage = []SensorStat{
 $V
+
 }
 var AppleCurrent = []SensorStat{
 $C
+
 }
 " | gofmt > "$1"
 

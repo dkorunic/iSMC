@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/dkorunic/iSMC/gosmc"
+	"github.com/dkorunic/iSMC/platform"
 )
 
 const (
@@ -37,10 +38,9 @@ const (
 
 // SensorStat is SMC key to description mapping.
 type SensorStat struct {
-	// SMC key name
-	Key string
-	// SMC key description
-	Desc string
+	Key      string
+	Desc     string
+	Platform string
 }
 
 //go:generate ./gen-sensors.sh sensors.go
@@ -193,9 +193,45 @@ func GetPower() map[string]any {
 }
 
 func GetTemperature() map[string]any {
-	return getGeneric("Temperature", "°C", AppleTemp)
+	return getGeneric("Temperature", "°C", filterForPlatform(AppleTemp))
 }
 
 func GetVoltage() map[string]any {
 	return getGeneric("Voltage", "V", AppleVoltage)
+}
+
+func filterForPlatform(smcSlice []SensorStat) []SensorStat {
+	filteredSensors := make([]SensorStat, 0, len(smcSlice))
+
+	family := platform.GetFamily()
+	if family == "" || family == "Unknown" {
+		family = "Apple"
+	}
+
+	familyApple := strings.HasPrefix(family, "M") || family == "Neo"
+
+	for _, v := range smcSlice {
+		// Generic/common sensors in Apple Silicon family
+		if v.Platform == "Apple" && familyApple {
+			filteredSensors = append(filteredSensors, v)
+
+			continue
+		}
+
+		// Generic/common sensors
+		if v.Platform == "" || v.Platform == "All" {
+			filteredSensors = append(filteredSensors, v)
+
+			continue
+		}
+
+		// Platform-specific sensors for Intel or M-family
+		if v.Platform == family {
+			filteredSensors = append(filteredSensors, v)
+
+			continue
+		}
+	}
+
+	return filteredSensors
 }

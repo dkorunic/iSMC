@@ -85,3 +85,5 @@ HDD:IZHD
 ODD:IZOD
 Airport:IZOP
 CSreg:Ic0R
+Thunderbolt Left:IU1R
+Thunderbolt Right:IU2R
