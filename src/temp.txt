@@ -160,3 +160,22 @@ GPU 8:Tg0k:M4
 Memory 1:Tm0p:M4
 Memory 2:Tm1p:M4
 Memory 3:Tm2p:M4
+// M5
+CPU Efficiency Core 1:Tp00:M5
+CPU Efficiency Core 2:Tp04:M5
+CPU Efficiency Core 3:Tp0C:M5
+CPU Efficiency Core 4:Tp0G:M5
+CPU Efficiency Core 5:Tp0X:M5
+CPU Efficiency Core 6:Tp0a:M5
+CPU Performance Core 1:Tp0y:M5
+CPU Performance Core 2:Tp12:M5
+CPU Performance Core 3:Tp16:M5
+CPU Performance Core 4:Tp1E:M5
+GPU 1:Tg0U:M5
+GPU 2:Tg0X:M5
+GPU 3:Tg0d:M5
+GPU 4:Tg0g:M5
+GPU 5:Tg0j:M5
+GPU 6:Tg1Y:M5
+GPU 7:Tg1c:M5
+GPU 8:Tg1g:M5
