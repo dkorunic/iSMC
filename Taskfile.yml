@@ -50,7 +50,7 @@ tasks:
     cmds:
       - task: generate
       - task: fmt
-      - go build -trimpath -pgo=auto -ldflags="-s -w -X main.GitTag={{.GIT_LAST_TAG}} -X main.GitCommit={{.GIT_HEAD_COMMIT}} -X main.GitDirty={{.GIT_MODIFIED}} -X main.BuildTime={{.BUILD_DATE}}" -o {{.TARGET}}
+      - go build -trimpath -pgo=auto -ldflags="-s -w -X github.com/dkorunic/iSMC/cmd.GitTag={{.GIT_LAST_TAG}} -X github.com/dkorunic/iSMC/cmd.GitCommit={{.GIT_HEAD_COMMIT}} -X github.com/dkorunic/iSMC/cmd.GitDirty={{.GIT_MODIFIED}} -X github.com/dkorunic/iSMC/cmd.BuildTime={{.BUILD_DATE}}" -o {{.TARGET}}
 
   build-debug:
     env:
@@ -58,12 +58,16 @@ tasks:
     cmds:
       - task: update
       - task: fmt
-      - go build -ldflags="-X main.GitTag={{.GIT_LAST_TAG}} -X main.GitCommit={{.GIT_HEAD_COMMIT}} -X main.GitDirty={{.GIT_MODIFIED}} -X main.BuildTime={{.BUILD_DATE}}" -race -o {{.TARGET}}
+      - go build -ldflags="-X cmd.GitTag={{.GIT_LAST_TAG}} -X cmd.GitCommit={{.GIT_HEAD_COMMIT}} -X cmd.GitDirty={{.GIT_MODIFIED}} -X cmd.BuildTime={{.BUILD_DATE}}" -race -o {{.TARGET}}
 
   lint:
     cmds:
       - task: fmt
       - golangci-lint run --timeout 5m
+
+  test:
+    cmds:
+      - go test ./...
 
   release:
     cmds:

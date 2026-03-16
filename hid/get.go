@@ -157,6 +157,7 @@ static NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
         @autoreleasepool {
             NSString *name = kvsN[i];
             double   value = [kvsV[i] doubleValue];
+            value = ABS(value);
 
             NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
             [valueString appendString:output];
@@ -176,16 +177,19 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
         @autoreleasepool {
             NSString *name = kvsN[i];
             double   value = [kvsV[i] doubleValue];
+            value = ABS(value);
 
-            // PMU tdev sensors (e.g., "PMU tdev1") use sp78 fixed-point format and need /256
-            // conversion. The value > 256.0 guard distinguishes a raw sp78 value (e.g. 6400.0
-            // for 25°C) from an already-converted float (25.0); without it, an already-converted
-            // value would be corrupted by a second division.
+            // PMU tdev sensors (e.g., "PMU tdev1") report temperatures in sp78 fixed-point
+            // format (raw = °C × 256, e.g. 6400.0 for 25°C). Apple Silicon thermal shutdown
+            // occurs at ~100-110°C and the junction temperature maximum is ~125°C, so a
+            // legitimate converted reading never exceeds ~130°C. The minimum raw sp78 encoding
+            // for 1°C is 256. Values above 130.0 are unambiguously raw sp78 — this threshold
+            // avoids the false positive at exactly 256.0 (= 1°C in sp78) from the old guard.
             NSRange range = [name rangeOfString:@"tdev"];
             if (range.location != NSNotFound) {
                 if (range.location + 4 < [name length]) {
                     unichar nextChar = [name characterAtIndex:range.location + 4];
-                    if (value > 256.0 && nextChar >= '1' && nextChar <= '9') {
+                    if (value > 130.0 && nextChar >= '1' && nextChar <= '9') {
                         value = value / 256.0;
                     }
                 }
@@ -207,7 +211,8 @@ char *getCurrents() {
         NSArray         *currentNames = getProductNames(currentSensors);
         NSArray         *currentValues = getPowerValues(currentSensors);
         NSString        *result = dumpNamesValues(currentNames, currentValues);
-        finalStr = strdup([result UTF8String]);
+        const char      *utf8 = result ? [result UTF8String] : "";
+        finalStr = strdup(utf8 ? utf8 : "");
 
         CFRelease(currentNames);
         CFRelease(currentValues);
@@ -225,7 +230,8 @@ char *getVoltages() {
         NSArray         *voltageNames = getProductNames(voltageSensors);
         NSArray         *voltageValues = getPowerValues(voltageSensors);
         NSString        *result = dumpNamesValues(voltageNames, voltageValues);
-        finalStr = strdup([result UTF8String]);
+        const char      *utf8 = result ? [result UTF8String] : "";
+        finalStr = strdup(utf8 ? utf8 : "");
 
         CFRelease(voltageNames);
         CFRelease(voltageValues);
@@ -243,7 +249,8 @@ char *getThermals() {
         NSArray         *thermalNames = getProductNames(thermalSensors);
         NSArray         *thermalValues = getThermalValues(thermalSensors);
         NSString        *result = dumpThermalNamesValues(thermalNames, thermalValues);
-        finalStr = strdup([result UTF8String]);
+        const char      *utf8 = result ? [result UTF8String] : "";
+        finalStr = strdup(utf8 ? utf8 : "");
 
         CFRelease(thermalNames);
         CFRelease(thermalValues);
@@ -273,6 +280,10 @@ func GetAll() map[string]any {
 // GetCurrent returns detected HID current sensor results.
 func GetCurrent() map[string]any {
 	cStr := C.getCurrents()
+	if cStr == nil {
+		return map[string]any{}
+	}
+
 	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
 
 	return getGeneric("A", cStr)
@@ -281,6 +292,10 @@ func GetCurrent() map[string]any {
 // GetVoltage returns detected HID voltage sensor results.
 func GetVoltage() map[string]any {
 	cStr := C.getVoltages()
+	if cStr == nil {
+		return map[string]any{}
+	}
+
 	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
 
 	return getGeneric("V", cStr)
@@ -289,6 +304,10 @@ func GetVoltage() map[string]any {
 // GetTemperature returns detected HID temperature sensor results.
 func GetTemperature() map[string]any {
 	cStr := C.getThermals()
+	if cStr == nil {
+		return map[string]any{}
+	}
+
 	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
 
 	return getGeneric("°C", cStr)

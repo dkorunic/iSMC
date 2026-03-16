@@ -46,6 +46,7 @@ Available Commands:
   help        Help about any command
   power       Display power sensors
   temp        Display temperature sensors
+  version     Print the version number of iSMC
   volt        Display voltage sensors
 
 Flags:

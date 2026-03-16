@@ -7,7 +7,7 @@ builds:
     env:
       - CGO_ENABLED=1
     ldflags: |
-      -s -w
+      -s -w -X "github.com/dkorunic/iSMC/cmd.GitTag={{.Tag}}" -X "github.com/dkorunic/iSMC/cmd.GitCommit={{.ShortCommit}}" -X "github.com/dkorunic/iSMC/cmd.GitDirty= " -X "github.com/dkorunic/iSMC/cmd.BuildTime={{.Date}}"
     goos:
       - darwin
     goarch:
