@@ -163,14 +163,22 @@ Memory 3:Tm2p:M4
 // M5
 CPU Efficiency Core 1:Tp00:M5
 CPU Efficiency Core 2:Tp04:M5
-CPU Efficiency Core 3:Tp0C:M5
-CPU Efficiency Core 4:Tp0G:M5
-CPU Efficiency Core 5:Tp0X:M5
-CPU Efficiency Core 6:Tp0a:M5
-CPU Performance Core 1:Tp0y:M5
-CPU Performance Core 2:Tp12:M5
-CPU Performance Core 3:Tp16:M5
-CPU Performance Core 4:Tp1E:M5
+CPU Efficiency Core 3:Tp08:M5
+CPU Efficiency Core 4:Tp0C:M5
+CPU Efficiency Core 5:Tp0G:M5
+CPU Efficiency Core 6:Tp0K:M5
+CPU Performance Core 1:Tp0O:M5
+CPU Performance Core 2:Tp0R:M5
+CPU Performance Core 3:Tp0U:M5
+CPU Performance Core 4:Tp0X:M5
+CPU Performance Core 5:Tp0a:M5
+CPU Performance Core 6:Tp0d:M5
+CPU Performance Core 7:Tp0g:M5
+CPU Performance Core 8:Tp0j:M5
+CPU Performance Core 9:Tp0m:M5
+CPU Performance Core 10:Tp0p:M5
+CPU Performance Core 11:Tp0u:M5
+CPU Performance Core 12:Tp0y:M5
 GPU 1:Tg0U:M5
 GPU 2:Tg0X:M5
 GPU 3:Tg0d:M5
