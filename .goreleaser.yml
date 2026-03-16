@@ -38,3 +38,15 @@ checksum:
   name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
+brews:
+  - name: ismc
+    repository:
+      owner: dkorunic
+      name: homebrew-tap
+    homepage: https://github.com/dkorunic/iSMC
+    description: Apple SMC CLI tool that can decode and display temperature, fans, battery, power, voltage and current information
+    license: GPL-3.0
+    test: |
+      system "#{bin}/iSMC", "help"
+    install: |
+      bin.install "iSMC"
