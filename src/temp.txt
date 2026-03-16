@@ -161,12 +161,12 @@ Memory 1:Tm0p:M4
 Memory 2:Tm1p:M4
 Memory 3:Tm2p:M4
 // M5
-CPU Efficiency Core 1:Tp00:M5
-CPU Efficiency Core 2:Tp04:M5
-CPU Efficiency Core 3:Tp08:M5
-CPU Efficiency Core 4:Tp0C:M5
-CPU Efficiency Core 5:Tp0G:M5
-CPU Efficiency Core 6:Tp0K:M5
+CPU Super Core 1:Tp00:M5
+CPU Super Core 2:Tp04:M5
+CPU Super Core 3:Tp08:M5
+CPU Super Core 4:Tp0C:M5
+CPU Super Core 5:Tp0G:M5
+CPU Super Core 6:Tp0K:M5
 CPU Performance Core 1:Tp0O:M5
 CPU Performance Core 2:Tp0R:M5
 CPU Performance Core 3:Tp0U:M5
