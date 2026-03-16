@@ -179,6 +179,9 @@ CPU Performance Core 9:Tp0m:M5
 CPU Performance Core 10:Tp0p:M5
 CPU Performance Core 11:Tp0u:M5
 CPU Performance Core 12:Tp0y:M5
+CPU Super Core Cluster 1:Tp12:M5
+CPU Super Core Cluster 2:Tp16:M5
+CPU Efficiency Core Cluster:Tp1E:M5
 GPU 1:Tg0U:M5
 GPU 2:Tg0X:M5
 GPU 3:Tg0d:M5
