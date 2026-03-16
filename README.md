@@ -16,11 +16,22 @@ In addition to standard SMC support for Intel Mac hardware, `iSMC` supports Appl
 
 `iSMC` runs on macOS only.
 
+### Homebrew
+
+You can install iSMC using [Homebrew](https://brew.sh/) by adding the `homebrew-tap` tap and installing the `ismc` package:
+
+```shell
+brew tap dkorunic/tap
+brew install ismc
+```
+
 ### Manual
 
-Download the appropriate binary for your platform from [the releases page](https://github.com/dkorunic/iSMC/releases/latest) and install it manually.
+Download the appropriate iSMC binary for your platform from [the releases page](https://github.com/dkorunic/iSMC/releases/latest) and install it manually.
 
 ### Using go install
+
+You can also install iSMC using the `go install` command:
 
 ```shell
 CGO_ENABLED=1 go install github.com/dkorunic/iSMC@latest
