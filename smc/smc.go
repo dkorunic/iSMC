@@ -229,7 +229,7 @@ func filterForPlatform(smcSlice []SensorStat) []SensorStat {
 		}
 	}
 
-	familyApple := strings.HasPrefix(family, "M") || family == "Neo" || family == "Apple"
+	familyApple := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == "Apple"
 
 	for _, v := range smcSlice {
 		// Generic/common sensors in Apple Silicon family
