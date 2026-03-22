@@ -49,8 +49,8 @@ var products = map[string]Product{
 	"Mac13,2":  {Name: "Mac Studio (M1 Ultra)", Year: 2022, Family: "M1", Chip: "M1 Ultra"},
 	"Mac14,13": {Name: "Mac Studio (M2 Max)", Year: 2023, Family: "M2", Chip: "M2 Max"},
 	"Mac14,14": {Name: "Mac Studio (M2 Ultra)", Year: 2023, Family: "M2", Chip: "M2 Ultra"},
-	"Mac15,14": {Name: "Mac Studio (M3 Max)", Year: 2023, Family: "M3", Chip: "M3 Max"},
-	"Mac16,9":  {Name: "Mac Studio (M4 Max)", Year: 2024, Family: "M4", Chip: "M4 Max"},
+	"Mac15,14": {Name: "Mac Studio (M3 Ultra)", Year: 2025, Family: "M3", Chip: "M3 Ultra"},
+	"Mac16,9":  {Name: "Mac Studio (M4 Max)", Year: 2025, Family: "M4", Chip: "M4 Max"},
 
 	// Mac Pro
 	"MacPro1,1": {Name: "Mac Pro", Year: 2006, Family: "Intel"},
@@ -126,7 +126,6 @@ var products = map[string]Product{
 	"Mac15,13":       {Name: "MacBook Air 15 (M3)", Year: 2024, Family: "M3", Chip: "M3"},
 	"Mac16,12":       {Name: "MacBook Air 13 (M4)", Year: 2025, Family: "M4", Chip: "M4"},
 	"Mac16,13":       {Name: "MacBook Air 15 (M4)", Year: 2025, Family: "M4", Chip: "M4"},
-	"Mac17,2":        {Name: "MacBook Air 14 (M5)", Year: 2026, Family: "M5", Chip: "M5"},
 	"Mac17,3":        {Name: "MacBook Air 13 (M5)", Year: 2026, Family: "M5", Chip: "M5"},
 	"Mac17,4":        {Name: "MacBook Air 15 (M5)", Year: 2026, Family: "M5", Chip: "M5"},
 
@@ -193,6 +192,7 @@ var products = map[string]Product{
 	"Mac16,6":        {Name: "MacBook Pro 14 (M4 Max)", Year: 2024, Family: "M4", Chip: "M4 Max"},
 	"Mac16,7":        {Name: "MacBook Pro 16 (M4 Pro)", Year: 2024, Family: "M4", Chip: "M4 Pro"},
 	"Mac16,8":        {Name: "MacBook Pro 14 (M4 Pro)", Year: 2024, Family: "M4", Chip: "M4 Pro"},
+	"Mac17,2":        {Name: "MacBook Pro 14 (M5)", Year: 2025, Family: "M5", Chip: "M5"},
 	"Mac17,6":        {Name: "MacBook Pro 16 (M5 Max)", Year: 2026, Family: "M5", Chip: "M5 Max"},
 	"Mac17,7":        {Name: "MacBook Pro 14 (M5 Max)", Year: 2026, Family: "M5", Chip: "M5 Max"},
 	"Mac17,8":        {Name: "MacBook Pro 16 (M5 Pro)", Year: 2026, Family: "M5", Chip: "M5 Pro"},
