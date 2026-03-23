@@ -18,11 +18,72 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+// Test_format_sp78 verifies TC-19: sensors of type "sp78" must be enriched with
+// numeric "quantity" and string "unit" fields by the format function. If "sp78" were
+// absent from the switch-case list, those fields would be silently omitted.
+func Test_format_sp78(t *testing.T) {
+	input := map[string]any{
+		"CPU Temp": map[string]any{
+			"key":   "TC0H",
+			"value": "25.5 °C",
+			"type":  "sp78",
+		},
+	}
+
+	result, err := format(input)
+	assert.NoError(t, err)
+
+	resultMap, ok := result.(map[string]any)
+	assert.True(t, ok)
+
+	// JSON-round-trip the entry to get a plain map for field inspection
+	raw, _ := json.Marshal(resultMap["CPU Temp"])
+	var entry map[string]any
+	assert.NoError(t, json.Unmarshal(raw, &entry))
+
+	assert.Equal(t, 25.5, entry["quantity"],
+		"sp78 sensor must have a numeric 'quantity' field after format()")
+	assert.Equal(t, "°C", entry["unit"],
+		"sp78 sensor must have a 'unit' field after format()")
+}
+
+// Test_format_nonStringValue verifies TC-21: sensors whose "value" field is not a
+// string (e.g. bool for flag/battery sensors, uint32 for counts) must not cause
+// format() to return an error. The default branch must skip such entries silently.
+func Test_format_nonStringValue(t *testing.T) {
+	tests := []struct {
+		name  string
+		value any
+		typ   string
+	}{
+		{"bool flag", true, "flag"},
+		{"uint battery count", uint32(1), "ui8"},
+		{"int zero", 0, "ui8"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := map[string]any{
+				"Battery Power": map[string]any{
+					"key":   "BATP",
+					"value": tt.value,
+					"type":  tt.typ,
+				},
+			}
+
+			_, err := format(input)
+			assert.NoError(t, err,
+				"format() must not fail for non-string value type %T", tt.value)
+		})
+	}
+}
 
 func TestJSONOutput(t *testing.T) {
 	tests := []struct {

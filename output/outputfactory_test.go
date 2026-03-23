@@ -38,9 +38,14 @@ func TestFactory(t *testing.T) {
 			args{outputType: "table"},
 			NewTableOutput(false),
 		}, {
-			"Returns JSONOutput for table output type",
+			"Returns JSONOutput for json output type",
 			args{outputType: "json"},
 			NewJSONOutput(),
+		}, {
+			// TC-22 guard: influx must return InfluxOutput, not TableOutput
+			"Returns InfluxOutput for influx output type",
+			args{outputType: "influx"},
+			NewInfluxOutput(),
 		}, {
 			"Returns TableOutput for unknown output type",
 			args{outputType: ""},

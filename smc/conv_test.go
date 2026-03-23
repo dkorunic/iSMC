@@ -169,6 +169,76 @@ func Test_smcBytesToFloat32(t *testing.T) {
 	}
 }
 
+// Test_AppleFPConvTable validates the AppleFPConv lookup table entries that are most
+// likely to be corrupted by a transcription error. TC-5 targets sp78 specifically
+// because it is the most common SMC temperature type and a wrong divisor (e.g. 128
+// instead of 256) would silently double every temperature reading.
+func Test_AppleFPConvTable(t *testing.T) {
+	tests := []struct {
+		smcType    string
+		wantDiv    float32
+		wantSigned bool
+	}{
+		// TC-5: sp78 — 8 integer + 8 fractional bits → divisor must be 2^8 = 256
+		{"sp78", 256.0, true},
+		// Verify a few neighbours to catch off-by-one mistakes in the table
+		{"sp87", 128.0, true},
+		{"sp96", 64.0, true},
+		{"fp88", 256.0, false},
+		{"fp79", 512.0, false},
+		{"fp1f", 32768.0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.smcType, func(t *testing.T) {
+			v, ok := AppleFPConv[tt.smcType]
+			assert.True(t, ok, "type %q must be present in AppleFPConv", tt.smcType)
+			assert.Equal(t, tt.wantDiv, v.Div, "type %q divisor must be %g", tt.smcType, tt.wantDiv)
+			assert.Equal(t, tt.wantSigned, v.Signed, "type %q signed flag must be %v", tt.smcType, tt.wantSigned)
+		})
+	}
+}
+
+// Test_fpToFloat32_bigEndianAsymmetric explicitly verifies that fpToFloat32 reads
+// bytes in big-endian order (TC-1). Using the asymmetric input 0x01 0x00:
+//   - big-endian:    0x0100 = 256; 256/256 = 1.0  (correct)
+//   - little-endian: 0x0001 = 1;   1/256   = 0.0039 (wrong)
+func Test_fpToFloat32_bigEndianAsymmetric(t *testing.T) {
+	result, err := fpToFloat32("fp88", makeBytes(0x01, 0x00), 2)
+	assert.NoError(t, err)
+	assert.InDelta(t, 1.0, result, 0.001, "fp88 0x01 0x00 must be 1.0 under big-endian interpretation")
+}
+
+// Test_fltToFloat32_littleEndianAsymmetric verifies that fltToFloat32 reads bytes
+// in little-endian order (TC-2). IEEE 754 float 1.0 in little-endian is 0x00 0x00 0x80 0x3F;
+// big-endian would produce a very different (garbage) float.
+func Test_fltToFloat32_littleEndianAsymmetric(t *testing.T) {
+	// 0x3F800000 = 1.0 in big-endian; stored as 0x00 0x00 0x80 0x3F in little-endian
+	result, err := fltToFloat32("flt", makeBytes(0x00, 0x00, 0x80, 0x3F), 4)
+	assert.NoError(t, err)
+	assert.InDelta(t, 1.0, result, 0.001, "flt 0x00 0x00 0x80 0x3F must be 1.0 under little-endian interpretation")
+}
+
+// Test_smcBytesToUint32_bigEndianAsymmetric explicitly verifies that smcBytesToUint32
+// assembles bytes in big-endian order (TC-3). Using 0x01 0x00:
+//   - big-endian:    0x0100 = 256 (correct)
+//   - little-endian: 0x0001 = 1   (wrong)
+func Test_smcBytesToUint32_bigEndianAsymmetric(t *testing.T) {
+	result := smcBytesToUint32(makeBytes(0x01, 0x00), 2)
+	assert.Equal(t, uint32(256), result, "smcBytesToUint32 must use big-endian byte order")
+}
+
+// Test_ioftToFloat32_divisor verifies that ioftToFloat32 uses the correct 2^16 = 65536
+// divisor (TC-4). Using a raw value of 131072 (2^17 in the 48.16 fixed-point word):
+//   - correct divisor 65536: 131072/65536 = 2.0
+//   - wrong divisor  32768: 131072/32768 = 4.0
+func Test_ioftToFloat32_divisor(t *testing.T) {
+	// LittleEndian uint64: place 131072 (0x00020000) at bytes [2:4]
+	result, err := ioftToFloat32(makeBytes(0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00), 8)
+	assert.NoError(t, err)
+	assert.InDelta(t, 2.0, result, 0.001, "ioftToFloat32 must divide by 65536 (2^16)")
+}
+
 func Test_ioftToFloat32(t *testing.T) {
 	tests := []struct {
 		name     string

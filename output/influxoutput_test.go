@@ -186,6 +186,58 @@ func TestInfluxOutput_All(t *testing.T) {
 	assert.Equal(t, "cpu,sensortype=temperature,unit=c,key=tc0h value=50.000000", line)
 }
 
+// TestInfluxOutput_emptyKey verifies TC-18: sensors whose "key" field is an empty
+// string must not emit a ",key=" fragment in the InfluxDB line protocol tag set.
+// A malformed ",key=" tag is invalid InfluxDB syntax and would be rejected at ingest.
+func TestInfluxOutput_emptyKey(t *testing.T) {
+	var out bytes.Buffer
+
+	GetTemperature = func() map[string]any {
+		return map[string]any{
+			"CPU Temperature": map[string]any{
+				"key":   "",
+				"value": "50.000000 °C",
+				"type":  "hid",
+			},
+		}
+	}
+
+	o := InfluxOutput{writer: io.Writer(&out)}
+	o.Temperature()
+
+	line := out.String()
+	assert.NotContains(t, line, ",key=",
+		"empty sensor key must not produce a ,key= fragment in InfluxDB output")
+	assert.Contains(t, line, "cpu_temperature,sensortype=temperature",
+		"measurement and sensortype tag must still be present")
+}
+
+// TestInfluxOutput_unitExtraction verifies TC-16: the unit tag must contain the
+// unit symbol (e.g. "c" for Celsius), NOT the numeric value. The bug under test
+// uses Split(...)[0] instead of [1], producing unit=50.000000 instead of unit=c.
+func TestInfluxOutput_unitExtraction(t *testing.T) {
+	var out bytes.Buffer
+
+	GetTemperature = func() map[string]any {
+		return map[string]any{
+			"CPU Temp": map[string]any{
+				"key":   "TC0H",
+				"value": "50.000000 °C",
+				"type":  "sp78",
+			},
+		}
+	}
+
+	o := InfluxOutput{writer: io.Writer(&out)}
+	o.Temperature()
+
+	line := out.String()
+	assert.Contains(t, line, "unit=c",
+		"unit tag must be the unit symbol 'c', not the numeric value")
+	assert.NotContains(t, line, "unit=50",
+		"unit tag must NOT contain the numeric sensor value")
+}
+
 func TestInfluxOutput_empty(t *testing.T) {
 	var out bytes.Buffer
 

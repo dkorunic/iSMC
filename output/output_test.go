@@ -137,6 +137,75 @@ func Test_merge(t *testing.T) {
 	}
 }
 
+// Test_deepCopy_isolation verifies that deepCopy produces a true deep clone: mutating
+// a nested map in dest must not affect the original src (TC-14). A shallow copy
+// (for k, v := range src { dest[k] = v }) would fail this because both dest and src
+// would share the same nested map pointer.
+func Test_deepCopy_isolation(t *testing.T) {
+	src := map[string]any{
+		"sensor": map[string]any{
+			"key":   "TC0H",
+			"value": "25.0 °C",
+		},
+	}
+
+	dest := make(map[string]any)
+	deepCopy(dest, src)
+
+	// Mutate the nested map in dest
+	if nested, ok := dest["sensor"].(map[string]any); ok {
+		nested["value"] = "999.0 °C"
+	}
+
+	// src must be unaffected — a shallow copy would expose the same nested map
+	if nestedSrc, ok := src["sensor"].(map[string]any); ok {
+		assert.Equal(t, "25.0 °C", nestedSrc["value"],
+			"deepCopy must produce a deep clone; mutating dest must not affect src")
+	}
+}
+
+// Test_merge_bOverridesA verifies that merge gives precedence to b when both maps
+// contain the same flat key (TC-13 supporting test).
+func Test_merge_bOverridesA(t *testing.T) {
+	a := map[string]any{"CPU Temp": "25.0 °C", "GPU Temp": "40.0 °C"}
+	b := map[string]any{"CPU Temp": "30.0 °C"} // b overrides CPU Temp
+
+	result := merge(a, b)
+
+	assert.Equal(t, "30.0 °C", result["CPU Temp"], "merge must give b precedence over a for flat keys")
+	assert.Equal(t, "40.0 °C", result["GPU Temp"], "merge must preserve a keys absent from b")
+}
+
+// Test_merge_nestedBOverridesA verifies TC-15: that merge recurses into nested maps
+// rather than replacing a's whole sub-map with b's. If merge did NOT recurse,
+// only b's Temperature entries would appear and a's would be silently dropped.
+func Test_merge_nestedBOverridesA(t *testing.T) {
+	a := map[string]any{
+		"Temperature": map[string]any{
+			"CPU Temp": map[string]any{"key": "TC0H", "value": "25.0 °C", "type": "sp78"},
+			"GPU Temp": map[string]any{"key": "TG0H", "value": "40.0 °C", "type": "sp78"},
+		},
+	}
+	b := map[string]any{
+		"Temperature": map[string]any{
+			// HID override for CPU Temp; GPU Temp is absent from b
+			"CPU Temp": map[string]any{"key": "TC0H", "value": "27.0 °C", "type": "hid"},
+		},
+	}
+
+	result := merge(a, b)
+
+	temps, ok := result["Temperature"].(map[string]any)
+	assert.True(t, ok, "Temperature category must survive the merge")
+
+	cpuTemp, ok := temps["CPU Temp"].(map[string]any)
+	assert.True(t, ok, "CPU Temp must be present after merge")
+	assert.Equal(t, "27.0 °C", cpuTemp["value"], "b's CPU Temp value must override a's")
+
+	_, gpuOk := temps["GPU Temp"]
+	assert.True(t, gpuOk, "GPU Temp from a must NOT be lost when b only partially covers Temperature")
+}
+
 // toJSON marshals src to a JSON string for use in test assertions.
 func toJSON(src map[string]any) string {
 	jsonStr, _ := json.Marshal(src)
