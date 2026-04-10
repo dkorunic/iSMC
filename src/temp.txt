@@ -97,10 +97,23 @@ CPU Performance Core 13:Tp2L:M1
 CPU Performance Core 14:Tp2P:M1
 CPU Performance Core 15:Tp2X:M1
 CPU Performance Core 16:Tp2b:M1
+GPU 1:Tg04:M1
 GPU 1:Tg05:M1
+GPU 2:Tg0C:M1
 GPU 2:Tg0D:M1
+GPU 3:Tg0K:M1
 GPU 3:Tg0L:M1
+GPU 4:Tg0S:M1
 GPU 4:Tg0T:M1
+// M1 Ultra die 1 GPU (absent on M1/M1 Pro/M1 Max, silently ignored)
+GPU 5:Tg0a:M1
+GPU 5:Tg0b:M1
+GPU 6:Tg0i:M1
+GPU 6:Tg0j:M1
+GPU 7:Tg0q:M1
+GPU 7:Tg0r:M1
+GPU 8:Tg0y:M1
+GPU 8:Tg0z:M1
 Memory 1:Tm02:M1
 Memory 2:Tm06:M1
 Memory 3:Tm08:M1
