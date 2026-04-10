@@ -139,6 +139,8 @@ CPU Efficiency Core 1:Te05:M4
 CPU Efficiency Core 2:Te0S:M4
 CPU Efficiency Core 3:Te09:M4
 CPU Efficiency Core 4:Te0H:M4
+CPU Efficiency Core 5:Te0L:M4
+CPU Efficiency Core 6:Te0P:M4
 CPU Performance Core 1:Tp01:M4
 CPU Performance Core 2:Tp05:M4
 CPU Performance Core 3:Tp09:M4
@@ -147,6 +149,8 @@ CPU Performance Core 5:Tp0V:M4
 CPU Performance Core 6:Tp0Y:M4
 CPU Performance Core 7:Tp0b:M4
 CPU Performance Core 8:Tp0e:M4
+CPU Performance Core 9:Tp0h:M4
+CPU Performance Core 10:Tp0k:M4
 GPU 1:Tg0G:M4
 GPU 1:Tg1U:M4
 GPU 2:Tg0H:M4
