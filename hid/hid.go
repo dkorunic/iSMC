@@ -55,7 +55,7 @@ func getGeneric(unit string, cStr *C.char) map[string]any {
 			continue
 		}
 
-		if val != -127.0 && val != 0.0 && math.Round(val*100)/100 != 0.0 {
+		if val > 0.0 && math.Round(val*100)/100 != 0.0 {
 			stats = append(stats, SensorStat{
 				Name:  split[0],
 				Value: float32(val),

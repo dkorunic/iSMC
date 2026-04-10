@@ -127,11 +127,7 @@ func GetFans() map[string]any {
 				continue
 			}
 
-			if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
-				if val < 0.0 {
-					val = -val
-				}
-
+			if val > 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
 				fans[desc] = map[string]any{
 					"key":   key,
 					"value": fmt.Sprintf("%4.0f rpm", val),
@@ -184,11 +180,7 @@ func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 		return
 	}
 
-	if val != -127.0 && val != 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
-		if val < 0.0 {
-			val = -val
-		}
-
+	if val > 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
 		generic[desc] = map[string]any{
 			"key":   key,
 			"value": fmt.Sprintf("%g %s", val, unit),

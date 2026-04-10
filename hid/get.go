@@ -157,7 +157,8 @@ static NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
         @autoreleasepool {
             NSString *name = kvsN[i];
             double   value = [kvsV[i] doubleValue];
-            value = ABS(value);
+
+            if (value <= 0.0) continue;
 
             NSString *output = [NSString stringWithFormat:@"%s:%lf\n", [name UTF8String], value];
             [valueString appendString:output];
@@ -177,7 +178,8 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
         @autoreleasepool {
             NSString *name = kvsN[i];
             double   value = [kvsV[i] doubleValue];
-            value = ABS(value);
+
+            if (value <= 0.0) continue;
 
             // PMU tdev sensors (e.g., "PMU tdev1") report temperatures in sp78 fixed-point
             // format (raw = °C × 256, e.g. 6400.0 for 25°C). Apple Silicon thermal shutdown
