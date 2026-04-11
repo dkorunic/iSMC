@@ -39,7 +39,6 @@ CGO_ENABLED=1 go install github.com/dkorunic/iSMC@latest
 ## Usage
 
 ```shell
-$ iSMC help
 Apple SMC CLI tool that can decode and display temperature, fans, battery, power, voltage and current
 information for various hardware in your Apple Mac hardware.
 
@@ -55,6 +54,7 @@ Available Commands:
   fans        Display fans status
   help        Help about any command
   power       Display power sensors
+  raw         Display all raw SMC keys and their byte values
   temp        Display temperature sensors
   version     Print the version number of iSMC
   volt        Display voltage sensors
