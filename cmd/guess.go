@@ -34,7 +34,6 @@ import (
 const (
 	guessStressDuration = 8 * time.Second
 	guessCoolDuration   = 12 * time.Second
-	guessDeltaThreshold = float32(1.5) // °C minimum to count as a genuine response
 	guessSampleCount    = 3
 	guessSampleInterval = 500 * time.Millisecond
 	// guessTempMin is set to a realistic lower bound for a running Mac. Hardware
@@ -42,52 +41,37 @@ const (
 	// sub-ambient/disconnected probe) and ~26 °C (lowest genuine ambient inlet).
 	// 25 °C sits safely inside that gap: all real die/cluster sensors idle at ≥30 °C
 	// while unconnected ambient probes (0–12 °C) and virtual thermal-zone sensors
-	// (exactly 0 °C) are excluded. Raising from 20 °C to 25 °C closes any edge cases
-	// without risk of dropping a real sensor on any shipping Apple Silicon chip.
+	// (exactly 0 °C) are excluded.
 	guessTempMin = float32(25.0)
 	guessTempMax = float32(150.0)
 
-	// guessTrackThreshold is the minimum delta used when collecting cross-core
-	// responses. It is intentionally lower than guessOutputThreshold so that
-	// sub-threshold thermal cross-talk to neighbouring cores is captured and counted
-	// toward a sensor's hit score. Without this, a broadly coupled sensor whose
-	// secondary-core responses all fall below the output threshold would appear with
-	// hits=1 and bypass the exclusivity check.
-	//
-	// Set to ≈3 σ above measurement noise (sp78 resolution ≈0.25 °C, noise after
-	// 3-sample average ≈0.15 °C RMS).
-	guessTrackThreshold = float32(0.5)
-
-	// guessOutputThreshold is the minimum best-core delta for a sensor to appear in
-	// the final per-core or cluster output. Sensors tracked at guessTrackThreshold
-	// that never exceed this value are used only for exclusivity analysis and are
-	// silently dropped from the mapping.
+	// guessOutputThreshold is the minimum delta (°C) for a sensor to appear in
+	// the final output. Sensors below this value are silently dropped.
+	// Set to ≈10 σ above measurement noise (sp78 resolution ≈0.25 °C).
 	guessOutputThreshold = float32(1.5)
 
-	// guessMaxCoreHits is the absolute upper bound on the number of distinct logical
-	// cores a sensor may respond to (at guessTrackThreshold) before it is reclassified
-	// as a cluster/package sensor. Physical per-core sensors may bleed heat into one
-	// immediate neighbour (hits=2) but responding to three or more separate cores
-	// indicates shared thermal mass independent of chip size.
-	guessMaxCoreHits = 2
-
-	// guessExclusivityRatio is the minimum (best-core delta) / (second-best-core delta)
-	// required to keep a sensor as per-core. If the second-best response is more than
-	// half the best response the sensor lacks a clear dominant association with one
-	// core and is reclassified as a cluster sensor.
-	guessExclusivityRatio = float32(2.0)
+	// guessClusterRatio is the maximum relative gap between the P-phase and
+	// E-phase deltas for a sensor still to be classified as a cluster/package
+	// sensor rather than assigned to a specific phase.
+	// If min(pDelta,eDelta)/max(pDelta,eDelta) >= (1−guessClusterRatio) the
+	// sensor is treated as cluster-level (both phases equally hot).
+	guessClusterRatio = float32(0.20)
 )
 
 var guessCmd = &cobra.Command{
 	Use:   "guess",
 	Short: "Map SMC temperature sensors to CPU cores by thermal correlation",
-	Long: `guess stresses each logical CPU core in sequence — twice, once with
+	Long: `guess stresses all logical CPU cores simultaneously — twice, once with
 QOS_CLASS_USER_INITIATED (biases the OS toward P-cores) and once with
 QOS_CLASS_BACKGROUND (biases toward E-cores) — and correlates the resulting
 temperature rise in T-prefixed SMC sensors to produce a sensor mapping list
 in the format used by src/temp.txt.
 
-The process takes roughly 2 × (stressDuration + cooldown) × NumCPU ≈ 10–20 min.
+Within each phase, per-core labels are derived from SMC key naming patterns:
+keys sharing the same non-numeric structure (e.g. TC*c) form a series, sorted
+by their numeric index, and are assigned sequential core labels.
+
+The process takes roughly 34 seconds on any chip.
 Run on an otherwise-idle machine for best results.`,
 	Run: runGuess,
 }
@@ -141,16 +125,14 @@ func avgRawTemps(n int, interval time.Duration) map[string]float32 {
 	return result
 }
 
-// deltaTemps returns sensors in hot that exceed the corresponding baseline value by at
-// least guessTrackThreshold. The lower tracking threshold (vs guessOutputThreshold)
-// captures sub-threshold cross-core responses so that broadly coupled sensors
-// accumulate a high hit count and are later reclassified as cluster sensors.
+// deltaTemps returns sensors in hot that exceed the corresponding baseline value
+// by at least guessOutputThreshold.
 func deltaTemps(base, hot map[string]float32) map[string]float32 {
 	d := make(map[string]float32)
 
 	for k, b := range base {
 		if h, ok := hot[k]; ok {
-			if delta := h - b; delta >= guessTrackThreshold {
+			if delta := h - b; delta >= guessOutputThreshold {
 				d[k] = delta
 			}
 		}
@@ -233,6 +215,7 @@ func sortedSeriesKeys(groups map[string][]string) []string {
 // a specific hardware thread within that type, then burns CPU until done is closed.
 func spinCore(affinityTag int, qosClass int, done <-chan struct{}) {
 	runtime.LockOSThread()
+
 	defer runtime.UnlockOSThread()
 
 	// QoS must be set before affinity so the scheduler applies the class when
@@ -283,58 +266,34 @@ func spinCore(affinityTag int, qosClass int, done <-chan struct{}) {
 	}
 }
 
-// sensorResult aggregates cross-core observations for a single SMC sensor key.
-type sensorResult struct {
-	key             string
-	bestCore        int     // 0-based index of the core that caused the largest delta
-	bestDelta       float32 // highest delta observed across all core tests
-	secondBestDelta float32 // delta of the second-most-responsive core (0 if hits==1)
-	hits            int     // number of distinct cores that triggered this sensor
-}
-
-// runPhase stresses each logical core with the given QoS class, measures temperature
-// deltas against the provided baseline, and returns per-core delta maps.
-// The baseline is re-sampled after each inter-core cooldown to compensate for ambient
-// drift over the long measurement window.
-func runPhase(numCPU int, qosClass int, baseline map[string]float32) []map[string]float32 {
-	allDeltas := make([]map[string]float32, numCPU)
+// runAllCoresPhase launches numCPU spinCore goroutines simultaneously under the
+// given QoS class, stresses for guessStressDuration, samples temperatures at
+// peak load, then returns the delta map relative to baseline.
+func runAllCoresPhase(numCPU int, qosClass int, baseline map[string]float32) map[string]float32 {
+	done := make(chan struct{})
 
 	for i := range numCPU {
-		fmt.Printf("  Core %2d/%d  stressing", i+1, numCPU)
-
-		done := make(chan struct{})
 		go spinCore(i+1, qosClass, done)
+	}
 
-		// Sample at peak: measure while the core is still under load. Apple Silicon sheds
-		// heat within seconds of dropping load, so measuring after close(done) would yield
-		// near-baseline readings and zero deltas above the 1.5 °C threshold.
-		time.Sleep(guessStressDuration)
-		hot := avgRawTemps(guessSampleCount, guessSampleInterval)
-		close(done)
-		deltas := deltaTemps(baseline, hot)
-		allDeltas[i] = deltas
+	time.Sleep(guessStressDuration)
 
-		// Count only sensors that crossed the output threshold for the progress line;
-		// sub-threshold entries are present in deltas solely for exclusivity analysis.
-		responded := 0
-		for _, d := range deltas {
-			if d >= guessOutputThreshold {
-				responded++
-			}
-		}
+	hot := avgRawTemps(guessSampleCount, guessSampleInterval)
 
-		fmt.Printf("  →  %d sensor(s) responded\n", responded)
+	close(done)
 
-		if i < numCPU-1 {
-			fmt.Printf("             cooling  (%v)\n", guessCoolDuration)
-			time.Sleep(guessCoolDuration)
+	responded := 0
+	deltas := deltaTemps(baseline, hot)
 
-			// Re-baseline after each cooldown to compensate for ambient drift.
-			baseline = avgRawTemps(guessSampleCount, guessSampleInterval)
+	for _, d := range deltas {
+		if d >= guessOutputThreshold {
+			responded++
 		}
 	}
 
-	return allDeltas
+	fmt.Printf("  →  %d sensor(s) responded\n", responded)
+
+	return deltas
 }
 
 // runGuess implements the guess subcommand.
@@ -355,181 +314,88 @@ func runGuess(_ *cobra.Command, _ []string) {
 
 	fmt.Printf("Platform : %s\n", family)
 	fmt.Printf("CPUs     : %d logical\n", numCPU)
-	fmt.Printf("Per-core : %v stress + %v cooldown  (×2 phases)\n\n",
-		guessStressDuration, guessCoolDuration)
+	fmt.Printf("Per-phase: %v stress  (×2 phases, all %d cores simultaneously)\n\n",
+		guessStressDuration, numCPU)
 
 	fmt.Print("Sampling baseline... ")
+
 	baseline := avgRawTemps(guessSampleCount, guessSampleInterval)
+
 	fmt.Printf("%d sensors visible.\n\n", len(baseline))
 
-	// Phase 1: P-core sweep — QOS_CLASS_USER_INITIATED biases the scheduler toward P-cores.
+	// Phase 1: all cores with QOS_CLASS_USER_INITIATED (biases toward P-cores).
 	fmt.Println("── Phase 1: P-core sweep (QOS_CLASS_USER_INITIATED) ──")
-	pAllDeltas := runPhase(numCPU, stress.QoSUserInitiated, baseline)
+	fmt.Printf("  Stressing all %d cores...", numCPU)
+	pDeltas := runAllCoresPhase(numCPU, stress.QoSUserInitiated, baseline)
 
-	// Inter-phase cooldown and re-baseline before the E-core sweep.
+	// Inter-phase cooldown and re-baseline.
 	fmt.Printf("\n  Inter-phase cooldown (%v)...\n", guessCoolDuration)
 	time.Sleep(guessCoolDuration)
+
 	baseline = avgRawTemps(guessSampleCount, guessSampleInterval)
 
-	// Phase 2: E-core sweep — QOS_CLASS_BACKGROUND biases the scheduler toward E-cores.
+	// Phase 2: all cores with QOS_CLASS_BACKGROUND (biases toward E-cores).
 	fmt.Printf("\n── Phase 2: E-core sweep (QOS_CLASS_BACKGROUND) ──\n")
-	eAllDeltas := runPhase(numCPU, stress.QoSBackground, baseline)
+	fmt.Printf("  Stressing all %d cores...", numCPU)
+	eDeltas := runAllCoresPhase(numCPU, stress.QoSBackground, baseline)
 
-	printMapping(family, numCPU, pAllDeltas, eAllDeltas)
-}
-
-// buildByKey aggregates per-core delta maps into a per-sensor result map, tracking
-// the best and second-best deltas across all cores.
-func buildByKey(allDeltas []map[string]float32) map[string]*sensorResult {
-	byKey := make(map[string]*sensorResult)
-
-	for coreIdx, deltas := range allDeltas {
-		for key, d := range deltas {
-			r, ok := byKey[key]
-			if !ok {
-				r = &sensorResult{key: key}
-				byKey[key] = r
-			}
-
-			r.hits++
-
-			if d > r.bestDelta {
-				// Demote current best to second-best before overwriting.
-				r.secondBestDelta = r.bestDelta
-				r.bestDelta = d
-				r.bestCore = coreIdx
-			} else if d > r.secondBestDelta {
-				r.secondBestDelta = d
-			}
-		}
-	}
-
-	return byKey
-}
-
-// activeSortedCores returns a slice of core indices present in coreMap, sorted by
-// peak delta descending (hottest / most-responsive first).
-func activeSortedCores(coreMap map[int][]*sensorResult) []int {
-	cores := make([]int, 0, len(coreMap))
-	for c := range coreMap {
-		cores = append(cores, c)
-	}
-
-	sort.Slice(cores, func(a, b int) bool {
-		return peakDelta(coreMap[cores[a]]) > peakDelta(coreMap[cores[b]])
-	})
-
-	return cores
-}
-
-// isClusterSensor returns true when r should be treated as a cluster/package sensor
-// rather than a per-core sensor. Three independent conditions trigger reclassification:
-//
-//  1. Majority response: the sensor responded to more than half the logical CPUs —
-//     it is almost certainly measuring shared die or cluster thermal mass.
-//  2. Absolute hit cap: the sensor responded to more than guessMaxCoreHits distinct
-//     cores, which indicates cross-cluster heat diffusion regardless of chip size.
-//  3. Lack of exclusivity: the best-core delta is less than guessExclusivityRatio times
-//     the second-best delta, meaning no single core clearly "owns" the sensor.
-func isClusterSensor(r *sensorResult, numCPU int) bool {
-	if r == nil {
-		return false
-	}
-
-	if numCPU > 1 && r.hits*2 > numCPU {
-		return true
-	}
-
-	if r.hits > guessMaxCoreHits {
-		return true
-	}
-
-	if r.hits > 1 && r.secondBestDelta > 0 && r.bestDelta < r.secondBestDelta*guessExclusivityRatio {
-		return true
-	}
-
-	return false
+	printMapping(family, numCPU, pDeltas, eDeltas)
 }
 
 // printMapping analyses the two-phase delta results and emits a src/temp.txt-style
-// mapping. Each sensor is classified as a P-core, E-core, or cluster/package sensor
-// based on which QoS phase produced the stronger thermal response, replacing the
-// previous delta-magnitude heuristic with scheduler-guided classification.
-func printMapping(family string, numCPU int, pAllDeltas, eAllDeltas []map[string]float32) {
-	pByKey := buildByKey(pAllDeltas)
-	eByKey := buildByKey(eAllDeltas)
-
+// mapping. Sensors are classified as P-cluster or E-cluster based on which phase
+// produced the stronger response, then grouped by SMC key naming-pattern series
+// and assigned sequential per-core labels.
+func printMapping(family string, numCPU int, pDeltas, eDeltas map[string]float32) {
 	// Union of all observed sensor keys across both phases.
 	allKeys := make(map[string]struct{})
-	for k := range pByKey {
+
+	for k := range pDeltas {
 		allKeys[k] = struct{}{}
 	}
 
-	for k := range eByKey {
+	for k := range eDeltas {
 		allKeys[k] = struct{}{}
 	}
 
-	pCoreMap := make(map[int][]*sensorResult) // P-phase sensors by bestCore
-	eCoreMap := make(map[int][]*sensorResult) // E-phase sensors by bestCore
-	var clusterSensors []*sensorResult
+	var pKeys, eKeys, clusterKeys []string
 
 	for key := range allKeys {
-		pr := pByKey[key] // nil if absent in P-phase
-		er := eByKey[key] // nil if absent in E-phase
+		pDelta := pDeltas[key]
+		eDelta := eDeltas[key]
 
-		// Reclassify as cluster if either phase flags the sensor as non-exclusive.
-		if isClusterSensor(pr, numCPU) || isClusterSensor(er, numCPU) {
-			r := pr
-			if r == nil || (er != nil && er.bestDelta > r.bestDelta) {
-				r = er
-			}
+		dominant := pDelta
+		if eDelta > pDelta {
+			dominant = eDelta
+		}
 
-			// Only surface cluster sensors whose best delta crossed the output threshold;
-			// sensors tracked solely at the sub-threshold level are silently dropped.
-			if r.bestDelta >= guessOutputThreshold {
-				clusterSensors = append(clusterSensors, r)
-			}
-
+		if dominant < guessOutputThreshold {
 			continue
 		}
 
-		pDelta := float32(0)
-		if pr != nil {
-			pDelta = pr.bestDelta
-		}
-
-		eDelta := float32(0)
-		if er != nil {
-			eDelta = er.bestDelta
-		}
-
-		// Assign to the phase with the stronger signal (P-phase wins ties).
-		// Drop the sensor entirely if the winning delta never crossed the output
-		// threshold — it was tracked only for exclusivity analysis.
-		if pDelta >= eDelta && pr != nil {
-			if pr.bestDelta >= guessOutputThreshold {
-				pCoreMap[pr.bestCore] = append(pCoreMap[pr.bestCore], pr)
+		// Cluster detection: both phases responded and neither clearly dominates
+		// (relative gap is within guessClusterRatio).
+		if pDelta >= guessOutputThreshold && eDelta >= guessOutputThreshold {
+			lo, hi := pDelta, eDelta
+			if lo > hi {
+				lo, hi = hi, lo
 			}
-		} else if er != nil {
-			if er.bestDelta >= guessOutputThreshold {
-				eCoreMap[er.bestCore] = append(eCoreMap[er.bestCore], er)
+
+			if lo/hi >= (1 - guessClusterRatio) {
+				clusterKeys = append(clusterKeys, key)
+
+				continue
 			}
 		}
+
+		if pDelta >= eDelta {
+			pKeys = append(pKeys, key)
+		} else {
+			eKeys = append(eKeys, key)
+		}
 	}
 
-	// Sort within each core group by key name for deterministic output.
-	for _, ss := range pCoreMap {
-		sort.Slice(ss, func(a, b int) bool { return ss[a].key < ss[b].key })
-	}
-
-	for _, ss := range eCoreMap {
-		sort.Slice(ss, func(a, b int) bool { return ss[a].key < ss[b].key })
-	}
-
-	sort.Slice(clusterSensors, func(a, b int) bool { return clusterSensors[a].key < clusterSensors[b].key })
-
-	pActiveCores := activeSortedCores(pCoreMap)
-	eActiveCores := activeSortedCores(eCoreMap)
+	sort.Strings(clusterKeys)
 
 	// ── Header ──────────────────────────────────────────────────────────────────
 	fmt.Println()
@@ -538,73 +404,60 @@ func printMapping(family string, numCPU int, pAllDeltas, eAllDeltas []map[string
 	fmt.Printf("// %s\n", strings.Repeat("─", 72))
 
 	// ── Performance cores (P-phase sensors) ─────────────────────────────────────
-	pIdx := 1
-	for _, c := range pActiveCores {
-		ss := pCoreMap[c]
-		peak := peakDelta(ss)
-		label := fmt.Sprintf("CPU Performance Core %d", pIdx)
-		pIdx++
+	pGroups := groupBySeries(pKeys)
+	pSeriesKeys := sortedSeriesKeys(pGroups)
 
-		fmt.Printf("// Logical CPU %d → peak +%.1f°C → %s\n", c+1, peak, label)
+	if len(pSeriesKeys) == 0 {
+		fmt.Println("// WARNING: Phase 1 (P-cores) produced no sensor responses above threshold.")
+		fmt.Println("// Run on an idle machine or increase stress duration.")
+	}
 
-		for _, r := range ss {
-			fmt.Printf("%s:%s:%s\n", label, r.key, family)
+	coreIdx := 1
+
+	for _, sk := range pSeriesKeys {
+		sensors := pGroups[sk]
+		fmt.Printf("// Series %-6s → %d sensor(s) → CPU Performance Core %d..%d\n",
+			sk, len(sensors), coreIdx, coreIdx+len(sensors)-1)
+
+		for _, k := range sensors {
+			fmt.Printf("CPU Performance Core %d:%s:%s\n", coreIdx, k, family)
+
+			coreIdx++
 		}
 	}
 
 	// ── Efficiency cores (E-phase sensors) ──────────────────────────────────────
+	eGroups := groupBySeries(eKeys)
+	eSeriesKeys := sortedSeriesKeys(eGroups)
+
+	if len(eSeriesKeys) == 0 && numCPU > 1 {
+		fmt.Println("// WARNING: Phase 2 (E-cores) produced no sensor responses above threshold.")
+		fmt.Println("// Run on an idle machine or increase stress duration.")
+	}
+
 	eIdx := 1
-	for _, c := range eActiveCores {
-		ss := eCoreMap[c]
-		peak := peakDelta(ss)
-		label := fmt.Sprintf("CPU Efficiency Core %d", eIdx)
-		eIdx++
 
-		fmt.Printf("// Logical CPU %d → peak +%.1f°C → %s\n", c+1, peak, label)
+	for _, sk := range eSeriesKeys {
+		sensors := eGroups[sk]
+		fmt.Printf("// Series %-6s → %d sensor(s) → CPU Efficiency Core %d..%d\n",
+			sk, len(sensors), eIdx, eIdx+len(sensors)-1)
 
-		for _, r := range ss {
-			fmt.Printf("%s:%s:%s\n", label, r.key, family)
+		for _, k := range sensors {
+			fmt.Printf("CPU Efficiency Core %d:%s:%s\n", eIdx, k, family)
+
+			eIdx++
 		}
 	}
 
 	// ── Cluster / package sensors ────────────────────────────────────────────────
-	if len(clusterSensors) > 0 {
+	if len(clusterKeys) > 0 {
 		fmt.Println()
 		fmt.Printf("// %s\n", strings.Repeat("─", 72))
-		fmt.Printf("// Cluster/package sensors (responded to >%d/%d cores in a single phase):\n",
-			numCPU/2, numCPU)
+		fmt.Printf("// Cluster/package sensors (both phases within %.0f%% of each other):\n",
+			guessClusterRatio*100)
 
-		for _, r := range clusterSensors {
-			fmt.Printf("// %-6s  peak +%.1f°C\n", r.key, r.bestDelta)
+		for _, k := range clusterKeys {
+			fmt.Printf("// %-6s  P-phase +%.1f°C  E-phase +%.1f°C\n", k, pDeltas[k], eDeltas[k])
 		}
 	}
-
-	// ── Cores with no response ───────────────────────────────────────────────────
-	silent := make([]string, 0)
-
-	for c := range numCPU {
-		if len(pCoreMap[c]) == 0 && len(eCoreMap[c]) == 0 {
-			silent = append(silent, fmt.Sprintf("%d", c+1))
-		}
-	}
-
-	if len(silent) > 0 {
-		fmt.Println()
-		fmt.Printf("// %s\n", strings.Repeat("─", 72))
-		fmt.Printf("// No sensor responded above threshold for logical CPU(s): %s\n",
-			strings.Join(silent, ", "))
-		fmt.Println("// Consider re-running on an idle machine or increasing stress duration.")
-	}
-}
-
-// peakDelta returns the maximum bestDelta among the given sensor results.
-func peakDelta(ss []*sensorResult) float32 {
-	var m float32
-	for _, r := range ss {
-		if r.bestDelta > m {
-			m = r.bestDelta
-		}
-	}
-
-	return m
 }
