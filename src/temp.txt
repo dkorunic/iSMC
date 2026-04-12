@@ -175,6 +175,22 @@ CPU Die 3:Te02:M1
 // M1 Ultra die 2 aggregate sensors (absent on M1 Pro/Max, silently ignored)
 CPU Die 4:Te20:M1
 CPU Die 5:Te21:M1
+// M1 Pro/Max/Ultra NVMe/SSD die temperature sensors (absent on M1 base; silently ignored)
+SSD 1:Ts00:M1
+SSD 1:Ts01:M1
+SSD 1:Ts02:M1
+SSD 2:Ts04:M1
+SSD 2:Ts05:M1
+SSD 2:Ts06:M1
+SSD Controller:Ts0P:M1
+SSD Controller:Ts1P:M1
+// M1 Ultra die-2 SSD sensors (absent on M1 Pro/Max; silently ignored)
+SSD 3:Ts20:M1
+SSD 3:Ts21:M1
+SSD 3:Ts22:M1
+SSD 4:Ts24:M1
+SSD 4:Ts25:M1
+SSD 4:Ts26:M1
 // M2
 CPU Efficiency Core 1:Tp1h:M2
 CPU Efficiency Core 2:Tp1t:M2
@@ -204,6 +220,10 @@ CPU Efficiency Core 4:Te0S:M3
 CPU Efficiency Core 4:Te0T:M3
 CPU Efficiency Core 5:Te0U:M3
 CPU Efficiency Core 5:Te0V:M3
+// M3 Max additional E-cores (absent on M3 Pro; silently ignored)
+CPU Efficiency Core 6:Te0K:M3
+CPU Efficiency Core 6:Te0L:M3
+CPU Efficiency Core 6:Te0M:M3
 CPU Performance Core 1:Tp04:M3
 CPU Performance Core 1:Tp05:M3
 CPU Performance Core 1:Tp06:M3
@@ -293,36 +313,82 @@ GPU 8:Tg1A:M3
 GPU 8:Tg1B:M3
 GPU 9:Tg1k:M3
 GPU 9:Tg1l:M3
+// M3 Max additional GPU cluster sensors (absent on M3 Pro; silently ignored)
+GPU 10:Tg0y:M3
+GPU 10:Tg0z:M3
+GPU 11:Tg1E:M3
+GPU 11:Tg1F:M3
+GPU 12:Tg16:M3
+GPU 12:Tg17:M3
+GPU 13:Tg1s:M3
+GPU 13:Tg1t:M3
+GPU 14:Tg1x:M3
+GPU 14:Tg1y:M3
+GPU 15:Tg21:M3
+GPU 15:Tg22:M3
+GPU 16:Tg29:M3
+GPU 16:Tg2A:M3
+GPU 17:Tg2H:M3
+GPU 17:Tg2I:M3
+GPU 18:Tg33:M3
+GPU 18:Tg34:M3
+GPU 19:Tg3B:M3
+GPU 19:Tg3C:M3
+GPU 20:Tg3J:M3
+GPU 20:Tg3K:M3
+GPU 21:Tg3x:M3
+GPU 21:Tg3y:M3
 // M3 NVMe/SSD die temperature sensors (triplet convention; Ts0P/Ts1P are controller sensors)
+// M3 Pro addresses: Ts00/01/02, Ts0C/D/E, Ts0K/L/M, Ts0Y/Z/a, Ts0h/i
+// M3 Max addresses: Ts04/05/06, Ts0C/D/E, Ts0R/S/T, Ts0U/V/W, Ts0h/i
+// Keys absent on a given SKU are silently ignored.
 SSD 1:Ts00:M3
 SSD 1:Ts01:M3
 SSD 1:Ts02:M3
-SSD 2:Ts0C:M3
-SSD 2:Ts0D:M3
-SSD 2:Ts0E:M3
-SSD 3:Ts0K:M3
-SSD 3:Ts0L:M3
-SSD 3:Ts0M:M3
-SSD 4:Ts0Y:M3
-SSD 4:Ts0Z:M3
-SSD 4:Ts0a:M3
-SSD 5:Ts0h:M3
-SSD 5:Ts0i:M3
+SSD 2:Ts04:M3
+SSD 2:Ts05:M3
+SSD 2:Ts06:M3
+SSD 3:Ts0C:M3
+SSD 3:Ts0D:M3
+SSD 3:Ts0E:M3
+SSD 4:Ts0K:M3
+SSD 4:Ts0L:M3
+SSD 4:Ts0M:M3
+SSD 5:Ts0R:M3
+SSD 5:Ts0S:M3
+SSD 5:Ts0T:M3
+SSD 6:Ts0U:M3
+SSD 6:Ts0V:M3
+SSD 6:Ts0W:M3
+SSD 7:Ts0Y:M3
+SSD 7:Ts0Z:M3
+SSD 7:Ts0a:M3
+SSD 8:Ts0h:M3
+SSD 8:Ts0i:M3
 SSD Controller:Ts0P:M3
 SSD Controller:Ts1P:M3
 // M4
-// E-core sensors are triplets (Te04/05/06 for cluster 1, Te0R/0S/0T for cluster 2)
+// E-core cluster 1 triplet (confirmed on both M4 base and M4 Pro)
 CPU Efficiency Core 1:Te04:M4
 CPU Efficiency Core 1:Te05:M4
 CPU Efficiency Core 1:Te06:M4
+// E-core cluster 2 die-level triplet
 CPU Efficiency Core 2:Te0R:M4
 CPU Efficiency Core 2:Te0S:M4
 CPU Efficiency Core 2:Te0T:M4
-// Individual E-core sensors (may be absent on some M4 Pro SKUs; silently ignored)
+// Additional E-core triplets (confirmed across M4 base and M4 Pro reports; silently ignored if absent)
+CPU Efficiency Core 3:Te08:M4
 CPU Efficiency Core 3:Te09:M4
+CPU Efficiency Core 3:Te0A:M4
+CPU Efficiency Core 4:Te0G:M4
 CPU Efficiency Core 4:Te0H:M4
-CPU Efficiency Core 5:Te0L:M4
-CPU Efficiency Core 6:Te0P:M4
+CPU Efficiency Core 4:Te0I:M4
+CPU Efficiency Core 5:Te0U:M4
+CPU Efficiency Core 5:Te0V:M4
+CPU Efficiency Core 6:Te0L:M4
+CPU Efficiency Core 7:Te0W:M4
+CPU Efficiency Core 7:Te0X:M4
+CPU Efficiency Core 8:Te0P:M4
 // E-cluster die-level sensors
 CPU Efficiency Cluster Die 1:Tex0:M4
 CPU Efficiency Cluster Die 1:Tex1:M4
@@ -403,6 +469,7 @@ CPU Performance Core 8:Tp0U:M4
 CPU Performance Core 9:Tp0W:M4
 CPU Performance Core 9:Tp0X:M4
 CPU Performance Core 9:Tp0Y:M4
+CPU Performance Core 9:Tp0Z:M4
 CPU Performance Core 10:Tp0a:M4
 CPU Performance Core 10:Tp0b:M4
 CPU Performance Core 10:Tp0c:M4
@@ -410,50 +477,84 @@ CPU Performance Core 10:Tp0c:M4
 CPU Performance Core 11:Tp0d:M4
 CPU Performance Core 11:Tp0e:M4
 CPU Performance Core 11:Tp0f:M4
-// Efficiency cluster sensors (Tpx0-5) precede P-core clusters (Tpx8-D)
+// Efficiency cluster sensors (Tpx0-5 confirmed real; Tpx8-D read 0°C on every report, removed)
 CPU Efficiency Cluster 1:Tpx0:M4
 CPU Efficiency Cluster 1:Tpx1:M4
 CPU Efficiency Cluster 2:Tpx2:M4
 CPU Efficiency Cluster 2:Tpx3:M4
 CPU Efficiency Cluster 3:Tpx4:M4
 CPU Efficiency Cluster 3:Tpx5:M4
-CPU Performance Cluster 1:Tpx8:M4
-CPU Performance Cluster 1:Tpx9:M4
-CPU Performance Cluster 2:TpxA:M4
-CPU Performance Cluster 2:TpxB:M4
-CPU Performance Cluster 3:TpxC:M4
-CPU Performance Cluster 3:TpxD:M4
+// M4 P-core cluster companion sensors (shared key addresses with M3 clusters; both appear on M4 base)
+CPU Performance Cluster 1:Tp0V:M4
+CPU Performance Cluster 1:Tp3O:M4
+CPU Performance Cluster 1:Tp3P:M4
+CPU Performance Cluster 2:Tp3W:M4
+CPU Performance Cluster 2:Tp3X:M4
+CPU Performance Cluster 3:Tp3S:M4
+CPU Performance Cluster 3:Tp3T:M4
+// Tp1A/B/C and Tp1E/F/G/Q/R/S — triplet aggregate sensors seen on M4 base; role analogous to M3 cluster sensors
+CPU Performance Cluster 4:Tp1A:M4
+CPU Performance Cluster 4:Tp1B:M4
+CPU Performance Cluster 4:Tp1C:M4
 GPU 1:Tg0G:M4
 GPU 1:Tg1U:M4
 GPU 2:Tg0H:M4
 GPU 2:Tg1k:M4
+GPU 3:Tg0C:M4
 GPU 3:Tg0K:M4
+GPU 4:Tg0D:M4
 GPU 4:Tg0L:M4
+GPU 5:Tg0O:M4
 GPU 5:Tg0d:M4
+GPU 6:Tg0P:M4
 GPU 6:Tg0e:M4
+GPU 7:Tg0U:M4
 GPU 7:Tg0j:M4
+GPU 8:Tg0V:M4
 GPU 8:Tg0k:M4
-// Additional M4 Pro GPU sensors (20-core GPU clusters)
-GPU 9:Tg04:M4
-GPU 10:Tg05:M4
-GPU 11:Tg0R:M4
-GPU 12:Tg0S:M4
-GPU 13:Tg0X:M4
-GPU 14:Tg0Y:M4
-GPU 15:Tg0y:M4
-GPU 16:Tg0z:M4
-GPU 17:Tg1E:M4
-GPU 18:Tg1F:M4
-GPU 19:Tg1V:M4
-GPU 20:Tg1c:M4
-GPU 21:Tg1d:M4
-GPU 22:Tg1l:M4
-// M4 GPU fabric cluster sensors (seen on M4 Pro; role TBD)
+GPU 9:Tg0m:M4
+GPU 10:Tg0n:M4
+// Additional M4 Pro GPU sensors (20-core GPU clusters; silently ignored on M4 base)
+GPU 11:Tg04:M4
+GPU 12:Tg05:M4
+GPU 13:Tg0R:M4
+GPU 14:Tg0S:M4
+GPU 15:Tg0X:M4
+GPU 16:Tg0Y:M4
+GPU 17:Tg0y:M4
+GPU 18:Tg0z:M4
+GPU 19:Tg1E:M4
+GPU 20:Tg1F:M4
+GPU 21:Tg1U:M4
+GPU 22:Tg1V:M4
+GPU 23:Tg1c:M4
+GPU 24:Tg1d:M4
+GPU 25:Tg1k:M4
+GPU 26:Tg1l:M4
+// M4 GPU fabric cluster sensors (seen on M4 Pro and M4 base; TfC2/TfC4 are M4-only)
 GPU Fabric 1:TfC0:M4
 GPU Fabric 2:TfC1:M4
 GPU Fabric 3:TfC2:M4
 GPU Fabric 4:TfC3:M4
 GPU Fabric 5:TfC4:M4
+// Uncore die sensors (seen on M4 Pro; silently ignored on M4 base)
+Uncore Die 1:TUD0:M4
+Uncore Die 2:TUD1:M4
+Uncore Die 3:TUD2:M4
+Uncore Die 4:TUD3:M4
+Uncore Die 5:TUD4:M4
+Uncore Die 6:TUD5:M4
+Uncore Die 7:TUD6:M4
+Uncore Die 8:TUD7:M4
+Uncore Die 9:TUD8:M4
+Uncore Die 10:TUD9:M4
+Uncore Die Max:TUDX:M4
+Uncore Die 11:TUDa:M4
+Uncore Die 12:TUDb:M4
+Uncore Die 13:TUDc:M4
+Uncore Die 14:TUDd:M4
+Uncore Die 15:TUDe:M4
+Uncore Die 16:TUDf:M4
 // M4 NVMe/SSD die temperature sensors (triplet convention; Ts0P/Ts1P are controller sensors)
 SSD 1:Ts00:M4
 SSD 1:Ts01:M4
@@ -476,9 +577,12 @@ SSD 6:Ts0M:M4
 SSD 7:Ts0O:M4
 SSD 7:Ts0Q:M4
 SSD 7:Ts0R:M4
+SSD 8:Ts0S:M4
 SSD 8:Ts0T:M4
 SSD 8:Ts0U:M4
-SSD 8:Ts0W:M4
+SSD 9:Ts0V:M4
+SSD 9:Ts0W:M4
+SSD 9:Ts0X:M4
 SSD Controller:Ts0P:M4
 SSD Controller:Ts1P:M4
 SSD Aggregate:Tsx0:M4
@@ -509,11 +613,138 @@ CPU Performance Core 12:Tp0y:M5
 CPU Super Core Cluster 1:Tp12:M5
 CPU Super Core Cluster 2:Tp16:M5
 CPU Efficiency Core Cluster:Tp1E:M5
-GPU 1:Tg0U:M5
-GPU 2:Tg0X:M5
-GPU 3:Tg0d:M5
-GPU 4:Tg0g:M5
-GPU 5:Tg0j:M5
-GPU 6:Tg1Y:M5
-GPU 7:Tg1c:M5
-GPU 8:Tg1g:M5
+// M5 P-core cluster companion sensors
+CPU Performance Cluster 1:Tp1I:M5
+CPU Performance Cluster 2:Tp1Q:M5
+CPU Performance Cluster 3:Tp1U:M5
+CPU Performance Cluster 4:Tp1g:M5
+// M5 GPU cluster sensors (all confirmed in report-m5-pro.txt)
+GPU 1:Tg08:M5
+GPU 2:Tg0C:M5
+GPU 3:Tg0O:M5
+GPU 4:Tg0R:M5
+GPU 5:Tg0U:M5
+GPU 6:Tg0X:M5
+GPU 7:Tg0a:M5
+GPU 8:Tg0d:M5
+GPU 9:Tg0g:M5
+GPU 10:Tg0j:M5
+GPU 11:Tg12:M5
+GPU 12:Tg16:M5
+GPU 13:Tg1I:M5
+GPU 14:Tg1M:M5
+GPU 15:Tg1Q:M5
+GPU 16:Tg1U:M5
+GPU 17:Tg1Y:M5
+GPU 18:Tg1c:M5
+GPU 19:Tg1g:M5
+GPU 20:Tg1k:M5
+GPU 21:Tg1o:M5
+GPU 22:Tg1x:M5
+GPU 23:Tg29:M5
+GPU 24:Tg2D:M5
+GPU 25:Tg2P:M5
+GPU 26:Tg2T:M5
+GPU 27:Tg2X:M5
+GPU 28:Tg2b:M5
+GPU 29:Tg2f:M5
+GPU 30:Tg2j:M5
+GPU 31:Tg2n:M5
+GPU 32:Tg2r:M5
+GPU 33:Tg3B:M5
+GPU 34:Tg3F:M5
+GPU 35:Tg3R:M5
+GPU 36:Tg3V:M5
+GPU 37:Tg3Z:M5
+GPU 38:Tg3d:M5
+GPU 39:Tg3h:M5
+GPU 40:Tg3l:M5
+GPU 41:Tg3t:M5
+GPU 42:Tg3x:M5
+GPU 43:Tg43:M5
+// M5 GPU Fabric sensors (TfC0/1/3 also appear on M4; TfC5/B/D/E/F are M5-only)
+GPU Fabric 1:TfC0:M5
+GPU Fabric 2:TfC1:M5
+GPU Fabric 3:TfC3:M5
+GPU Fabric 4:TfC5:M5
+GPU Fabric 5:TfCD:M5
+GPU Fabric 6:TfCE:M5
+GPU Fabric 7:TfCF:M5
+// M5 Unified Memory sensors
+Memory 1:Tm00:M5
+Memory 2:Tm04:M5
+Memory 3:Tm08:M5
+Memory 4:Tm0C:M5
+Memory 5:Tm0G:M5
+Memory 6:Tm0K:M5
+Memory 7:Tm0O:M5
+Memory 8:Tm0R:M5
+Memory 9:Tm0U:M5
+Memory 10:Tm0X:M5
+Memory 11:Tm0a:M5
+Memory 12:Tm0d:M5
+Memory 13:Tm0g:M5
+Memory 14:Tm0j:M5
+Memory 15:Tm0m:M5
+Memory 16:Tm0p:M5
+Memory 17:Tm0u:M5
+Memory 18:Tm0y:M5
+Memory 19:Tm1E:M5
+Memory 20:Tm1I:M5
+Memory 21:Tm1M:M5
+Memory 22:Tm1Q:M5
+Memory 23:Tm1U:M5
+Memory 24:Tm1Y:M5
+Memory 25:Tm1c:M5
+Memory 26:Tm1g:M5
+Memory 27:Tm1k:M5
+Memory 28:Tm1o:M5
+Memory 29:Tm1s:M5
+Memory 30:Tm1x:M5
+Memory 31:Tm21:M5
+Memory 32:Tm25:M5
+Memory 33:Tm29:M5
+Memory 34:Tm2D:M5
+Memory 35:Tm2H:M5
+Memory 36:Tm2L:M5
+Memory 37:Tm2P:M5
+Memory 38:Tm2T:M5
+Memory 39:Tm2j:M5
+Memory 40:Tm2n:M5
+// M5 NVMe/SSD sensors (single representative per SSD slot; controller sensors)
+SSD 1:Ts00:M5
+SSD 2:Ts04:M5
+SSD 3:Ts08:M5
+SSD 4:Ts0C:M5
+SSD 5:Ts0G:M5
+SSD 6:Ts0K:M5
+SSD 7:Ts0O:M5
+SSD 8:Ts0R:M5
+SSD 9:Ts0U:M5
+SSD 10:Ts0X:M5
+SSD 11:Ts0a:M5
+SSD Controller:Ts0P:M5
+SSD Controller:Ts1P:M5
+// M5 package/northbridge sensors
+Package 1:TN00:M5
+Package 2:TN01:M5
+Package 3:TN02:M5
+Package 4:TN03:M5
+// Uncore die sensors (TUD0-TUDf appear on both M4 Pro and M5 Pro)
+Uncore Die 1:TUD0:M5
+Uncore Die 2:TUD1:M5
+Uncore Die 3:TUD2:M5
+Uncore Die 4:TUD3:M5
+Uncore Die 5:TUD4:M5
+Uncore Die 6:TUD5:M5
+Uncore Die 7:TUD6:M5
+Uncore Die 8:TUD7:M5
+Uncore Die 9:TUD8:M5
+Uncore Die 10:TUD9:M5
+Uncore Die Max:TUDX:M5
+Uncore Die 11:TUDa:M5
+Uncore Die 12:TUDb:M5
+Uncore Die 13:TUDc:M5
+Uncore Die 14:TUDd:M5
+Uncore Die 15:TUDe:M5
+Uncore Die 16:TUDf:M5
