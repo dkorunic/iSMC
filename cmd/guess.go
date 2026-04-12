@@ -21,6 +21,7 @@ import (
 	"math"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -156,6 +157,75 @@ func deltaTemps(base, hot map[string]float32) map[string]float32 {
 	}
 
 	return d
+}
+
+// seriesKey returns the SMC key with every decimal digit replaced by '*'.
+// Keys sharing a series key differ only in their numeric index and belong to
+// the same per-core sensor series (e.g. "TC0c", "TC3c" → "TC*c").
+func seriesKey(key string) string {
+	b := []byte(key)
+
+	for i, c := range b {
+		if c >= '0' && c <= '9' {
+			b[i] = '*'
+		}
+	}
+
+	return string(b)
+}
+
+// numericValue extracts all decimal digit characters from key in order and
+// parses them as a decimal integer. Returns 0 for keys with no digits.
+// "TC3c" → 3, "Tp09" → 9, "Te12" → 12, "TcXX" → 0.
+func numericValue(key string) int {
+	var digits []byte
+
+	for _, c := range []byte(key) {
+		if c >= '0' && c <= '9' {
+			digits = append(digits, c)
+		}
+	}
+
+	if len(digits) == 0 {
+		return 0
+	}
+
+	v, _ := strconv.Atoi(string(digits))
+
+	return v
+}
+
+// groupBySeries groups SMC sensor keys by series key (non-numeric pattern).
+// Within each group the keys are sorted ascending by numericValue so that
+// sorted position 0 maps to Core 1, position 1 maps to Core 2, etc.
+func groupBySeries(keys []string) map[string][]string {
+	groups := make(map[string][]string)
+
+	for _, k := range keys {
+		sk := seriesKey(k)
+		groups[sk] = append(groups[sk], k)
+	}
+
+	for sk := range groups {
+		sort.Slice(groups[sk], func(a, b int) bool {
+			return numericValue(groups[sk][a]) < numericValue(groups[sk][b])
+		})
+	}
+
+	return groups
+}
+
+// sortedSeriesKeys returns the keys of a series group map sorted lexicographically.
+func sortedSeriesKeys(groups map[string][]string) []string {
+	keys := make([]string, 0, len(groups))
+
+	for k := range groups {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }
 
 // spinCore locks the goroutine to an OS thread, sets the QoS class to bias the OS
