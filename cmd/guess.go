@@ -156,20 +156,42 @@ func seriesKey(key string) string {
 	return string(b)
 }
 
-// numericValue extracts all decimal digit characters from key in order and
-// parses them as a decimal integer. Returns 0 for keys with no digits.
-// "TC3c" → 3, "Tp09" → 9, "Te12" → 12, "TcXX" → 0.
+// numericValue extracts the numeric index from an SMC key. The index starts at
+// the first digit and includes all subsequent digits and uppercase hex digits (A-F).
+// Lowercase letters are treated as series-key components and excluded. If any
+// uppercase hex digits (A-F) are found in the index, parses as hexadecimal;
+// otherwise parses as decimal. Returns 0 for keys with no digits.
+// "TC3c" → 3, "Tp09" → 9, "Te12" → 12, "Tp0A" → 10, "TcXX" → 0.
 func numericValue(key string) int {
 	var digits []byte
+	hasHexDigit := false
+	indexStarted := false
 
 	for _, c := range []byte(key) {
 		if c >= '0' && c <= '9' {
+			// First digit marks the start of the index
+			indexStarted = true
 			digits = append(digits, c)
+		} else if indexStarted {
+			// Once index has started, continue to collect uppercase hex digits
+			if c >= 'A' && c <= 'F' {
+				digits = append(digits, c)
+				hasHexDigit = true
+			} else {
+				// Non-hex character after index started; stop collecting
+				break
+			}
 		}
 	}
 
 	if len(digits) == 0 {
 		return 0
+	}
+
+	if hasHexDigit {
+		v, _ := strconv.ParseInt(string(digits), 16, 64)
+
+		return int(v)
 	}
 
 	v, _ := strconv.Atoi(string(digits))
@@ -208,6 +230,83 @@ func sortedSeriesKeys(groups map[string][]string) []string {
 	sort.Strings(keys)
 
 	return keys
+}
+
+// groupByStrideWithinSeries splits a series' sorted sensor list into sub-groups
+// based on gaps between consecutive numericValues.
+//
+// Rules:
+//   - If all consecutive differences are equal (uniform stride): each sensor is
+//     its own group. This covers M5-style single-sensor-per-core series:
+//     Tp00/04/08 (stride 4) → [[Tp00],[Tp04],[Tp08]] → 3 cores.
+//   - Otherwise (non-uniform gaps): split whenever the gap exceeds minDiff.
+//     This covers M1/M3 triplets: diffs [1,1,2,1,1,2,...] → minDiff=1,
+//     split at every 2 → [[Tp00,Tp01,Tp02],[Tp04,Tp05,Tp06],...] → N cores × 3.
+//   - A single-element slice is returned as one group.
+func groupByStrideWithinSeries(sensors []string) [][]string {
+	if len(sensors) <= 1 {
+		result := make([][]string, len(sensors))
+
+		for i, s := range sensors {
+			result[i] = []string{s}
+		}
+
+		return result
+	}
+
+	diffs := make([]int, len(sensors)-1)
+
+	for i := 1; i < len(sensors); i++ {
+		d := numericValue(sensors[i]) - numericValue(sensors[i-1])
+		if d < 0 {
+			d = -d
+		}
+
+		diffs[i-1] = d
+	}
+
+	uniform := true
+
+	for _, d := range diffs[1:] {
+		if d != diffs[0] {
+			uniform = false
+
+			break
+		}
+	}
+
+	if uniform {
+		groups := make([][]string, len(sensors))
+
+		for i, s := range sensors {
+			groups[i] = []string{s}
+		}
+
+		return groups
+	}
+
+	minDiff := diffs[0]
+
+	for _, d := range diffs[1:] {
+		if d < minDiff {
+			minDiff = d
+		}
+	}
+
+	var groups [][]string
+
+	current := []string{sensors[0]}
+
+	for i, d := range diffs {
+		if d > minDiff {
+			groups = append(groups, current)
+			current = []string{sensors[i+1]}
+		} else {
+			current = append(current, sensors[i+1])
+		}
+	}
+
+	return append(groups, current)
 }
 
 // spinCore locks the goroutine to an OS thread, sets the QoS class to bias the OS
