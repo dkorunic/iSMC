@@ -318,6 +318,57 @@ func groupByStrideWithinSeries(sensors []string) [][]string {
 	return append(groups, current)
 }
 
+// phaseSpec describes one stress phase: its label prefix, QoS class, and expected
+// physical core count from platform topology data.
+type phaseSpec struct {
+	label string // e.g. "CPU Super Core", "CPU Performance Core", "CPU Efficiency Core"
+	qos   int    // QoS class constant from stress package
+	cores int    // physicalCPU for this tier (0 if unknown)
+}
+
+// phaseResult pairs a phase specification with the sensor deltas it produced.
+type phaseResult struct {
+	spec   phaseSpec
+	deltas map[string]float32
+}
+
+// phaseMidWord returns the middle word of a phase label for use in progress messages.
+// "CPU Super Core" → "Super", "CPU Performance Core" → "Performance",
+// "CPU Efficiency Core" → "Efficiency".
+func phaseMidWord(label string) string {
+	parts := strings.Fields(label)
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+
+	return label
+}
+
+// buildPhases constructs the ordered list of stress phases from live topology data.
+// For 3-level chips (M5+): Super → Performance → Efficiency.
+// For 2-level chips (M1–M4) or nil: Performance → Efficiency.
+func buildPhases(perfLevels []platform.PerfLevel) []phaseSpec {
+	switch len(perfLevels) {
+	case 3:
+		return []phaseSpec{
+			{label: "CPU Super Core", qos: stress.QoSUserInteractive, cores: perfLevels[0].PhysicalCPU},
+			{label: "CPU Performance Core", qos: stress.QoSUserInitiated, cores: perfLevels[1].PhysicalCPU},
+			{label: "CPU Efficiency Core", qos: stress.QoSBackground, cores: perfLevels[2].PhysicalCPU},
+		}
+	default:
+		pcpu, ecpu := 0, 0
+		if len(perfLevels) == 2 {
+			pcpu = perfLevels[0].PhysicalCPU
+			ecpu = perfLevels[1].PhysicalCPU
+		}
+
+		return []phaseSpec{
+			{label: "CPU Performance Core", qos: stress.QoSUserInitiated, cores: pcpu},
+			{label: "CPU Efficiency Core", qos: stress.QoSBackground, cores: ecpu},
+		}
+	}
+}
+
 // spinCore locks the goroutine to an OS thread, sets the QoS class to bias the OS
 // scheduler toward the desired core type, sets a macOS thread-affinity tag to prefer
 // a specific hardware thread within that type, then burns CPU until done is closed.
