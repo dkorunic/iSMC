@@ -3,7 +3,7 @@ module github.com/dkorunic/iSMC
 go 1.26
 
 require (
-	github.com/dkorunic/iSMC/gosmc v0.0.0-20260410164838-eb8caabf8668
+	github.com/dkorunic/iSMC/gosmc v0.0.0-20260413130435-fb3be841d2e6
 	github.com/fvbommel/sortorder v1.1.0
 	github.com/spf13/cobra v1.10.2
 )

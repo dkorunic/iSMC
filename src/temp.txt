@@ -72,6 +72,9 @@ Airflow Right:TaRF:Apple
 NAND:TH0x:Apple
 Thunderbolt Left Proximity:TaLT:Apple
 Thunderbolt Right Proximity:TaRT:Apple
+Airflow Left Wall:TaLW:Apple
+Airflow Right Wall:TaRW:Apple
+Ambient Top Proximity:TaTP:Apple
 NVME % (A):TH%a:All
 NVME % (B):TH%b:All
 NVME % (C):TH%c:All
@@ -497,9 +500,7 @@ CPU Performance Cluster 4:Tp1A:M4
 CPU Performance Cluster 4:Tp1B:M4
 CPU Performance Cluster 4:Tp1C:M4
 GPU 1:Tg0G:M4
-GPU 1:Tg1U:M4
 GPU 2:Tg0H:M4
-GPU 2:Tg1k:M4
 GPU 3:Tg0C:M4
 GPU 3:Tg0K:M4
 GPU 4:Tg0D:M4
@@ -531,6 +532,8 @@ GPU 23:Tg1c:M4
 GPU 24:Tg1d:M4
 GPU 25:Tg1k:M4
 GPU 26:Tg1l:M4
+// M4 MacBook ambient sensor (absent on M4 desktop/Pro and M5; silently ignored elsewhere)
+Airflow Left Rear:TaLR:M4
 // M4 GPU fabric cluster sensors (seen on M4 Pro and M4 base; TfC2/TfC4 are M4-only)
 GPU Fabric 1:TfC0:M4
 GPU Fabric 2:TfC1:M4
@@ -584,6 +587,8 @@ SSD 9:Ts0V:M4
 SSD 9:Ts0W:M4
 SSD 9:Ts0X:M4
 SSD Controller:Ts0P:M4
+// M4 MacBook base uses TsOP (letter O, not digit 0) for the second SSD controller key
+SSD Controller:TsOP:M4
 SSD Controller:Ts1P:M4
 SSD Aggregate:Tsx0:M4
 SSD Aggregate:Tsx1:M4
