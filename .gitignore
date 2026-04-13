@@ -37,3 +37,7 @@ cmake-build-debug/
 
 ## Usual macOS cruft ###
 .DS_Store
+
+## Claude Code
+.claude
+docs/
