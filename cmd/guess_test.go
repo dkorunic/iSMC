@@ -34,6 +34,8 @@ func TestSeriesKey(t *testing.T) {
 		{"Tp09", "Tp**"},
 		{"Tf0c", "Tf*c"},
 		{"TcXX", "TcXX"}, // no digits — returned unchanged
+		{"Tp0A", "Tp**"},   // uppercase A is a hex digit → masked
+		{"Tp0C", "Tp**"},   // uppercase C is a hex digit → masked
 	}
 
 	for _, tt := range tests {
@@ -58,6 +60,8 @@ func TestNumericValue(t *testing.T) {
 		{"Tp09", 9},
 		{"Te12", 12},
 		{"TcXX", 0}, // no digits → 0
+		{"Tp0A", 10},   // uppercase hex digit → 10
+		{"Tp0C", 12},   // uppercase hex digit → 12
 	}
 
 	for _, tt := range tests {

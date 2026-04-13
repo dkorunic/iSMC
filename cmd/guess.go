@@ -141,15 +141,24 @@ func deltaTemps(base, hot map[string]float32) map[string]float32 {
 	return d
 }
 
-// seriesKey returns the SMC key with every decimal digit replaced by '*'.
-// Keys sharing a series key differ only in their numeric index and belong to
-// the same per-core sensor series (e.g. "TC0c", "TC3c" → "TC*c").
+// seriesKey returns the SMC key with every decimal digit and hex digit (A-F)
+// in the numeric index replaced by '*'. Keys sharing a series key differ only
+// in their numeric index and belong to the same per-core sensor series
+// (e.g. "TC0c", "TC3c" → "TC*c", "Tp0A", "Tp0C" → "Tp**").
 func seriesKey(key string) string {
 	b := []byte(key)
+	indexStarted := false
 
 	for i, c := range b {
 		if c >= '0' && c <= '9' {
+			indexStarted = true
 			b[i] = '*'
+		} else if indexStarted && c >= 'A' && c <= 'F' {
+			// Continue masking hex digits that are part of the index
+			b[i] = '*'
+		} else if indexStarted && (c < 'A' || c > 'F') {
+			// Stop masking once we hit a non-hex character after index started
+			indexStarted = false
 		}
 	}
 
