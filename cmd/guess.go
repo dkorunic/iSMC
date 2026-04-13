@@ -155,13 +155,14 @@ func seriesKey(key string) string {
 	indexStarted := false
 
 	for i, c := range b {
-		if c >= '0' && c <= '9' {
+		switch {
+		case c >= '0' && c <= '9':
 			indexStarted = true
 			b[i] = '*'
-		} else if indexStarted && c >= 'A' && c <= 'F' {
+		case indexStarted && c >= 'A' && c <= 'F':
 			// Continue masking hex digits that are part of the index
 			b[i] = '*'
-		} else if indexStarted && (c < 'A' || c > 'F') {
+		case indexStarted && (c < 'A' || c > 'F'):
 			// Stop masking once we hit a non-hex character after index started
 			indexStarted = false
 		}
@@ -178,6 +179,7 @@ func seriesKey(key string) string {
 // "TC3c" → 3, "Tp09" → 9, "Te12" → 12, "Tp0A" → 10, "TcXX" → 0.
 func numericValue(key string) int {
 	var digits []byte
+
 	hasHexDigit := false
 	indexStarted := false
 
@@ -185,6 +187,7 @@ func numericValue(key string) int {
 		if c >= '0' && c <= '9' {
 			// First digit marks the start of the index
 			indexStarted = true
+
 			digits = append(digits, c)
 		} else if indexStarted {
 			// Once index has started, continue to collect uppercase hex digits
@@ -333,8 +336,8 @@ type phaseSpec struct {
 
 // phaseResult pairs a phase specification with the sensor deltas it produced.
 type phaseResult struct {
-	spec   phaseSpec
 	deltas map[string]float32
+	spec   phaseSpec
 }
 
 // phaseMidWord returns the middle word of a phase label for use in progress messages.
@@ -536,6 +539,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel, re
 
 	// phaseKeys[i] holds keys whose dominant phase is results[i].
 	phaseKeys := make([][]string, len(results))
+
 	var clusterKeys []string
 
 	for key := range allKeys {

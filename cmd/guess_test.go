@@ -21,6 +21,8 @@ import (
 )
 
 func TestSeriesKey(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		key  string
 		want string
@@ -34,12 +36,14 @@ func TestSeriesKey(t *testing.T) {
 		{"Tp09", "Tp**"},
 		{"Tf0c", "Tf*c"},
 		{"TcXX", "TcXX"}, // no digits — returned unchanged
-		{"Tp0A", "Tp**"},   // uppercase A is a hex digit → masked
-		{"Tp0C", "Tp**"},   // uppercase C is a hex digit → masked
+		{"Tp0A", "Tp**"}, // uppercase A is a hex digit → masked
+		{"Tp0C", "Tp**"}, // uppercase C is a hex digit → masked
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.key, func(t *testing.T) {
+			t.Parallel()
+
 			got := seriesKey(tt.key)
 			if got != tt.want {
 				t.Errorf("seriesKey(%q) = %q, want %q", tt.key, got, tt.want)
@@ -49,6 +53,8 @@ func TestSeriesKey(t *testing.T) {
 }
 
 func TestNumericValue(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		key  string
 		want int
@@ -59,13 +65,15 @@ func TestNumericValue(t *testing.T) {
 		{"Tp01", 1},
 		{"Tp09", 9},
 		{"Te12", 12},
-		{"TcXX", 0}, // no digits → 0
-		{"Tp0A", 10},   // uppercase hex digit → 10
-		{"Tp0C", 12},   // uppercase hex digit → 12
+		{"TcXX", 0},  // no digits → 0
+		{"Tp0A", 10}, // uppercase hex digit → 10
+		{"Tp0C", 12}, // uppercase hex digit → 12
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.key, func(t *testing.T) {
+			t.Parallel()
+
 			got := numericValue(tt.key)
 			if got != tt.want {
 				t.Errorf("numericValue(%q) = %d, want %d", tt.key, got, tt.want)
@@ -75,6 +83,8 @@ func TestNumericValue(t *testing.T) {
 }
 
 func TestGroupBySeries(t *testing.T) {
+	t.Parallel()
+
 	keys := []string{"TC2c", "TC0c", "Te1T", "TC1c", "Te0T"}
 	got := groupBySeries(keys)
 
@@ -116,6 +126,8 @@ func TestGroupBySeries(t *testing.T) {
 }
 
 func TestGroupByStrideWithinSeries(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		sensors []string
@@ -163,6 +175,8 @@ func TestGroupByStrideWithinSeries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := groupByStrideWithinSeries(tt.sensors)
 			if len(got) != len(tt.want) {
 				t.Fatalf("groupByStrideWithinSeries(%v): got %d groups, want %d; got=%v",
