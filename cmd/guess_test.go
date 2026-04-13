@@ -110,3 +110,75 @@ func TestGroupBySeries(t *testing.T) {
 		}
 	}
 }
+
+func TestGroupByStrideWithinSeries(t *testing.T) {
+	tests := []struct {
+		name    string
+		sensors []string
+		want    [][]string
+	}{
+		{
+			name:    "single sensor",
+			sensors: []string{"Tp00"},
+			want:    [][]string{{"Tp00"}},
+		},
+		{
+			name:    "two sensors uniform stride",
+			sensors: []string{"Tp00", "Tp04"},
+			want:    [][]string{{"Tp00"}, {"Tp04"}},
+		},
+		{
+			name:    "M1 triplets stride-4 gap",
+			sensors: []string{"Tp00", "Tp01", "Tp02", "Tp04", "Tp05", "Tp06", "Tp08", "Tp09", "Tp0A"},
+			// numeric values: 0,1,2,4,5,6,8,9,10 → diffs: 1,1,2,1,1,2,1,1 — non-uniform, split at >1
+			want: [][]string{
+				{"Tp00", "Tp01", "Tp02"},
+				{"Tp04", "Tp05", "Tp06"},
+				{"Tp08", "Tp09", "Tp0A"},
+			},
+		},
+		{
+			name:    "M5 uniform stride-4",
+			sensors: []string{"Tp00", "Tp04", "Tp08"},
+			// numeric values: 0,4,8 → diffs: 4,4 — uniform → each sensor is its own group
+			want: [][]string{{"Tp00"}, {"Tp04"}, {"Tp08"}},
+		},
+		{
+			name:    "M4 irregular large gap",
+			sensors: []string{"Tp00", "Tp01", "Tp02", "Tp04", "Tp05", "Tp06", "Tp08", "Tp09", "Tp21"},
+			// numeric values: 0,1,2,4,5,6,8,9,21 → diffs: 1,1,2,1,1,2,1,12 — non-uniform, minDiff=1
+			// splits at diffs > 1: after index 2 (diff=2), after index 5 (diff=2), after index 7 (diff=12)
+			want: [][]string{
+				{"Tp00", "Tp01", "Tp02"},
+				{"Tp04", "Tp05", "Tp06"},
+				{"Tp08", "Tp09"},
+				{"Tp21"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := groupByStrideWithinSeries(tt.sensors)
+			if len(got) != len(tt.want) {
+				t.Fatalf("groupByStrideWithinSeries(%v): got %d groups, want %d; got=%v",
+					tt.sensors, len(got), len(tt.want), got)
+			}
+
+			for i, wantGroup := range tt.want {
+				if len(got[i]) != len(wantGroup) {
+					t.Errorf("group[%d]: got %v (len %d), want %v (len %d)",
+						i, got[i], len(got[i]), wantGroup, len(wantGroup))
+
+					continue
+				}
+
+				for j, wantKey := range wantGroup {
+					if got[i][j] != wantKey {
+						t.Errorf("group[%d][%d] = %q, want %q", i, j, got[i][j], wantKey)
+					}
+				}
+			}
+		})
+	}
+}
