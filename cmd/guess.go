@@ -61,17 +61,22 @@ const (
 var guessCmd = &cobra.Command{
 	Use:   "guess",
 	Short: "Map SMC temperature sensors to CPU cores by thermal correlation",
-	Long: `guess stresses all logical CPU cores simultaneously — twice, once with
-QOS_CLASS_USER_INITIATED (biases the OS toward P-cores) and once with
-QOS_CLASS_BACKGROUND (biases toward E-cores) — and correlates the resulting
-temperature rise in T-prefixed SMC sensors to produce a sensor mapping list
-in the format used by src/temp.txt.
+	Long: `guess stresses all logical CPU cores simultaneously — in two or three phases
+depending on chip topology — and correlates the resulting temperature rise in
+T-prefixed SMC sensors to produce a sensor mapping list in the format used by
+src/temp.txt.
+
+On 2-tier chips (M1–M4) the phases are QOS_CLASS_USER_INITIATED (biases the OS
+toward P-cores) and QOS_CLASS_BACKGROUND (biases toward E-cores). On 3-tier chips
+(M5+) a third phase with QOS_CLASS_USER_INTERACTIVE precedes the others to bias
+toward Super cores.
 
 Within each phase, per-core labels are derived from SMC key naming patterns:
-keys sharing the same non-numeric structure (e.g. TC*c) form a series, sorted
-by their numeric index, and are assigned sequential core labels.
+keys sharing the same non-numeric structure (e.g. TC*c) form a series, then
+stride/gap analysis within each series groups sensors that belong to the same
+physical core into a single sub-group.
 
-The process takes roughly 34 seconds on any chip.
+The process takes roughly 34 seconds on 2-tier chips, or ~55 seconds on 3-tier chips.
 Run on an otherwise-idle machine for best results.`,
 	Run: runGuess,
 }
@@ -471,10 +476,23 @@ func runGuess(_ *cobra.Command, _ []string) {
 		fmt.Printf("Warning: chip family not detected; using %q as platform tag.\n\n", family)
 	}
 
+	perfLevels := platform.GetPerfLevels()
+	phases := buildPhases(perfLevels)
+
 	fmt.Printf("Platform : %s\n", family)
 	fmt.Printf("CPUs     : %d logical\n", numCPU)
-	fmt.Printf("Per-phase: %v stress  (×2 phases, all %d cores simultaneously)\n\n",
-		guessStressDuration, numCPU)
+	fmt.Printf("Per-phase: %v stress  (×%d phases, all %d cores simultaneously)\n\n",
+		guessStressDuration, len(phases), numCPU)
+
+	if len(perfLevels) > 0 {
+		fmt.Printf("Topology : %d perf level(s)\n", len(perfLevels))
+
+		for i, pl := range perfLevels {
+			fmt.Printf("           perflevel%d: %d phys-CPU %q\n", i, pl.PhysicalCPU, pl.Name)
+		}
+
+		fmt.Println()
+	}
 
 	fmt.Print("Sampling baseline... ")
 
@@ -482,60 +500,77 @@ func runGuess(_ *cobra.Command, _ []string) {
 
 	fmt.Printf("%d sensors visible.\n\n", len(baseline))
 
-	// Phase 1: all cores with QOS_CLASS_USER_INITIATED (biases toward P-cores).
-	fmt.Println("── Phase 1: P-core sweep (QOS_CLASS_USER_INITIATED) ──")
-	fmt.Printf("  Stressing all %d cores...", numCPU)
-	pDeltas := runAllCoresPhase(numCPU, stress.QoSUserInitiated, baseline)
+	results := make([]phaseResult, 0, len(phases))
 
-	// Inter-phase cooldown and re-baseline.
-	fmt.Printf("\n  Inter-phase cooldown (%v)...\n", guessCoolDuration)
-	time.Sleep(guessCoolDuration)
+	for i, phase := range phases {
+		fmt.Printf("── Phase %d: %s sweep (%s QoS) ──\n",
+			i+1, phaseMidWord(phase.label), phaseMidWord(phase.label))
+		fmt.Printf("  Stressing all %d cores...", numCPU)
 
-	baseline = avgRawTemps(guessSampleCount, guessSampleInterval)
+		deltas := runAllCoresPhase(numCPU, phase.qos, baseline)
+		results = append(results, phaseResult{spec: phase, deltas: deltas})
 
-	// Phase 2: all cores with QOS_CLASS_BACKGROUND (biases toward E-cores).
-	fmt.Printf("\n── Phase 2: E-core sweep (QOS_CLASS_BACKGROUND) ──\n")
-	fmt.Printf("  Stressing all %d cores...", numCPU)
-	eDeltas := runAllCoresPhase(numCPU, stress.QoSBackground, baseline)
+		if i < len(phases)-1 {
+			fmt.Printf("\n  Inter-phase cooldown (%v)...\n\n", guessCoolDuration)
+			time.Sleep(guessCoolDuration)
 
-	printMapping(family, numCPU, pDeltas, eDeltas)
+			baseline = avgRawTemps(guessSampleCount, guessSampleInterval)
+		}
+	}
+
+	printMapping(family, numCPU, perfLevels, results)
 }
 
-// printMapping analyses the two-phase delta results and emits a src/temp.txt-style
-// mapping. Sensors are classified as P-cluster or E-cluster based on which phase
-// produced the stronger response, then grouped by SMC key naming-pattern series
-// and assigned sequential per-core labels.
-func printMapping(family string, numCPU int, pDeltas, eDeltas map[string]float32) {
-	// Union of all observed sensor keys across both phases.
+// printMapping analyses N-phase delta results and emits a src/temp.txt-style mapping.
+// Sensors are classified by dominant phase, then grouped by SMC key series and
+// further split by stride/gap analysis to assign correct per-core indices.
+func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel, results []phaseResult) {
+	// Union of all observed sensor keys across all phases.
 	allKeys := make(map[string]struct{})
 
-	for k := range pDeltas {
-		allKeys[k] = struct{}{}
+	for _, r := range results {
+		for k := range r.deltas {
+			allKeys[k] = struct{}{}
+		}
 	}
 
-	for k := range eDeltas {
-		allKeys[k] = struct{}{}
-	}
-
-	var pKeys, eKeys, clusterKeys []string
+	// phaseKeys[i] holds keys whose dominant phase is results[i].
+	phaseKeys := make([][]string, len(results))
+	var clusterKeys []string
 
 	for key := range allKeys {
-		pDelta := pDeltas[key]
-		eDelta := eDeltas[key]
+		// Find index of dominant phase (highest delta ≥ threshold).
+		dominantIdx := -1
+		dominantDelta := float32(0)
 
-		dominant := pDelta
-		if eDelta > pDelta {
-			dominant = eDelta
+		for i, r := range results {
+			d := r.deltas[key]
+			if d >= guessOutputThreshold && d > dominantDelta {
+				dominantDelta = d
+				dominantIdx = i
+			}
 		}
 
-		if dominant < guessOutputThreshold {
+		if dominantIdx < 0 {
 			continue
 		}
 
-		// Cluster detection: both phases responded and neither clearly dominates
-		// (relative gap is within guessClusterRatio).
-		if pDelta >= guessOutputThreshold && eDelta >= guessOutputThreshold {
-			lo, hi := pDelta, eDelta
+		// Cluster detection: find second-best phase.
+		secondDelta := float32(0)
+
+		for i, r := range results {
+			if i == dominantIdx {
+				continue
+			}
+
+			d := r.deltas[key]
+			if d >= guessOutputThreshold && d > secondDelta {
+				secondDelta = d
+			}
+		}
+
+		if secondDelta > 0 {
+			lo, hi := secondDelta, dominantDelta
 			if lo > hi {
 				lo, hi = hi, lo
 			}
@@ -547,11 +582,7 @@ func printMapping(family string, numCPU int, pDeltas, eDeltas map[string]float32
 			}
 		}
 
-		if pDelta >= eDelta {
-			pKeys = append(pKeys, key)
-		} else {
-			eKeys = append(eKeys, key)
-		}
+		phaseKeys[dominantIdx] = append(phaseKeys[dominantIdx], key)
 	}
 
 	sort.Strings(clusterKeys)
@@ -559,52 +590,58 @@ func printMapping(family string, numCPU int, pDeltas, eDeltas map[string]float32
 	// ── Header ──────────────────────────────────────────────────────────────────
 	fmt.Println()
 	fmt.Printf("// %s (%d logical CPUs) – guessed sensor mappings\n", family, numCPU)
-	fmt.Println("// WARNING: automated correlation is approximate; always verify on real hardware.")
-	fmt.Printf("// %s\n", strings.Repeat("─", 72))
 
-	// ── Performance cores (P-phase sensors) ─────────────────────────────────────
-	pGroups := groupBySeries(pKeys)
-	pSeriesKeys := sortedSeriesKeys(pGroups)
+	if len(perfLevels) > 0 {
+		fmt.Printf("// Topology: %d perf level(s)", len(perfLevels))
 
-	if len(pSeriesKeys) == 0 {
-		fmt.Println("// WARNING: Phase 1 (P-cores) produced no sensor responses above threshold.")
-		fmt.Println("// Run on an idle machine or increase stress duration.")
-	}
-
-	coreIdx := 1
-
-	for _, sk := range pSeriesKeys {
-		sensors := pGroups[sk]
-		fmt.Printf("// Series %-6s → %d sensor(s) → CPU Performance Core %d..%d\n",
-			sk, len(sensors), coreIdx, coreIdx+len(sensors)-1)
-
-		for _, k := range sensors {
-			fmt.Printf("CPU Performance Core %d:%s:%s\n", coreIdx, k, family)
-
-			coreIdx++
+		for i, pl := range perfLevels {
+			if i == 0 {
+				fmt.Printf(" | perflevel%d %d phys-CPU %q\n", i, pl.PhysicalCPU, pl.Name)
+			} else {
+				fmt.Printf("//            %s| perflevel%d %d phys-CPU %q\n",
+					strings.Repeat(" ", 10), i, pl.PhysicalCPU, pl.Name)
+			}
 		}
 	}
 
-	// ── Efficiency cores (E-phase sensors) ──────────────────────────────────────
-	eGroups := groupBySeries(eKeys)
-	eSeriesKeys := sortedSeriesKeys(eGroups)
+	fmt.Println("// WARNING: automated correlation is approximate; always verify on real hardware.")
+	fmt.Printf("// %s\n", strings.Repeat("─", 72))
 
-	if len(eSeriesKeys) == 0 && numCPU > 1 {
-		fmt.Println("// WARNING: Phase 2 (E-cores) produced no sensor responses above threshold.")
-		fmt.Println("// Run on an idle machine or increase stress duration.")
-	}
+	// ── Per-phase sensor sections ────────────────────────────────────────────────
+	for i, r := range results {
+		keys := phaseKeys[i]
+		groups := groupBySeries(keys)
+		seriesKeys := sortedSeriesKeys(groups)
 
-	eIdx := 1
+		if len(seriesKeys) == 0 {
+			fmt.Printf("// WARNING: Phase %d (%s) produced no sensor responses above threshold.\n",
+				i+1, phaseMidWord(r.spec.label))
+			fmt.Println("// Run on an idle machine or increase stress duration.")
 
-	for _, sk := range eSeriesKeys {
-		sensors := eGroups[sk]
-		fmt.Printf("// Series %-6s → %d sensor(s) → CPU Efficiency Core %d..%d\n",
-			sk, len(sensors), eIdx, eIdx+len(sensors)-1)
+			continue
+		}
 
-		for _, k := range sensors {
-			fmt.Printf("CPU Efficiency Core %d:%s:%s\n", eIdx, k, family)
+		coreIdx := 1
 
-			eIdx++
+		for _, sk := range seriesKeys {
+			sensors := groups[sk]
+			subGroups := groupByStrideWithinSeries(sensors)
+
+			fmt.Printf("// Series %-6s → %d sensor(s) in %d group(s) → %s %d..%d\n",
+				sk, len(sensors), len(subGroups), r.spec.label, coreIdx, coreIdx+len(subGroups)-1)
+
+			if len(subGroups) == 1 && len(subGroups[0]) > 3 {
+				fmt.Printf("// NOTE: %d-sensor group; manual review recommended (check src/temp.txt)\n",
+					len(subGroups[0]))
+			}
+
+			for _, sg := range subGroups {
+				for _, k := range sg {
+					fmt.Printf("%s %d:%s:%s\n", r.spec.label, coreIdx, k, family)
+				}
+
+				coreIdx++
+			}
 		}
 	}
 
@@ -612,11 +649,19 @@ func printMapping(family string, numCPU int, pDeltas, eDeltas map[string]float32
 	if len(clusterKeys) > 0 {
 		fmt.Println()
 		fmt.Printf("// %s\n", strings.Repeat("─", 72))
-		fmt.Printf("// Cluster/package sensors (both phases within %.0f%% of each other):\n",
+		fmt.Printf("// Cluster/package sensors (top two phases within %.0f%% of each other):\n",
 			guessClusterRatio*100)
 
 		for _, k := range clusterKeys {
-			fmt.Printf("// %-6s  P-phase +%.1f°C  E-phase +%.1f°C\n", k, pDeltas[k], eDeltas[k])
+			parts := make([]string, 0, len(results))
+
+			for _, r := range results {
+				if d := r.deltas[k]; d > 0 {
+					parts = append(parts, fmt.Sprintf("%s +%.1f°C", phaseMidWord(r.spec.label), d))
+				}
+			}
+
+			fmt.Printf("// %-6s  %s\n", k, strings.Join(parts, "  "))
 		}
 	}
 }
