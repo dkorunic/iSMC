@@ -52,7 +52,9 @@ Available Commands:
   completion  Generate the autocompletion script for the specified shell
   curr        Display current sensors
   fans        Display fans status
+  guess       Map SMC temperature sensors to CPU cores by thermal correlation
   help        Help about any command
+  hw          Display hardware information
   power       Display power sensors
   raw         Display all raw SMC keys and their byte values
   temp        Display temperature sensors

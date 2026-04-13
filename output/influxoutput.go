@@ -69,6 +69,10 @@ func (io InfluxOutput) Fans() {
 	io.print("Fans", GetFans())
 }
 
+func (io InfluxOutput) Hardware() {
+	io.print("Hardware", GetHardware())
+}
+
 func (io InfluxOutput) Power() {
 	io.print("Power", GetPower())
 }

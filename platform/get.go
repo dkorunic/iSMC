@@ -73,6 +73,34 @@ func GetFamily() string {
 	return p.Family
 }
 
+// GetModelID returns the raw hardware model identifier (e.g. "Mac16,1") as reported by the
+// hw.model sysctl, or an empty string if the sysctl call fails.
+func GetModelID() string {
+	return getModel()
+}
+
+// GetProduct returns the full Product metadata for the current hardware.
+// The boolean reports whether the model was found in the products map.
+func GetProduct() (Product, bool) {
+	p, ok := products[getModel()]
+	return p, ok
+}
+
+// GetTotalCPU returns the total physical and logical CPU counts via the
+// hw.physicalcpu and hw.logicalcpu sysctls.
+func GetTotalCPU() (physical, logical int) {
+	pcpuKey := C.CString("hw.physicalcpu")
+	lcpuKey := C.CString("hw.logicalcpu")
+
+	physical = int(C.sysctl_int32(pcpuKey))
+	logical = int(C.sysctl_int32(lcpuKey))
+
+	C.free(unsafe.Pointer(pcpuKey))
+	C.free(unsafe.Pointer(lcpuKey))
+
+	return physical, logical
+}
+
 // GetPerfLevels returns the CPU performance levels for the current machine,
 // ordered from highest to lowest performance (perflevel0 first).
 // Returns nil if hw.nperflevels is unavailable or zero.

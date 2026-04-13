@@ -18,8 +18,11 @@ package output
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 
 	"github.com/dkorunic/iSMC/hid"
+	"github.com/dkorunic/iSMC/platform"
 	"github.com/dkorunic/iSMC/smc"
 )
 
@@ -32,6 +35,7 @@ var (
 	GetPower       = getPower
 	GetVoltage     = getVoltage
 	GetCurrent     = getCurrent
+	GetHardware    = getHardware
 )
 
 type Output interface {
@@ -43,6 +47,8 @@ type Output interface {
 	Current()
 	// Fans prints the detected fan sensor results
 	Fans()
+	// Hardware prints the detected hardware information
+	Hardware()
 	// Temperature prints detected temperature sensor results
 	Temperature()
 	// Power prints detected power sensor results
@@ -96,6 +102,72 @@ func getVoltage() map[string]any {
 	deepCopy(merged, hid.GetVoltage())
 
 	return merged
+}
+
+// getHardware returns hardware information gathered from platform detection and sysctls,
+// including model name, CPU family, CPU model, year, and per-cluster core counts.
+func getHardware() map[string]any {
+	result := make(map[string]any)
+
+	modelID := platform.GetModelID()
+	if modelID != "" {
+		result["Model Identifier"] = map[string]any{
+			"key":   "hw.model",
+			"value": modelID,
+			"type":  "sysctl",
+		}
+	}
+
+	product, ok := platform.GetProduct()
+	if ok {
+		result["Mac Model"] = map[string]any{
+			"key":   "hw.model",
+			"value": product.Name,
+			"type":  "platform",
+		}
+		result["Platform Family"] = map[string]any{
+			"key":   "hw.family",
+			"value": product.Family,
+			"type":  "platform",
+		}
+		result["CPU"] = map[string]any{
+			"key":   "hw.cpu",
+			"value": product.CPU,
+			"type":  "platform",
+		}
+		result["Year"] = map[string]any{
+			"key":   "hw.year",
+			"value": strconv.Itoa(product.Year),
+			"type":  "platform",
+		}
+	}
+
+	totalPhysical, totalLogical := platform.GetTotalCPU()
+	if totalPhysical > 0 {
+		result["CPU Physical Cores"] = map[string]any{
+			"key":   "hw.physicalcpu",
+			"value": strconv.Itoa(totalPhysical),
+			"type":  "sysctl",
+		}
+	}
+
+	if totalLogical > 0 {
+		result["CPU Logical Cores"] = map[string]any{
+			"key":   "hw.logicalcpu",
+			"value": strconv.Itoa(totalLogical),
+			"type":  "sysctl",
+		}
+	}
+
+	for i, level := range platform.GetPerfLevels() {
+		result[fmt.Sprintf("%s CPU Cores", level.Name)] = map[string]any{
+			"key":   fmt.Sprintf("hw.perflevel%d.physicalcpu", i),
+			"value": strconv.Itoa(level.PhysicalCPU),
+			"type":  "sysctl",
+		}
+	}
+
+	return result
 }
 
 // TODO replace with a variant from an utility package

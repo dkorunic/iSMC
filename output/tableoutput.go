@@ -72,6 +72,10 @@ func (to TableOutput) Fans() {
 	to.print("Fans", GetFans())
 }
 
+func (to TableOutput) Hardware() {
+	to.print("Hardware", GetHardware())
+}
+
 func (to TableOutput) Power() {
 	to.print("Power", GetPower())
 }

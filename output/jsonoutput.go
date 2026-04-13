@@ -128,6 +128,10 @@ func (jo JSONOutput) Fans() {
 	jo.print(GetFans())
 }
 
+func (jo JSONOutput) Hardware() {
+	jo.print(GetHardware())
+}
+
 func (jo JSONOutput) Power() {
 	jo.print(GetPower())
 }
