@@ -379,7 +379,17 @@ CPU Efficiency Core 1:Te06:M4
 CPU Efficiency Core 2:Te0R:M4
 CPU Efficiency Core 2:Te0S:M4
 CPU Efficiency Core 2:Te0T:M4
-// Additional E-core triplets (confirmed across M4 base and M4 Pro reports; silently ignored if absent)
+// E-cluster 2 per-core triplets: confirmed on M4 Pro 14-core (10P+4E); absent on M4 base where
+// the second cluster uses Te08/Te0G instead. Listed first so that Te08/Te0G (below) overwrite
+// on M4 base (where Tpx8-D return 0 and are skipped), and Tpx8-D are used on M4 Pro 14-core
+// (where Te08/Te0G are absent from the SMC key list).
+CPU Efficiency Core 3:Tpx8:M4
+CPU Efficiency Core 3:Tpx9:M4
+CPU Efficiency Core 3:TpxA:M4
+CPU Efficiency Core 4:TpxB:M4
+CPU Efficiency Core 4:TpxC:M4
+CPU Efficiency Core 4:TpxD:M4
+// Additional E-core triplets (confirmed across M4 base reports; silently ignored if absent)
 CPU Efficiency Core 3:Te08:M4
 CPU Efficiency Core 3:Te09:M4
 CPU Efficiency Core 3:Te0A:M4
@@ -404,6 +414,7 @@ CPU Performance Core 1:Tp1k:M4
 CPU Performance Core 2:Tp1m:M4
 CPU Performance Core 2:Tp1n:M4
 CPU Performance Core 2:Tp1o:M4
+CPU Performance Core 3:Tp1q:M4
 CPU Performance Core 3:Tp1t:M4
 CPU Performance Core 3:Tp1u:M4
 CPU Performance Core 4:Tp1v:M4
@@ -411,6 +422,7 @@ CPU Performance Core 4:Tp1w:M4
 CPU Performance Core 4:Tp1x:M4
 CPU Performance Core 5:Tp1y:M4
 CPU Performance Core 5:Tp1z:M4
+CPU Performance Core 5:Tp20:M4
 CPU Performance Core 6:Tp21:M4
 CPU Performance Core 6:Tp22:M4
 CPU Performance Core 6:Tp23:M4
