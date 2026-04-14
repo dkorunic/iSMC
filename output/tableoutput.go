@@ -20,9 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 
-	"github.com/fvbommel/sortorder"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -45,14 +43,7 @@ func NewTableOutput(isASCII bool) Output {
 func (to TableOutput) All() {
 	all := GetAll()
 
-	keys := make([]string, 0, len(all))
-	for k := range all {
-		keys = append(keys, k)
-	}
-
-	sort.Sort(sortorder.Natural(keys))
-
-	for _, key := range keys {
+	for _, key := range sortedKeys(all) {
 		value := all[key]
 		if smcdata, ok := value.(map[string]any); ok {
 			to.print(key, smcdata)
@@ -104,14 +95,7 @@ func (to TableOutput) print(name string, smcdata map[string]any) {
 		t.Style().Title.Align = text.AlignCenter
 		t.AppendHeader(table.Row{"Description", "Key", "Value", "Type"})
 
-		keys := make([]string, 0, len(smcdata))
-		for k := range smcdata {
-			keys = append(keys, k)
-		}
-
-		sort.Sort(sortorder.Natural(keys))
-
-		for _, k := range keys {
+		for _, k := range sortedKeys(smcdata) {
 			v := smcdata[k]
 			if value, ok := v.(map[string]any); ok {
 				t.AppendRow([]any{

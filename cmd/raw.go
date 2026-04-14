@@ -35,7 +35,12 @@ var rawCmd = &cobra.Command{
 				byteStrs[i] = fmt.Sprintf("%02x", k.Bytes[i])
 			}
 
-			fmt.Printf("  %s  [%-4s]  (bytes %s)\n", k.Key, k.DataType, strings.Join(byteStrs, " "))
+			decoded := smc.DecodeValue(k.DataType, k.Bytes, k.DataSize)
+			if decoded != "" {
+				fmt.Printf("  %s  [%-4s]  %s (bytes %s)\n", k.Key, k.DataType, decoded, strings.Join(byteStrs, " "))
+			} else {
+				fmt.Printf("  %s  [%-4s]  (bytes %s)\n", k.Key, k.DataType, strings.Join(byteStrs, " "))
+			}
 		}
 	},
 }

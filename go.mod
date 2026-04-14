@@ -2,6 +2,8 @@ module github.com/dkorunic/iSMC
 
 go 1.26
 
+replace github.com/dkorunic/iSMC/gosmc => ./gosmc
+
 require (
 	github.com/dkorunic/iSMC/gosmc v0.0.0-20260413130435-fb3be841d2e6
 	github.com/fvbommel/sortorder v1.1.0

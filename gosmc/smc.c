@@ -189,14 +189,19 @@ kern_return_t SMCReadKey(io_connect_t conn, const UInt32Char_t key, SMCVal_t *va
 
     val->dataSize = outputStructure.keyInfo.dataSize;
     _ultostr(val->dataType, outputStructure.keyInfo.dataType);
-    inputStructure.keyInfo.dataSize = val->dataSize;
+
+    // Cap read size to the kernel SMC driver's hard per-read limit.
+    // Requesting more than SMC_MAX_DATA_SIZE bytes returns kIOReturnBadArgument.
+    UInt32 readSize = (val->dataSize > SMC_MAX_DATA_SIZE) ? SMC_MAX_DATA_SIZE : val->dataSize;
+    inputStructure.keyInfo.dataSize = readSize;
     inputStructure.data8 = SMC_CMD_READ_BYTES;
 
     result = SMCCall(conn, KERNEL_INDEX_SMC, &inputStructure, &outputStructure);
     if (result != kIOReturnSuccess)
         return result;
 
-    memcpy(val->bytes, outputStructure.bytes, sizeof(outputStructure.bytes));
+    memcpy(val->bytes, outputStructure.bytes, readSize);
+    val->dataSize = readSize;
 
     return kIOReturnSuccess;
 }

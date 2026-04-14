@@ -20,11 +20,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"strings"
 	"time"
-
-	"github.com/fvbommel/sortorder"
 )
 
 type InfluxOutput struct {
@@ -42,14 +39,7 @@ func NewInfluxOutput() Output {
 func (io InfluxOutput) All() {
 	all := GetAll()
 
-	keys := make([]string, 0, len(all))
-	for k := range all {
-		keys = append(keys, k)
-	}
-
-	sort.Sort(sortorder.Natural(keys))
-
-	for _, key := range keys {
+	for _, key := range sortedKeys(all) {
 		value := all[key]
 		if smcdata, ok := value.(map[string]any); ok {
 			io.print(key, smcdata)

@@ -19,11 +19,13 @@ package output
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/dkorunic/iSMC/hid"
 	"github.com/dkorunic/iSMC/platform"
 	"github.com/dkorunic/iSMC/smc"
+	"github.com/fvbommel/sortorder"
 )
 
 // monkey patching for testing
@@ -69,11 +71,7 @@ func getBattery() map[string]any {
 
 // getCurrent returns current sensor data merged from SMC and HID sources.
 func getCurrent() map[string]any {
-	merged := make(map[string]any)
-	deepCopy(merged, smc.GetCurrent())
-	deepCopy(merged, hid.GetCurrent())
-
-	return merged
+	return merge(smc.GetCurrent(), hid.GetCurrent())
 }
 
 // getFans returns fan sensor data from SMC.
@@ -83,11 +81,7 @@ func getFans() map[string]any {
 
 // getTemperature returns temperature sensor data merged from SMC and HID sources.
 func getTemperature() map[string]any {
-	merged := make(map[string]any)
-	deepCopy(merged, smc.GetTemperature())
-	deepCopy(merged, hid.GetTemperature())
-
-	return merged
+	return merge(smc.GetTemperature(), hid.GetTemperature())
 }
 
 // getPower returns power sensor data from SMC.
@@ -97,11 +91,19 @@ func getPower() map[string]any {
 
 // getVoltage returns voltage sensor data merged from SMC and HID sources.
 func getVoltage() map[string]any {
-	merged := make(map[string]any)
-	deepCopy(merged, smc.GetVoltage())
-	deepCopy(merged, hid.GetVoltage())
+	return merge(smc.GetVoltage(), hid.GetVoltage())
+}
 
-	return merged
+// sortedKeys returns the keys of m sorted in natural order.
+func sortedKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(sortorder.Natural(keys))
+
+	return keys
 }
 
 // getHardware returns hardware information gathered from platform detection and sysctls,

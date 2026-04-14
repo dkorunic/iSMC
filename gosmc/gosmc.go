@@ -85,12 +85,12 @@ func uint32CharFromC(xs C.UInt32Char_t) UInt32Char {
 	return bs
 }
 
-// SMCBytes is IOKit UInt32Char SMCBytes
+// SMCBytes is IOKit UInt32Char SMCBytes (capped at the kernel's SMC_MAX_DATA_SIZE per-read limit).
 type SMCBytes [32]byte
 
-// toC converts a Go SMCBytes to the equivalent C uchar array.
-func (bs SMCBytes) toC() [32]C.uchar {
-	var xs [32]C.uchar
+// toC converts a Go SMCBytes to the equivalent C SMCBytes_t array.
+func (bs SMCBytes) toC() C.SMCBytes_t {
+	var xs C.SMCBytes_t
 	for i := range bs {
 		xs[i] = C.uchar(bs[i])
 	}

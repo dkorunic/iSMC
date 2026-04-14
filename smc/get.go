@@ -39,25 +39,18 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 	}
 
 	switch t {
-	// flt SMC type
-	case gosmc.TypeFLT:
-		res, err := fltToFloat32(t, v.Bytes, v.DataSize)
-
-		return res, t, err
 	// ui8/ui16/ui32 SMC types
 	// TODO: Proper "hex_" handling
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
 		return smcBytesToFloat32(v.Bytes, v.DataSize), t, nil
-		// ioft SMC type
-	case "ioft":
-		val, err := ioftToFloat32(v.Bytes, v.DataSize)
-
-		return val, t, err
-	// fp* SMC types
+	// flt, ioft, fp*, sp* types
 	default:
-		res, err := fpToFloat32(t, v.Bytes, v.DataSize)
+		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
+		if !ok {
+			return 0.0, "", fmt.Errorf("unable to decode SMC type %q to float32", t)
+		}
 
-		return res, t, err
+		return val, t, nil
 	}
 }
 

@@ -117,3 +117,66 @@ func ioftToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
 
 	return float32(res) / 65536.0, nil
 }
+
+// decodeToFloat32 converts bytes to float32 for continuous-valued SMC types: flt, ioft, and the
+// fp*/sp* fixed-point families. Returns (value, true) on success, (0, false) for unknown types.
+func decodeToFloat32(dataType string, bytes gosmc.SMCBytes, size uint32) (float32, bool) {
+	switch dataType {
+	case gosmc.TypeFLT:
+		v, err := fltToFloat32(dataType, bytes, size)
+		return v, err == nil
+	case "ioft":
+		v, err := ioftToFloat32(bytes, size)
+		return v, err == nil
+	default:
+		// fp* and sp* fixed-point types
+		v, err := fpToFloat32(dataType, bytes, size)
+		return v, err == nil
+	}
+}
+
+// DecodeValue converts raw SMC bytes to a human-readable string based on data type,
+// mirroring smcFanControl's printVal logic. Returns an empty string for unrecognised types.
+func DecodeValue(dataType string, bytes gosmc.SMCBytes, size uint32) string {
+	if size == 0 {
+		return ""
+	}
+
+	switch dataType {
+	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
+		return fmt.Sprintf("%d", smcBytesToUint32(bytes, size))
+
+	case gosmc.TypeSI8:
+		return fmt.Sprintf("%d", int8(bytes[0]))
+
+	case gosmc.TypeSI16:
+		if size < 2 {
+			return ""
+		}
+		return fmt.Sprintf("%d", int16(binary.BigEndian.Uint16(bytes[:2])))
+
+	case gosmc.TypeSI32:
+		if size < 4 {
+			return ""
+		}
+		return fmt.Sprintf("%d", int32(binary.BigEndian.Uint32(bytes[:4])))
+
+	case gosmc.TypeFLAG:
+		return fmt.Sprintf("%v", smcBytesToUint32(bytes, size) == 1)
+
+	case "pwm":
+		if size < 2 {
+			return ""
+		}
+		pct := float32(binary.BigEndian.Uint16(bytes[:2])) * 100.0 / 65536.0
+		return fmt.Sprintf("%.1f%%", pct)
+
+	default:
+		// flt, ioft, fp*, sp* types
+		v, ok := decodeToFloat32(dataType, bytes, size)
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf("%g", v)
+	}
+}

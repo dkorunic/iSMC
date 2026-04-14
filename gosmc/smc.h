@@ -94,7 +94,11 @@ typedef struct {
     UInt8                 dataAttributes;
 } SMCKeyData_keyInfo_t;
 
-typedef UInt8             SMCBytes_t[32];
+// SMC_MAX_DATA_SIZE is the kernel SMC driver's hard per-read byte limit.
+// Requesting more bytes returns kIOReturnBadArgument regardless of buffer size.
+#define SMC_MAX_DATA_SIZE 32
+
+typedef UInt8             SMCBytes_t[SMC_MAX_DATA_SIZE];
 
 typedef struct {
   UInt32                  key;

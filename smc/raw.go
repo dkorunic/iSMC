@@ -19,7 +19,6 @@ package smc
 import (
 	"fmt"
 	"os"
-	"sort"
 
 	"github.com/dkorunic/iSMC/gosmc"
 )
@@ -34,7 +33,7 @@ type RawKey struct {
 	Bytes    gosmc.SMCBytes
 }
 
-// GetRaw returns all SMC keys with their raw byte values, sorted alphabetically by key name.
+// GetRaw returns all SMC keys with their raw byte values
 func GetRaw() []RawKey {
 	conn, res := gosmc.SMCOpen(AppleSMC)
 	if res != gosmc.IOReturnSuccess {
@@ -86,10 +85,6 @@ func GetRaw() []RawKey {
 			Bytes:    val.Bytes,
 		})
 	}
-
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i].Key < keys[j].Key
-	})
 
 	return keys
 }
