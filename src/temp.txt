@@ -438,49 +438,12 @@ CPU Performance Core 9:Tp2C:M4
 CPU Performance Core 10:Tp2D:M4
 CPU Performance Core 10:Tp2E:M4
 CPU Performance Core 10:Tp2G:M4
-CPU Performance Core 11:Tp2I:M4
-CPU Performance Core 11:Tp2J:M4
-CPU Performance Core 11:Tp2K:M4
-CPU Performance Core 12:Tp2L:M4
-CPU Performance Core 12:Tp2M:M4
-CPU Performance Core 12:Tp2N:M4
-CPU Performance Core 13:Tp2O:M4
-CPU Performance Core 13:Tp2Q:M4
-CPU Performance Core 13:Tp2R:M4
-CPU Performance Core 14:Tp2S:M4
-CPU Performance Core 14:Tp2T:M4
-CPU Performance Core 14:Tp2U:M4
-CPU Performance Core 15:Tp2V:M4
-CPU Performance Core 15:Tp2W:M4
-CPU Performance Core 15:Tp2X:M4
-// M4 P-cores also use the Tp0* triplet scheme (same key addresses as M1).
-// These entries are placed after Tp1*/Tp2* so that when both schemes are present,
-// the Tp0* real readings (55-80°C) overwrite any spurious Tp1*/Tp2* values via last-write.
-// Tp0* positions that were M1 E-cores (groups 2 and 7) become P-cores 3 and 8 on M4.
-CPU Performance Core 1:Tp00:M4
-CPU Performance Core 1:Tp01:M4
-CPU Performance Core 1:Tp02:M4
-CPU Performance Core 2:Tp04:M4
-CPU Performance Core 2:Tp05:M4
-CPU Performance Core 2:Tp06:M4
-CPU Performance Core 3:Tp08:M4
-CPU Performance Core 3:Tp09:M4
-CPU Performance Core 3:Tp0A:M4
-CPU Performance Core 4:Tp0C:M4
-CPU Performance Core 4:Tp0D:M4
-CPU Performance Core 4:Tp0E:M4
-CPU Performance Core 5:Tp0G:M4
-CPU Performance Core 5:Tp0H:M4
-CPU Performance Core 5:Tp0I:M4
-CPU Performance Core 6:Tp0K:M4
-CPU Performance Core 6:Tp0L:M4
-CPU Performance Core 6:Tp0M:M4
-CPU Performance Core 7:Tp0O:M4
-CPU Performance Core 7:Tp0P:M4
-CPU Performance Core 7:Tp0Q:M4
-CPU Performance Core 8:Tp0S:M4
-CPU Performance Core 8:Tp0T:M4
-CPU Performance Core 8:Tp0U:M4
+// On M4 Pro 14-core (10P+4E), Tp0* groups 0-7 (Tp00-Tp0U) return sentinel values
+// (-4 or 2-5°C) that corrupt the valid Tp1*/Tp2* readings above; they are not mapped.
+// Only Core 9 (Tp0W/X/Y) and Core 10 (Tp0a/b/c) remain useful from the Tp0* range.
+// Tp2I-Tp2X and Tp0d/e/f were removed: no known M4 variant has >10 P-cores in
+// the Tp1*/Tp2*/Tp0* range; those sensors return real-looking values from the die's
+// thermal fabric but do not correspond to physical P-cores on 10P+4E chips.
 CPU Performance Core 9:Tp0W:M4
 CPU Performance Core 9:Tp0X:M4
 CPU Performance Core 9:Tp0Y:M4
@@ -488,10 +451,6 @@ CPU Performance Core 9:Tp0Z:M4
 CPU Performance Core 10:Tp0a:M4
 CPU Performance Core 10:Tp0b:M4
 CPU Performance Core 10:Tp0c:M4
-// Extended P-core sensors seen on 14-core M4 Pro (silently ignored on 12-core)
-CPU Performance Core 11:Tp0d:M4
-CPU Performance Core 11:Tp0e:M4
-CPU Performance Core 11:Tp0f:M4
 // Efficiency cluster sensors (Tpx0-5 confirmed real; Tpx8-D read 0°C on every report, removed)
 CPU Efficiency Cluster 1:Tpx0:M4
 CPU Efficiency Cluster 1:Tpx1:M4

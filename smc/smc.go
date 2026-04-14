@@ -35,6 +35,15 @@ const (
 	BattPwr     = "BATP"
 	BattInf     = "BSIn"
 	KeyWildcard = "%"
+
+	// TempUnit is the unit string used for temperature sensors.
+	TempUnit = "°C"
+
+	// minTempCelsius is the minimum plausible temperature (°C) for any SMC thermal
+	// sensor on a running Mac. Values below this are firmware sentinels from inactive
+	// or unimplemented sensor slots (observed: −4, 0, 2.2, 3.4, 5.2 °C) and must be
+	// rejected to prevent overwriting valid readings from a higher-priority scheme.
+	minTempCelsius = 10.0
 )
 
 // SensorStat is SMC key to description mapping.
@@ -172,15 +181,32 @@ func getGeneric(_, unit string, smcSlice []SensorStat) map[string]any {
 	return generic
 }
 
+// isValidReading reports whether val is a plausible sensor reading for the given unit.
+// It rejects zero, near-zero (after rounding to two decimal places), and non-positive
+// values. For temperature sensors (unit == TempUnit) it additionally rejects readings
+// below minTempCelsius, which are firmware sentinel values from inactive or
+// unimplemented sensor slots (observed: −4, 2.2, 3.4, 5.2 °C on M4 Pro 14-core).
+func isValidReading(val float32, unit string) bool {
+	if val <= 0.0 || math.Round(float64(val)*100)/100 == 0.0 {
+		return false
+	}
+
+	if unit == TempUnit && val < minTempCelsius {
+		return false
+	}
+
+	return true
+}
+
 // addGeneric reads a single SMC key and adds the result to generic under desc if the value is
-// valid (non-zero, non-negative sentinel, and non-negligible after rounding).
+// valid according to isValidReading.
 func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 	val, smcType, err := getKeyFloat32(conn, key)
 	if err != nil {
 		return
 	}
 
-	if val > 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
+	if isValidReading(val, unit) {
 		generic[desc] = map[string]any{
 			"key":   key,
 			"value": fmt.Sprintf("%g %s", val, unit),
@@ -196,7 +222,7 @@ func GetPower() map[string]any {
 
 // GetTemperature returns temperature sensor readings (in °C) from SMC, filtered to the detected platform family.
 func GetTemperature() map[string]any {
-	return getGeneric("Temperature", "°C", filterForPlatform(AppleTemp))
+	return getGeneric("Temperature", TempUnit, filterForPlatform(AppleTemp))
 }
 
 // GetVoltage returns voltage sensor readings (in volts) from SMC.
