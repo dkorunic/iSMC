@@ -18,6 +18,9 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/dkorunic/iSMC/platform"
+	"github.com/dkorunic/iSMC/stress"
 )
 
 func TestSeriesKey(t *testing.T) {
@@ -195,6 +198,242 @@ func TestGroupByStrideWithinSeries(t *testing.T) {
 					if got[i][j] != wantKey {
 						t.Errorf("group[%d][%d] = %q, want %q", i, j, got[i][j], wantKey)
 					}
+				}
+			}
+		})
+	}
+}
+
+func TestDeltaTemps(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		base map[string]float32
+		hot  map[string]float32
+		want map[string]float32
+	}{
+		{
+			// delta=15.0 ≥ threshold=1.5 → included; TC1c delta=1.0 < threshold → excluded
+			name: "one above one below threshold",
+			base: map[string]float32{"TC0c": 30.0, "TC1c": 35.0},
+			hot:  map[string]float32{"TC0c": 45.0, "TC1c": 36.0},
+			want: map[string]float32{"TC0c": 15.0},
+		},
+		{
+			// delta == threshold → included (>= comparison)
+			name: "exactly at threshold",
+			base: map[string]float32{"TC0c": 30.0},
+			hot:  map[string]float32{"TC0c": 31.5},
+			want: map[string]float32{"TC0c": 1.5},
+		},
+		{
+			// key present only in base, not in hot → excluded
+			name: "key missing from hot",
+			base: map[string]float32{"TC0c": 30.0},
+			hot:  map[string]float32{},
+			want: map[string]float32{},
+		},
+		{
+			// key present only in hot, not in base → excluded (range is over base)
+			name: "key missing from base",
+			base: map[string]float32{},
+			hot:  map[string]float32{"TC0c": 45.0},
+			want: map[string]float32{},
+		},
+		{
+			name: "empty inputs",
+			base: map[string]float32{},
+			hot:  map[string]float32{},
+			want: map[string]float32{},
+		},
+		{
+			// Multiple sensors all above threshold
+			name: "multiple sensors all above threshold",
+			base: map[string]float32{"TC0c": 30.0, "TC1c": 32.0, "TC2c": 28.0},
+			hot:  map[string]float32{"TC0c": 50.0, "TC1c": 45.0, "TC2c": 35.0},
+			want: map[string]float32{"TC0c": 20.0, "TC1c": 13.0, "TC2c": 7.0},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := deltaTemps(tt.base, tt.hot)
+
+			if len(got) != len(tt.want) {
+				t.Errorf("deltaTemps: got %d entries %v, want %d entries %v",
+					len(got), got, len(tt.want), tt.want)
+
+				return
+			}
+
+			for k, wantV := range tt.want {
+				gotV, ok := got[k]
+				if !ok {
+					t.Errorf("deltaTemps: missing key %q in result", k)
+
+					continue
+				}
+
+				if gotV != wantV {
+					t.Errorf("deltaTemps[%q] = %g, want %g", k, gotV, wantV)
+				}
+			}
+		})
+	}
+}
+
+func TestPhaseMidWord(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		label string
+		want  string
+	}{
+		// Standard three-word phase labels: return the middle word (parts[1])
+		{"CPU Super Core", "Super"},
+		{"CPU Performance Core", "Performance"},
+		{"CPU Efficiency Core", "Efficiency"},
+		// Single word: len(parts) < 2 → return label unchanged
+		{"Single", "Single"},
+		// Empty string: strings.Fields("") == [] → len < 2 → return ""
+		{"", ""},
+		// Two words: parts[1] is the second word
+		{"Two Words", "Words"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.label, func(t *testing.T) {
+			t.Parallel()
+
+			got := phaseMidWord(tt.label)
+			if got != tt.want {
+				t.Errorf("phaseMidWord(%q) = %q, want %q", tt.label, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestBuildPhases verifies the phase specification construction for the three
+// supported chip topologies:
+//   - nil / empty perfLevels → 2 phases with zero core counts
+//   - 2-level (M1–M4) → Performance + Efficiency with correct PhysicalCPU counts
+//   - 3-level (M5+) → Super + Performance + Efficiency with correct PhysicalCPU counts
+func TestBuildPhases(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		levels     []platform.PerfLevel
+		wantLabels []string
+		wantCores  []int
+		wantQoS    []int
+	}{
+		{
+			name:       "nil levels → 2 phases with zero cores",
+			levels:     nil,
+			wantLabels: []string{"CPU Performance Core", "CPU Efficiency Core"},
+			wantCores:  []int{0, 0},
+			wantQoS:    []int{stress.QoSUserInitiated, stress.QoSBackground},
+		},
+		{
+			name: "2-level chip (M1–M4)",
+			levels: []platform.PerfLevel{
+				{Name: "Performance", PhysicalCPU: 10, LogicalCPU: 10},
+				{Name: "Efficiency", PhysicalCPU: 4, LogicalCPU: 4},
+			},
+			wantLabels: []string{"CPU Performance Core", "CPU Efficiency Core"},
+			wantCores:  []int{10, 4},
+			wantQoS:    []int{stress.QoSUserInitiated, stress.QoSBackground},
+		},
+		{
+			name: "3-level chip (M5+)",
+			levels: []platform.PerfLevel{
+				{Name: "Super", PhysicalCPU: 4, LogicalCPU: 4},
+				{Name: "Performance", PhysicalCPU: 8, LogicalCPU: 8},
+				{Name: "Efficiency", PhysicalCPU: 4, LogicalCPU: 4},
+			},
+			wantLabels: []string{"CPU Super Core", "CPU Performance Core", "CPU Efficiency Core"},
+			wantCores:  []int{4, 8, 4},
+			wantQoS:    []int{stress.QoSUserInteractive, stress.QoSUserInitiated, stress.QoSBackground},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := buildPhases(tt.levels)
+
+			if len(got) != len(tt.wantLabels) {
+				t.Fatalf("buildPhases: got %d phases, want %d; phases=%v",
+					len(got), len(tt.wantLabels), got)
+			}
+
+			for i, phase := range got {
+				if phase.label != tt.wantLabels[i] {
+					t.Errorf("buildPhases[%d].label = %q, want %q", i, phase.label, tt.wantLabels[i])
+				}
+
+				if phase.cores != tt.wantCores[i] {
+					t.Errorf("buildPhases[%d].cores = %d, want %d", i, phase.cores, tt.wantCores[i])
+				}
+
+				if phase.qos != tt.wantQoS[i] {
+					t.Errorf("buildPhases[%d].qos = %d, want %d", i, phase.qos, tt.wantQoS[i])
+				}
+			}
+		})
+	}
+}
+
+func TestSortedSeriesKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		groups map[string][]string
+		want   []string
+	}{
+		{
+			name: "three series sorted lexicographically",
+			groups: map[string][]string{
+				"Tp**": {"Tp00", "Tp01"},
+				"TC*c": {"TC0c", "TC1c"},
+				"Te*T": {"Te0T"},
+			},
+			want: []string{"TC*c", "Te*T", "Tp**"},
+		},
+		{
+			name:   "empty map",
+			groups: map[string][]string{},
+			want:   []string{},
+		},
+		{
+			name: "single entry",
+			groups: map[string][]string{
+				"TC*c": {"TC0c"},
+			},
+			want: []string{"TC*c"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := sortedSeriesKeys(tt.groups)
+
+			if len(got) != len(tt.want) {
+				t.Fatalf("sortedSeriesKeys: got %v (len %d), want %v (len %d)",
+					got, len(got), tt.want, len(tt.want))
+			}
+
+			for i, k := range tt.want {
+				if got[i] != k {
+					t.Errorf("sortedSeriesKeys[%d] = %q, want %q", i, got[i], k)
 				}
 			}
 		})

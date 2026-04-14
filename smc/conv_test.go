@@ -228,6 +228,109 @@ func Test_smcBytesToUint32_bigEndianAsymmetric(t *testing.T) {
 	assert.Equal(t, uint32(256), result, "smcBytesToUint32 must use big-endian byte order")
 }
 
+// Test_decodeToFloat32 dispatches to the correct converter for each SMC type family.
+// It verifies that:
+//   - TypeFLT ("flt") routes through fltToFloat32 (little-endian IEEE 754)
+//   - "ioft" routes through ioftToFloat32 (48.16 LE fixed-point)
+//   - fp*/sp* types fall through to fpToFloat32 (big-endian fixed-point)
+//   - Unknown types return (0, false) without panicking.
+func Test_decodeToFloat32(t *testing.T) {
+	tests := []struct {
+		name     string
+		dataType string
+		bytes    gosmc.SMCBytes
+		size     uint32
+		wantVal  float32
+		wantOK   bool
+	}{
+		// flt: IEEE 754 LE for 25.0 = 0x41C80000 → bytes 0x00,0x00,0xC8,0x41
+		{"flt 25.0", gosmc.TypeFLT, makeBytes(0x00, 0x00, 0xC8, 0x41), 4, 25.0, true},
+		// flt too small (< 4 bytes) → error from fltToFloat32
+		{"flt too small", gosmc.TypeFLT, makeBytes(0x00), 1, 0.0, false},
+		// ioft: LittleEndian uint64=65536 → 65536/65536=1.0
+		{"ioft 1.0", "ioft", makeBytes(0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00), 8, 1.0, true},
+		// ioft too small (< 8 bytes) → error from ioftToFloat32
+		{"ioft too small", "ioft", makeBytes(0x00, 0x00, 0x01, 0x00), 4, 0.0, false},
+		// sp78: BigEndian 0x1900=6400 → int16(6400)/256=25.0
+		{"sp78 25.0", gosmc.TypeSP78, makeBytes(0x19, 0x00), 2, 25.0, true},
+		// fp88: BigEndian 0x0100=256 → 256/256=1.0
+		{"fp88 1.0", gosmc.TypeFP88, makeBytes(0x01, 0x00), 2, 1.0, true},
+		// unknown type → falls to fpToFloat32 which returns error for unknown keys
+		{"unknown type", "xxxx", makeBytes(0x00, 0x00), 2, 0.0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := decodeToFloat32(tt.dataType, tt.bytes, tt.size)
+			assert.Equal(t, tt.wantOK, ok)
+			if tt.wantOK {
+				assert.InDelta(t, tt.wantVal, got, 0.001)
+			}
+		})
+	}
+}
+
+// Test_DecodeValue verifies all code paths of DecodeValue: unsigned integers, signed integers,
+// boolean flag, pwm percentage, IEEE 754 float, ioft, fp*/sp* fixed-point, and the zero-size
+// and unknown-type short-circuits.
+func Test_DecodeValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		dataType string
+		bytes    gosmc.SMCBytes
+		size     uint32
+		expected string
+	}{
+		// zero size must always return ""
+		{"zero size", gosmc.TypeUI8, makeBytes(), 0, ""},
+
+		// unsigned integer types (big-endian)
+		{"ui8 255", gosmc.TypeUI8, makeBytes(0xFF), 1, "255"},
+		{"ui16 256", gosmc.TypeUI16, makeBytes(0x01, 0x00), 2, "256"},
+		{"ui32 1", gosmc.TypeUI32, makeBytes(0x00, 0x00, 0x00, 0x01), 4, "1"},
+		// hex_ is treated identically to ui*
+		{"hex_ 65536", "hex_", makeBytes(0x00, 0x01, 0x00, 0x00), 4, "65536"},
+
+		// signed integer types (big-endian)
+		{"si8 -1", gosmc.TypeSI8, makeBytes(0xFF), 1, "-1"},
+		{"si8 127", gosmc.TypeSI8, makeBytes(0x7F), 1, "127"},
+		{"si16 -1", gosmc.TypeSI16, makeBytes(0xFF, 0xFF), 2, "-1"},
+		{"si16 too small", gosmc.TypeSI16, makeBytes(0xFF), 1, ""},
+		{"si32 -1", gosmc.TypeSI32, makeBytes(0xFF, 0xFF, 0xFF, 0xFF), 4, "-1"},
+		{"si32 too small", gosmc.TypeSI32, makeBytes(0xFF, 0xFF, 0xFF), 3, ""},
+
+		// boolean flag
+		{"flag true", gosmc.TypeFLAG, makeBytes(0x01), 1, "true"},
+		{"flag false", gosmc.TypeFLAG, makeBytes(0x00), 1, "false"},
+
+		// pwm percentage: 0x8000=32768; 32768*100/65536=50.0%
+		{"pwm 50.0%", "pwm", makeBytes(0x80, 0x00), 2, "50.0%"},
+		// pwm 25.0%: 0x4000=16384; 16384*100/65536=25.0%
+		{"pwm 25.0%", "pwm", makeBytes(0x40, 0x00), 2, "25.0%"},
+		{"pwm too small", "pwm", makeBytes(0x80), 1, ""},
+
+		// flt: IEEE 754 LE for 25.0 = 0x41C80000 → 0x00,0x00,0xC8,0x41
+		{"flt 25.0", gosmc.TypeFLT, makeBytes(0x00, 0x00, 0xC8, 0x41), 4, "25"},
+
+		// fp*/sp* fixed-point via default branch
+		{"sp78 25.0", gosmc.TypeSP78, makeBytes(0x19, 0x00), 2, "25"},
+		{"fp88 1.0", gosmc.TypeFP88, makeBytes(0x01, 0x00), 2, "1"},
+
+		// ioft: LittleEndian uint64=65536 → 1.0
+		{"ioft 1.0", "ioft", makeBytes(0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00), 8, "1"},
+
+		// unknown type: decodeToFloat32 fails → ""
+		{"unknown type", "xxxx", makeBytes(0x00, 0x00), 2, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DecodeValue(tt.dataType, tt.bytes, tt.size)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
 // Test_ioftToFloat32_divisor verifies that ioftToFloat32 uses the correct 2^16 = 65536
 // divisor (TC-4). Using a raw value of 131072 (2^17 in the 48.16 fixed-point word):
 //   - correct divisor 65536: 131072/65536 = 2.0
