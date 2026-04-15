@@ -191,7 +191,6 @@ static char *queryHIDPowerSensors(int page, int usage) {
             NSDictionary    *sensors = matching(page, usage);
             IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
             CFArrayRef      srvRef = IOHIDEventSystemClientCopyServices(system);
-            CFRelease(system);
 
             if (srvRef) {
                 NSArray     *names = getNamesFromServices(srvRef);
@@ -207,6 +206,8 @@ static char *queryHIDPowerSensors(int page, int usage) {
                 CFRelease(values);
                 CFRelease(result);
             }
+
+            CFRelease(system);
         }
     }
 
@@ -231,7 +232,6 @@ char *getThermals() {
             NSDictionary    *sensors = matching(0xff00, 5);
             IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
             CFArrayRef      srvRef = IOHIDEventSystemClientCopyServices(system);
-            CFRelease(system);
 
             if (srvRef) {
                 NSArray     *names = getNamesFromServices(srvRef);
@@ -247,6 +247,8 @@ char *getThermals() {
                 CFRelease(values);
                 CFRelease(result);
             }
+
+            CFRelease(system);
         }
     }
 
