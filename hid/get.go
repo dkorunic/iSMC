@@ -38,6 +38,10 @@ CFStringRef IOHIDServiceClientCopyProperty(IOHIDServiceClientRef service, CFStri
 
 IOHIDFloat IOHIDEventGetFloatValue(IOHIDEventRef event, int32_t field);
 
+#define IOHIDEventFieldBase(type) (type << 16)
+#define kIOHIDEventTypeTemperature  15
+#define kIOHIDEventTypePower        25
+
 NSDictionary *matching(int page, int usage) {
     NSDictionary *dict = @{
         @"PrimaryUsagePage" : [NSNumber numberWithInt:page],
@@ -47,20 +51,15 @@ NSDictionary *matching(int page, int usage) {
     return dict;
 }
 
-NSArray *getProductNames(NSDictionary *sensors) {
-    IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
-
-    if (!system) return [[NSArray alloc] init];
-
-    IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
-    CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
-    NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
-
-    long            count = [matchingsrvs count];
+// getNamesFromServices extracts the "Product" property from each service in srvRef.
+// The caller is responsible for releasing the returned NSArray.
+static NSArray *getNamesFromServices(CFArrayRef srvRef) {
+    NSArray         *srvs = (__bridge NSArray *)srvRef;
+    long            count = [srvs count];
     NSMutableArray  *array = [[NSMutableArray alloc] init];
 
     for (int i = 0; i < count; i++) {
-        IOHIDServiceClientRef   sc = (IOHIDServiceClientRef)matchingsrvs[i];
+        IOHIDServiceClientRef   sc = (IOHIDServiceClientRef)srvs[i];
         NSString                *name = (NSString *)IOHIDServiceClientCopyProperty(sc, (__bridge CFStringRef)@"Product");
 
         if (name) {
@@ -71,80 +70,53 @@ NSArray *getProductNames(NSDictionary *sensors) {
         }
     }
 
-    if (matchingsrvsRef) CFRelease(matchingsrvsRef);
-    CFRelease(system);
-
     return array;
 }
 
-#define IOHIDEventFieldBase(type) (type << 16)
-#define kIOHIDEventTypeTemperature  15
-#define kIOHIDEventTypePower        25
-
-NSArray *getPowerValues(NSDictionary *sensors) {
-    IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
-
-    if (!system) return [[NSArray alloc] init];
-
-    IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
-    CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
-    NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
-
-    long            count = [matchingsrvs count];
+// getPowerValuesFromServices reads the power event float value from each service in srvRef.
+// The caller is responsible for releasing the returned NSArray.
+static NSArray *getPowerValuesFromServices(CFArrayRef srvRef) {
+    NSArray         *srvs = (__bridge NSArray *)srvRef;
+    long            count = [srvs count];
     NSMutableArray  *array = [[NSMutableArray alloc] init];
 
     for (int i = 0; i < count; i++) {
-        IOHIDServiceClientRef   sc = (IOHIDServiceClientRef)matchingsrvs[i];
+        IOHIDServiceClientRef   sc = (IOHIDServiceClientRef)srvs[i];
         IOHIDEventRef           event = IOHIDServiceClientCopyEvent(sc, kIOHIDEventTypePower, 0, 0);
 
-        NSNumber    *value;
-        double      temp = 0.0;
+        double temp = 0.0;
 
         if (event != 0) {
             temp = IOHIDEventGetFloatValue(event, IOHIDEventFieldBase(kIOHIDEventTypePower)) / 1000.0;
             CFRelease(event);
         }
 
-        value = [NSNumber numberWithDouble:temp];
-        [array addObject:value];
+        [array addObject:[NSNumber numberWithDouble:temp]];
     }
-
-    if (matchingsrvsRef) CFRelease(matchingsrvsRef);
-    CFRelease(system);
 
     return array;
 }
 
-NSArray *getThermalValues(NSDictionary *sensors) {
-    IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
-
-    if (!system) return [[NSArray alloc] init];
-
-    IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
-    CFArrayRef matchingsrvsRef = IOHIDEventSystemClientCopyServices(system);
-    NSArray *matchingsrvs = (__bridge NSArray *)matchingsrvsRef;
-
-    long            count = [matchingsrvs count];
+// getThermalValuesFromServices reads the temperature event float value from each service in srvRef.
+// The caller is responsible for releasing the returned NSArray.
+static NSArray *getThermalValuesFromServices(CFArrayRef srvRef) {
+    NSArray         *srvs = (__bridge NSArray *)srvRef;
+    long            count = [srvs count];
     NSMutableArray  *array = [[NSMutableArray alloc] init];
 
     for (int i = 0; i < count; i++) {
-        IOHIDServiceClientRef   sc = (IOHIDServiceClientRef)matchingsrvs[i];
+        IOHIDServiceClientRef   sc = (IOHIDServiceClientRef)srvs[i];
         IOHIDEventRef           event = IOHIDServiceClientCopyEvent(sc, kIOHIDEventTypeTemperature, 0, 0);
 
-        NSNumber    *value;
-        double      temp = 0.0;
+        double temp = 0.0;
 
         if (event != 0) {
             temp = IOHIDEventGetFloatValue(event, IOHIDEventFieldBase(kIOHIDEventTypeTemperature));
             CFRelease(event);
         }
 
-        value = [NSNumber numberWithDouble:temp];
-        [array addObject:value];
+        [array addObject:[NSNumber numberWithDouble:temp]];
     }
-
-    if (matchingsrvsRef) CFRelease(matchingsrvsRef);
-    CFRelease(system);
 
     return array;
 }
@@ -168,6 +140,11 @@ static NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
     return valueString;
 }
 
+// kSP78RawThreshold is the boundary above which a tdev sensor reading is
+// unambiguously a raw sp78 value (°C × 256) rather than a converted °C value.
+// The maximum plausible converted Apple Silicon temperature is ~130°C (junction limit).
+#define kSP78RawThreshold 130.0
+
 // dumpThermalNamesValues formats thermal sensor names and values, applying sp78 conversion
 // for specific HID thermal sensors that use the sp78 fixed-point format (e.g., PMU tdev sensors)
 static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
@@ -182,16 +159,13 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
             if (value <= 0.0) continue;
 
             // PMU tdev sensors (e.g., "PMU tdev1") report temperatures in sp78 fixed-point
-            // format (raw = °C × 256, e.g. 6400.0 for 25°C). Apple Silicon thermal shutdown
-            // occurs at ~100-110°C and the junction temperature maximum is ~125°C, so a
-            // legitimate converted reading never exceeds ~130°C. The minimum raw sp78 encoding
-            // for 1°C is 256. Values above 130.0 are unambiguously raw sp78 — this threshold
-            // avoids the false positive at exactly 256.0 (= 1°C in sp78) from the old guard.
+            // format (raw = °C × 256, e.g. 6400.0 for 25°C). Values above kSP78RawThreshold
+            // are unambiguously raw sp78 — see kSP78RawThreshold definition for reasoning.
             NSRange range = [name rangeOfString:@"tdev"];
             if (range.location != NSNotFound) {
                 if (range.location + 4 < [name length]) {
                     unichar nextChar = [name characterAtIndex:range.location + 4];
-                    if (value > 130.0 && nextChar >= '1' && nextChar <= '9') {
+                    if (value > kSP78RawThreshold && nextChar >= '1' && nextChar <= '9') {
                         value = value / 256.0;
                     }
                 }
@@ -205,61 +179,164 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
     return valueString;
 }
 
-char *getCurrents() {
-    char *finalStr;
+// queryHIDPowerSensors queries IOHIDEventSystem for power sensors matching the given
+// HID page and usage, returning a "name:value\n" formatted string. The caller must free it.
+static char *queryHIDPowerSensors(int page, int usage) {
+    char *finalStr = strdup("");
 
     @autoreleasepool {
-        NSDictionary    *currentSensors = matching(0xff08, 2);
-        NSArray         *currentNames = getProductNames(currentSensors);
-        NSArray         *currentValues = getPowerValues(currentSensors);
-        NSString        *result = dumpNamesValues(currentNames, currentValues);
-        const char      *utf8 = result ? [result UTF8String] : "";
-        finalStr = strdup(utf8 ? utf8 : "");
+        IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
-        CFRelease(currentNames);
-        CFRelease(currentValues);
-        CFRelease(result);
+        if (system) {
+            NSDictionary    *sensors = matching(page, usage);
+            IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
+            CFArrayRef      srvRef = IOHIDEventSystemClientCopyServices(system);
+            CFRelease(system);
+
+            if (srvRef) {
+                NSArray     *names = getNamesFromServices(srvRef);
+                NSArray     *values = getPowerValuesFromServices(srvRef);
+                NSString    *result = dumpNamesValues(names, values);
+                CFRelease(srvRef);
+
+                const char  *utf8 = result ? [result UTF8String] : "";
+                free(finalStr);
+                finalStr = strdup(utf8 ? utf8 : "");
+
+                CFRelease(names);
+                CFRelease(values);
+                CFRelease(result);
+            }
+        }
     }
 
     return finalStr;
+}
+
+char *getCurrents() {
+    return queryHIDPowerSensors(0xff08, 2);
 }
 
 char *getVoltages() {
-    char *finalStr;
+    return queryHIDPowerSensors(0xff08, 3);
+}
+
+char *getThermals() {
+    char *finalStr = strdup("");
 
     @autoreleasepool {
-        NSDictionary    *voltageSensors = matching(0xff08, 3);
-        NSArray         *voltageNames = getProductNames(voltageSensors);
-        NSArray         *voltageValues = getPowerValues(voltageSensors);
-        NSString        *result = dumpNamesValues(voltageNames, voltageValues);
-        const char      *utf8 = result ? [result UTF8String] : "";
-        finalStr = strdup(utf8 ? utf8 : "");
+        IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
-        CFRelease(voltageNames);
-        CFRelease(voltageValues);
-        CFRelease(result);
+        if (system) {
+            NSDictionary    *sensors = matching(0xff00, 5);
+            IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
+            CFArrayRef      srvRef = IOHIDEventSystemClientCopyServices(system);
+            CFRelease(system);
+
+            if (srvRef) {
+                NSArray     *names = getNamesFromServices(srvRef);
+                NSArray     *values = getThermalValuesFromServices(srvRef);
+                NSString    *result = dumpThermalNamesValues(names, values);
+                CFRelease(srvRef);
+
+                const char  *utf8 = result ? [result UTF8String] : "";
+                free(finalStr);
+                finalStr = strdup(utf8 ? utf8 : "");
+
+                CFRelease(names);
+                CFRelease(values);
+                CFRelease(result);
+            }
+        }
     }
 
     return finalStr;
 }
 
-char *getThermals() {
-    char *finalStr;
+// HIDSensorData holds strdup'd C strings for all three sensor types. The caller
+// must free each non-NULL field.
+typedef struct {
+    char *currents;
+    char *voltages;
+    char *thermals;
+} HIDSensorData;
+
+// getAllHIDSensors opens a single HID event system client, queries all three
+// sensor types by updating the matching criteria between queries, and returns
+// their formatted output strings. Each field is always a valid strdup'd string
+// (never NULL) that the caller must free.
+HIDSensorData getAllHIDSensors(void) {
+    HIDSensorData result = { strdup(""), strdup(""), strdup("") };
 
     @autoreleasepool {
-        NSDictionary    *thermalSensors = matching(0xff00, 5);
-        NSArray         *thermalNames = getProductNames(thermalSensors);
-        NSArray         *thermalValues = getThermalValues(thermalSensors);
-        NSString        *result = dumpThermalNamesValues(thermalNames, thermalValues);
-        const char      *utf8 = result ? [result UTF8String] : "";
-        finalStr = strdup(utf8 ? utf8 : "");
+        IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
 
-        CFRelease(thermalNames);
-        CFRelease(thermalValues);
-        CFRelease(result);
-    }
+        if (system) {
+        // Currents (page 0xff08, usage 2)
+        {
+            NSDictionary    *sensors = matching(0xff08, 2);
+            IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
+            CFArrayRef      srvRef = IOHIDEventSystemClientCopyServices(system);
 
-    return finalStr;
+            if (srvRef) {
+                NSArray     *names = getNamesFromServices(srvRef);
+                NSArray     *values = getPowerValuesFromServices(srvRef);
+                NSString    *str = dumpNamesValues(names, values);
+                const char  *utf8 = str ? [str UTF8String] : "";
+                free(result.currents);
+                result.currents = strdup(utf8 ? utf8 : "");
+                CFRelease(names);
+                CFRelease(values);
+                CFRelease(str);
+                CFRelease(srvRef);
+            }
+        }
+
+        // Voltages (page 0xff08, usage 3)
+        {
+            NSDictionary    *sensors = matching(0xff08, 3);
+            IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
+            CFArrayRef      srvRef = IOHIDEventSystemClientCopyServices(system);
+
+            if (srvRef) {
+                NSArray     *names = getNamesFromServices(srvRef);
+                NSArray     *values = getPowerValuesFromServices(srvRef);
+                NSString    *str = dumpNamesValues(names, values);
+                const char  *utf8 = str ? [str UTF8String] : "";
+                free(result.voltages);
+                result.voltages = strdup(utf8 ? utf8 : "");
+                CFRelease(names);
+                CFRelease(values);
+                CFRelease(str);
+                CFRelease(srvRef);
+            }
+        }
+
+        // Thermals (page 0xff00, usage 5)
+        {
+            NSDictionary    *sensors = matching(0xff00, 5);
+            IOHIDEventSystemClientSetMatching(system, (__bridge CFDictionaryRef)sensors);
+            CFArrayRef      srvRef = IOHIDEventSystemClientCopyServices(system);
+
+            if (srvRef) {
+                NSArray     *names = getNamesFromServices(srvRef);
+                NSArray     *values = getThermalValuesFromServices(srvRef);
+                NSString    *str = dumpThermalNamesValues(names, values);
+                const char  *utf8 = str ? [str UTF8String] : "";
+                free(result.thermals);
+                result.thermals = strdup(utf8 ? utf8 : "");
+                CFRelease(names);
+                CFRelease(values);
+                CFRelease(str);
+                CFRelease(srvRef);
+            }
+        }
+
+        CFRelease(system);
+        }   // closes if (system)
+    }       // closes @autoreleasepool
+
+    return result;
 }
 */
 import "C"
@@ -268,13 +345,14 @@ import (
 	"unsafe"
 )
 
-// GetAll returns all detected HID sensor results.
+// GetAll returns all detected HID sensor results using a single HID client session.
 func GetAll() map[string]any {
+	data := C.getAllHIDSensors()
 	sensors := make(map[string]any)
 
-	sensors["Current"] = GetCurrent()
-	sensors["Temperature"] = GetTemperature()
-	sensors["Voltage"] = GetVoltage()
+	sensors["Current"] = hidGet(data.currents, "A")
+	sensors["Temperature"] = hidGet(data.thermals, "°C")
+	sensors["Voltage"] = hidGet(data.voltages, "V")
 
 	return sensors
 }

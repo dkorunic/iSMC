@@ -17,7 +17,6 @@
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -28,7 +27,9 @@ import (
 	"github.com/fvbommel/sortorder"
 )
 
-// monkey patching for testing
+// monkey patching for testing.
+// WARNING: these package-level vars are written by tests without synchronisation.
+// Do not call t.Parallel() in output tests — doing so would introduce a data race.
 var (
 	GetAll         = getAll
 	GetTemperature = getTemperature
@@ -172,11 +173,33 @@ func getHardware() map[string]any {
 	return result
 }
 
-// TODO replace with a variant from an utility package
-// deepCopy copies all entries from src into dest via JSON round-trip, performing a deep clone.
+// deepCopy copies all entries from src into dest, recursively cloning nested maps so that
+// mutations to dest do not affect src. Unlike a JSON round-trip, this preserves Go types:
+// uint32, bool, float32 etc. are not narrowed to float64.
 func deepCopy(dest, src map[string]any) {
-	jsonStr, _ := json.Marshal(src)
-	_ = json.Unmarshal(jsonStr, &dest)
+	for k, v := range src {
+		if vm, ok := v.(map[string]any); ok {
+			inner := make(map[string]any, len(vm))
+			deepCopy(inner, vm)
+			dest[k] = inner
+		} else {
+			dest[k] = v
+		}
+	}
+}
+
+// isFloatType reports whether typ is a continuous-valued SMC/HID type whose string
+// representation is "quantity unit" and should be split by format().
+// "ioft" is included here even though it was absent from the original hard-coded list.
+func isFloatType(typ string) bool {
+	switch typ {
+	case "flt", "ioft", hid.SensorType:
+		return true
+	}
+
+	_, ok := smc.AppleFPConv[typ]
+
+	return ok
 }
 
 // TODO replace with a variant from an utility package
@@ -185,18 +208,18 @@ func merge(a, b map[string]any) map[string]any {
 	out := make(map[string]any)
 	deepCopy(out, a)
 
-	for k, v := range b {
-		if v, ok := v.(map[string]any); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]any); ok {
-					out[k] = merge(bv, v)
+	for k, bVal := range b {
+		if bMap, ok := bVal.(map[string]any); ok {
+			if outVal, ok := out[k]; ok {
+				if outMap, ok := outVal.(map[string]any); ok {
+					out[k] = merge(outMap, bMap)
 
 					continue
 				}
 			}
 		}
 
-		out[k] = v
+		out[k] = bVal
 	}
 
 	return out

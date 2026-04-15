@@ -91,7 +91,7 @@ func Test_fltToFloat32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := fltToFloat32("flt", tt.bytes, tt.size)
+			result, err := fltToFloat32(tt.bytes, tt.size)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -138,6 +138,8 @@ func Test_smcBytesToUint32(t *testing.T) {
 		{"ui8 one", makeBytes(0x01), 1, 1},
 		// BigEndian: 0x0100 = 256
 		{"ui16 256", makeBytes(0x01, 0x00), 2, 256},
+		// size > 4: clamped to 4; BigEndian first 4 bytes 0x00000001 = 1, 5th byte ignored
+		{"size 5 clamped to 4", makeBytes(0x00, 0x00, 0x00, 0x01, 0xFF), 5, 1},
 	}
 
 	for _, tt := range tests {
@@ -214,7 +216,7 @@ func Test_fpToFloat32_bigEndianAsymmetric(t *testing.T) {
 // big-endian would produce a very different (garbage) float.
 func Test_fltToFloat32_littleEndianAsymmetric(t *testing.T) {
 	// 0x3F800000 = 1.0 in big-endian; stored as 0x00 0x00 0x80 0x3F in little-endian
-	result, err := fltToFloat32("flt", makeBytes(0x00, 0x00, 0x80, 0x3F), 4)
+	result, err := fltToFloat32(makeBytes(0x00, 0x00, 0x80, 0x3F), 4)
 	assert.NoError(t, err)
 	assert.InDelta(t, 1.0, result, 0.001, "flt 0x00 0x00 0x80 0x3F must be 1.0 under little-endian interpretation")
 }

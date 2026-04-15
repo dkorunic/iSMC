@@ -18,11 +18,11 @@ package smc
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/dkorunic/iSMC/gosmc"
 	"github.com/dkorunic/iSMC/platform"
@@ -35,6 +35,10 @@ const (
 	BattPwr     = "BATP"
 	BattInf     = "BSIn"
 	KeyWildcard = "%"
+
+	// maxFans is the upper bound on the number of fans to read from SMC.
+	// A physical Mac never has more than ~8 fans; this guards against a corrupt/spoofed FNum key.
+	maxFans = 32
 
 	// TempUnit is the unit string used for temperature sensors.
 	TempUnit = "°C"
@@ -55,34 +59,70 @@ type SensorStat struct {
 
 //go:generate ./gen-sensors.sh sensors.go
 
+var (
+	filteredTempOnce    sync.Once
+	filteredTempSensors []SensorStat
+)
+
+// filteredTemp returns AppleTemp filtered for the current platform, cached after the first call.
+func filteredTemp() []SensorStat {
+	filteredTempOnce.Do(func() {
+		filteredTempSensors = filterForPlatform(AppleTemp)
+	})
+
+	return filteredTempSensors
+}
+
+// openSMC opens the Apple SMC. Returns (connection, nil) on success or (0, error) on failure.
+// The caller must close a successful connection with gosmc.SMCClose.
+func openSMC() (uint, error) {
+	c, res := gosmc.SMCOpen(AppleSMC)
+	if res != gosmc.IOReturnSuccess {
+		return 0, fmt.Errorf("unable to open Apple SMC: return code %v", res)
+	}
+
+	return c, nil
+}
+
 // GetAll returns all SMC sensor readings grouped by category (Battery, Current, Fans, Temperature, Power, Voltage).
 func GetAll() map[string]any {
-	sensors := make(map[string]any)
+	c, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return map[string]any{}
+	}
+	defer gosmc.SMCClose(c)
 
-	sensors["Battery"] = GetBattery()
-	sensors["Current"] = GetCurrent()
-	sensors["Fans"] = GetFans()
-	sensors["Temperature"] = GetTemperature()
-	sensors["Power"] = GetPower()
-	sensors["Voltage"] = GetVoltage()
+	sensors := make(map[string]any)
+	sensors["Battery"] = getBattery(c)
+	sensors["Current"] = getGenericSensors(c, "A", AppleCurrent)
+	sensors["Fans"] = getFans(c)
+	sensors["Temperature"] = getGenericSensors(c, TempUnit, filteredTemp())
+	sensors["Power"] = getGenericSensors(c, "W", ApplePower)
+	sensors["Voltage"] = getGenericSensors(c, "V", AppleVoltage)
 
 	return sensors
 }
 
 // GetBattery returns battery count, status flags, and AC power state read from SMC keys.
 func GetBattery() map[string]any {
-	c, res := gosmc.SMCOpen(AppleSMC)
-	if res != gosmc.IOReturnSuccess {
-		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
-		os.Exit(1)
+	c, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return map[string]any{}
 	}
 	defer gosmc.SMCClose(c)
 
+	return getBattery(c)
+}
+
+// getBattery reads battery keys using the provided SMC connection.
+func getBattery(c uint) map[string]any {
 	n, ty1, _ := getKeyUint32(c, BattNum) // Get number of batteries
 	i, ty2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
 	b, ty3, _ := getKeyBool(c, BattPwr)   // Get AC status
 
-	battery := map[string]any{
+	return map[string]any{
 		"Battery Count": map[string]any{
 			"key":   BattNum,
 			"value": n,
@@ -99,27 +139,39 @@ func GetBattery() map[string]any {
 			"type":  ty3,
 		},
 	}
-
-	return battery
 }
 
 // GetCurrent returns current sensor readings (in amperes) from SMC.
 func GetCurrent() map[string]any {
-	return getGeneric("Current", "A", AppleCurrent)
+	c, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return map[string]any{}
+	}
+	defer gosmc.SMCClose(c)
+
+	return getGenericSensors(c, "A", AppleCurrent)
 }
 
 // GetFans returns fan count and per-fan speed readings (in RPM) from SMC.
 func GetFans() map[string]any {
-	c, res := gosmc.SMCOpen(AppleSMC)
-	if res != gosmc.IOReturnSuccess {
-		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
-		os.Exit(1)
+	c, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return map[string]any{}
 	}
 	defer gosmc.SMCClose(c)
 
+	return getFans(c)
+}
+
+// getFans reads fan sensors using the provided SMC connection.
+func getFans(c uint) map[string]any {
 	fans := make(map[string]any)
 
 	val, smcType, _ := getKeyUint32(c, FanNum) // Get number of fans
+	val = min(val, maxFans)
+
 	fans["Fan Count"] = map[string]any{
 		"key":   FanNum,
 		"value": val,
@@ -131,16 +183,16 @@ func GetFans() map[string]any {
 			key := fmt.Sprintf(v.Key, i)
 			desc := fmt.Sprintf(v.Desc, i+1)
 
-			val, smcType, err := getKeyFloat32(c, key)
+			fval, ftype, err := getKeyFloat32(c, key)
 			if err != nil {
 				continue
 			}
 
-			if val > 0.0 && math.Round(float64(val)*100)/100 != 0.0 {
+			if isValidReading(fval, "rpm") {
 				fans[desc] = map[string]any{
 					"key":   key,
-					"value": fmt.Sprintf("%4.0f rpm", val),
-					"type":  smcType,
+					"value": fmt.Sprintf("%4.0f rpm", fval),
+					"type":  ftype,
 				}
 			}
 		}
@@ -149,23 +201,17 @@ func GetFans() map[string]any {
 	return fans
 }
 
-// getGeneric reads each sensor in smcSlice from SMC, expanding wildcard keys (%) to indices 0–9,
-// and returns a map of description → sensor entry formatted with the given unit string.
-func getGeneric(_, unit string, smcSlice []SensorStat) map[string]any {
-	conn, res := gosmc.SMCOpen(AppleSMC)
-	if res != gosmc.IOReturnSuccess {
-		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
-		os.Exit(1)
-	}
-	defer gosmc.SMCClose(conn)
-
+// getGenericSensors reads each sensor in smcSlice from SMC using conn, expanding
+// wildcard keys (%) to indices 0–9, and returns a map of description → sensor entry
+// formatted with the given unit string.
+func getGenericSensors(conn uint, unit string, smcSlice []SensorStat) map[string]any {
 	generic := make(map[string]any)
 
 	for _, v := range smcSlice {
 		key := v.Key
 		desc := v.Desc
 
-		if !strings.Contains(key, KeyWildcard) {
+		if strings.IndexByte(key, KeyWildcard[0]) < 0 {
 			addGeneric(generic, conn, key, desc, unit)
 
 			continue
@@ -187,7 +233,7 @@ func getGeneric(_, unit string, smcSlice []SensorStat) map[string]any {
 // below minTempCelsius, which are firmware sentinel values from inactive or
 // unimplemented sensor slots (observed: −4, 2.2, 3.4, 5.2 °C on M4 Pro 14-core).
 func isValidReading(val float32, unit string) bool {
-	if val <= 0.0 || math.Round(float64(val)*100)/100 == 0.0 {
+	if val < 0.005 {
 		return false
 	}
 
@@ -217,17 +263,38 @@ func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 
 // GetPower returns power sensor readings (in watts) from SMC.
 func GetPower() map[string]any {
-	return getGeneric("Power", "W", ApplePower)
+	c, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return map[string]any{}
+	}
+	defer gosmc.SMCClose(c)
+
+	return getGenericSensors(c, "W", ApplePower)
 }
 
 // GetTemperature returns temperature sensor readings (in °C) from SMC, filtered to the detected platform family.
 func GetTemperature() map[string]any {
-	return getGeneric("Temperature", TempUnit, filterForPlatform(AppleTemp))
+	c, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return map[string]any{}
+	}
+	defer gosmc.SMCClose(c)
+
+	return getGenericSensors(c, TempUnit, filteredTemp())
 }
 
 // GetVoltage returns voltage sensor readings (in volts) from SMC.
 func GetVoltage() map[string]any {
-	return getGeneric("Voltage", "V", AppleVoltage)
+	c, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return map[string]any{}
+	}
+	defer gosmc.SMCClose(c)
+
+	return getGenericSensors(c, "V", AppleVoltage)
 }
 
 // filterForPlatform returns the subset of smcSlice whose Platform tag matches the detected hardware

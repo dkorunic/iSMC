@@ -19,12 +19,13 @@
 
 #include <IOKit/IOKitLib.h>
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED < 120000) // Before macOS 12 Monterey
-	#define IOMainPort IOMasterPort
-#endif
-
 #ifndef __SMC_H__
 #define __SMC_H__
+
+#ifndef kIOMainPortDefault
+    // kIOMainPortDefault was introduced in macOS 12; define it for older SDKs.
+    #define kIOMainPortDefault MACH_PORT_NULL
+#endif
 
 #define VERSION               "1.0"
 
@@ -120,9 +121,6 @@ typedef struct {
   UInt32Char_t            dataType;
   SMCBytes_t              bytes;
 } SMCVal_t;
-
-UInt32 _strtoul(const char *str, int size, int base);
-void _ultostr(char *str, UInt32 val);
 
 kern_return_t SMCOpen(const char *serviceName, io_connect_t *conn);
 kern_return_t SMCClose(io_connect_t conn);

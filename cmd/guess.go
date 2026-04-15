@@ -352,6 +352,20 @@ func phaseMidWord(label string) string {
 	return label
 }
 
+// qosName returns a short human-readable name for the given macOS QoS class constant.
+func qosName(qos int) string {
+	switch qos {
+	case stress.QoSUserInteractive:
+		return "UserInteractive"
+	case stress.QoSUserInitiated:
+		return "UserInitiated"
+	case stress.QoSBackground:
+		return "Background"
+	default:
+		return fmt.Sprintf("0x%02X", qos)
+	}
+}
+
 // buildPhases constructs the ordered list of stress phases from live topology data.
 // For 3-level chips (M5+): Super → Performance → Efficiency.
 // For 2-level chips (M1–M4) or nil: Performance → Efficiency.
@@ -449,16 +463,9 @@ func runAllCoresPhase(numCPU int, qosClass int, baseline map[string]float32) map
 
 	close(done)
 
-	responded := 0
 	deltas := deltaTemps(baseline, hot)
 
-	for _, d := range deltas {
-		if d >= guessOutputThreshold {
-			responded++
-		}
-	}
-
-	fmt.Printf("  →  %d sensor(s) responded\n", responded)
+	fmt.Printf("  →  %d sensor(s) responded\n", len(deltas))
 
 	return deltas
 }
@@ -507,7 +514,7 @@ func runGuess(_ *cobra.Command, _ []string) {
 
 	for i, phase := range phases {
 		fmt.Printf("── Phase %d: %s sweep (%s QoS) ──\n",
-			i+1, phaseMidWord(phase.label), phaseMidWord(phase.label))
+			i+1, phaseMidWord(phase.label), qosName(phase.qos))
 		fmt.Printf("  Stressing all %d cores...", numCPU)
 
 		deltas := runAllCoresPhase(numCPU, phase.qos, baseline)

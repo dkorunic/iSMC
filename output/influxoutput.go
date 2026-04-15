@@ -86,24 +86,24 @@ func influxStringConvert(s string) string {
 
 // influxGetValue returns the numeric part of a "value unit" formatted sensor string.
 func influxGetValue(s string) string {
-	s = strings.Split(s, " ")[0]
+	val, _, _ := strings.Cut(s, " ")
 
-	return s
+	return val
 }
 
 // influxGetUnit returns the unit portion of a "value=<number> <unit>" sensor string,
 // stripped of any degree symbol and lowercased. Returns "none" when no unit is present.
 func influxGetUnit(s string) string {
 	s = strings.TrimPrefix(s, "value=")
-	if len(strings.Split(s, " ")) > 1 {
-		s = strings.Split(s, " ")[1]
-		s = strings.ReplaceAll(s, "°", "")
-		s = strings.ToLower(s)
-	} else {
-		s = "none"
+
+	_, unit, found := strings.Cut(s, " ")
+	if !found {
+		return "none"
 	}
 
-	return s
+	unit = strings.ReplaceAll(unit, "°", "")
+
+	return strings.ToLower(unit)
 }
 
 // print writes smcdata to stdout in InfluxDB line protocol format, tagged with the sensor type name.
@@ -112,22 +112,15 @@ func (io InfluxOutput) print(name string, smcdata map[string]any) {
 	if len(smcdata) != 0 {
 		ct := time.Now().UnixNano()
 
-		keys := make([]string, 0, len(smcdata))
-		for k := range smcdata {
-			keys = append(keys, k)
-		}
-
-		for _, k := range keys {
+		for _, k := range sortedKeys(smcdata) {
 			v := smcdata[k]
-			if value, ok := v.(map[string]any); ok {
-				key := fmt.Sprint(value["key"])
-				if len(key) > 0 {
-					key = influxStringConvert(fmt.Sprintf(",key=%s", value["key"]))
-				} else {
-					key = ""
+			if sensorMap, ok := v.(map[string]any); ok {
+				var key string
+				if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
+					key = influxStringConvert(fmt.Sprintf(",key=%s", keyStr))
 				}
 
-				value := fmt.Sprintf("value=%v", value["value"])
+				value := fmt.Sprintf("value=%v", sensorMap["value"])
 				unit := influxGetUnit(value)
 
 				fmt.Fprintf(io.writer, "%v,sensortype=%s,unit=%s%s %s %d\n",

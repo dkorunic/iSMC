@@ -18,6 +18,7 @@ package smc
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/dkorunic/iSMC/gosmc"
 )
@@ -26,7 +27,7 @@ import (
 func getKeyFloat32(c uint, key string) (float32, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
-		return 0.0, "", nil
+		return 0.0, "", fmt.Errorf("SMCReadKey(%q): result %v, dataSize %d", key, res, v.DataSize)
 	}
 
 	t := smcTypeToString(v.DataType)
@@ -43,7 +44,19 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 	// TODO: Proper "hex_" handling
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
 		return smcBytesToFloat32(v.Bytes, v.DataSize), t, nil
-	// flt, ioft, fp*, sp* types
+	// flt values can encode IEEE 754 NaN or Inf if a sensor slot is unused; reject them.
+	case gosmc.TypeFLT:
+		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
+		if !ok {
+			return 0.0, "", fmt.Errorf("unable to decode SMC type %q to float32", t)
+		}
+
+		if math.IsNaN(float64(val)) || math.IsInf(float64(val), 0) {
+			return 0.0, "", fmt.Errorf("SMC key %q has non-finite flt value", key)
+		}
+
+		return val, t, nil
+	// ioft, fp*, sp* types
 	default:
 		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
 		if !ok {
@@ -58,7 +71,7 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 func getKeyUint32(c uint, key string) (uint32, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
-		return 0, "", nil
+		return 0, "", fmt.Errorf("SMCReadKey(%q): result %v, dataSize %d", key, res, v.DataSize)
 	}
 
 	t := smcTypeToString(v.DataType)
@@ -67,7 +80,7 @@ func getKeyUint32(c uint, key string) (uint32, string, error) {
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
 		return smcBytesToUint32(v.Bytes, v.DataSize), t, nil
 	default:
-		return 0, "", fmt.Errorf("unable to convert to uint32 type %q, bytes %v to float32", t,
+		return 0, "", fmt.Errorf("unable to convert to uint32 type %q, bytes %v", t,
 			v.Bytes[:v.DataSize])
 	}
 }
@@ -76,7 +89,7 @@ func getKeyUint32(c uint, key string) (uint32, string, error) {
 func getKeyBool(c uint, key string) (bool, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
-		return false, "", nil
+		return false, "", fmt.Errorf("SMCReadKey(%q): result %v, dataSize %d", key, res, v.DataSize)
 	}
 
 	t := smcTypeToString(v.DataType)
@@ -84,7 +97,7 @@ func getKeyBool(c uint, key string) (bool, string, error) {
 	case gosmc.TypeFLAG:
 		return smcBytesToUint32(v.Bytes, v.DataSize) == uint32(1), t, nil
 	default:
-		return false, "", fmt.Errorf("unable to convert to bool type %q, bytes %v to float32", t,
+		return false, "", fmt.Errorf("unable to convert to bool type %q, bytes %v", t,
 			v.Bytes[:v.DataSize])
 	}
 }

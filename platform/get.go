@@ -31,6 +31,7 @@ import "C"
 
 import (
 	"fmt"
+	"sync"
 	"unsafe"
 )
 
@@ -42,24 +43,35 @@ type PerfLevel struct {
 	LogicalCPU  int    // hw.perflevelN.logicalcpu
 }
 
+var (
+	modelOnce   sync.Once
+	cachedModel string
+)
+
 // getModel returns the hardware model identifier (e.g. "Mac16,1") via the hw.model sysctl,
-// or an empty string if the sysctl call fails.
+// or an empty string if the sysctl call fails. The result is cached after the first call.
 func getModel() string {
-	name := C.CString("hw.model")
-	defer C.free(unsafe.Pointer(name))
+	modelOnce.Do(func() {
+		name := C.CString("hw.model")
+		defer C.free(unsafe.Pointer(name))
 
-	var size C.size_t
+		var size C.size_t
 
-	if ret := C.sysctlbyname(name, nil, &size, nil, 0); ret < 0 || size == 0 {
-		return ""
-	}
+		if ret := C.sysctlbyname(name, nil, &size, nil, 0); ret < 0 || size == 0 {
+			return
+		}
 
-	buf := C.malloc(size)
-	defer C.free(buf)
+		buf := C.malloc(size)
+		defer C.free(buf)
 
-	C.sysctlbyname(name, buf, &size, nil, 0)
+		if ret := C.sysctlbyname(name, buf, &size, nil, 0); ret < 0 {
+			return
+		}
 
-	return C.GoString((*C.char)(buf))
+		cachedModel = C.GoString((*C.char)(buf))
+	})
+
+	return cachedModel
 }
 
 // GetFamily returns the CPU platform family name (e.g. "M4", "Intel") for the current hardware,
@@ -90,13 +102,13 @@ func GetProduct() (Product, bool) {
 // hw.physicalcpu and hw.logicalcpu sysctls.
 func GetTotalCPU() (physical, logical int) {
 	pcpuKey := C.CString("hw.physicalcpu")
+	defer C.free(unsafe.Pointer(pcpuKey))
+
 	lcpuKey := C.CString("hw.logicalcpu")
+	defer C.free(unsafe.Pointer(lcpuKey))
 
 	physical = int(C.sysctl_int32(pcpuKey))
 	logical = int(C.sysctl_int32(lcpuKey))
-
-	C.free(unsafe.Pointer(pcpuKey))
-	C.free(unsafe.Pointer(lcpuKey))
 
 	return physical, logical
 }
@@ -126,7 +138,14 @@ func GetPerfLevels() []PerfLevel {
 		}
 
 		buf := C.malloc(size)
-		C.sysctlbyname(nameKey, buf, &size, nil, 0)
+
+		if ret := C.sysctlbyname(nameKey, buf, &size, nil, 0); ret < 0 {
+			C.free(buf)
+			C.free(unsafe.Pointer(nameKey))
+
+			continue
+		}
+
 		levelName := C.GoString((*C.char)(buf))
 		C.free(buf)
 		C.free(unsafe.Pointer(nameKey))

@@ -65,7 +65,7 @@ func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 			return 0.0, fmt.Errorf("fpToFloat32: size %d too small for type %q", size, t)
 		}
 
-		res := binary.BigEndian.Uint16(x[:size])
+		res := binary.BigEndian.Uint16(x[:2])
 		if v.Signed {
 			return float32(int16(res)) / v.Div, nil
 		}
@@ -73,18 +73,16 @@ func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 		return float32(res) / v.Div, nil
 	}
 
-	return 0.0, fmt.Errorf("unable to convert to float32 type %q, bytes %v to float32", t, x)
+	return 0.0, fmt.Errorf("unable to convert to float32 type %q, bytes %v", t, x)
 }
 
 // fltToFloat32 converts flt SMC type to float32.
-//
-//nolint:unparam
-func fltToFloat32(_ string, x gosmc.SMCBytes, size uint32) (float32, error) {
+func fltToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
 	if size < 4 {
 		return 0.0, fmt.Errorf("fltToFloat32: size %d too small for flt type", size)
 	}
 
-	return math.Float32frombits(binary.LittleEndian.Uint32(x[:size])), nil
+	return math.Float32frombits(binary.LittleEndian.Uint32(x[:4])), nil
 }
 
 // smcTypeToString converts UInt32Char array to regular Go string removing trailing null and whitespace.
@@ -93,7 +91,12 @@ func smcTypeToString(x gosmc.UInt32Char) string {
 }
 
 // smcBytesToUint32 converts ui8/ui16/ui32 SMC types to uint32.
+// size is clamped to 4 to prevent shift overflow for unexpected key sizes.
 func smcBytesToUint32(x gosmc.SMCBytes, size uint32) uint32 {
+	if size > 4 {
+		size = 4
+	}
+
 	var total uint32
 	for i := range size {
 		total += uint32(x[i]) << ((size - 1 - i) * 8)
@@ -113,7 +116,7 @@ func ioftToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
 		return 0.0, fmt.Errorf("ioftToFloat32: size %d too small for ioft type", size)
 	}
 
-	res := binary.LittleEndian.Uint64(x[:size])
+	res := binary.LittleEndian.Uint64(x[:8])
 
 	return float32(res) / 65536.0, nil
 }
@@ -123,7 +126,7 @@ func ioftToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
 func decodeToFloat32(dataType string, bytes gosmc.SMCBytes, size uint32) (float32, bool) {
 	switch dataType {
 	case gosmc.TypeFLT:
-		v, err := fltToFloat32(dataType, bytes, size)
+		v, err := fltToFloat32(bytes, size)
 		return v, err == nil
 	case "ioft":
 		v, err := ioftToFloat32(bytes, size)

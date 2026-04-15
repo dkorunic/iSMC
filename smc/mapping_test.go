@@ -17,6 +17,7 @@
 package smc
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -160,13 +161,7 @@ func Test_M4Pro14CoreMapping(t *testing.T) {
 
 	// Explicitly assert that no phantom P-cores 11-15 appeared.
 	for i := 11; i <= 15; i++ {
-		phantom := "CPU Performance Core " + string(rune('0'+i))
-		if i >= 10 {
-			phantom = "CPU Performance Core " + strings.Join([]string{
-				string(rune('0' + i/10)), string(rune('0' + i%10)),
-			}, "")
-		}
-
+		phantom := fmt.Sprintf("CPU Performance Core %d", i)
 		_, found := resolved[phantom]
 		assert.False(t, found, "phantom %q must not appear in resolved sensors", phantom)
 	}

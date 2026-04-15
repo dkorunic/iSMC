@@ -23,7 +23,13 @@ import (
 	"github.com/dkorunic/iSMC/gosmc"
 )
 
-const keyCount = "#KEY"
+const (
+	keyCount = "#KEY"
+
+	// maxKeys is the upper bound on the number of SMC keys to enumerate.
+	// Current Apple Silicon Macs report ~1800 keys; this guards against a corrupt/spoofed #KEY value.
+	maxKeys = 4096
+)
 
 // RawKey holds raw SMC key data for reporting.
 type RawKey struct {
@@ -35,10 +41,10 @@ type RawKey struct {
 
 // GetRaw returns all SMC keys with their raw byte values
 func GetRaw() []RawKey {
-	conn, res := gosmc.SMCOpen(AppleSMC)
-	if res != gosmc.IOReturnSuccess {
-		fmt.Fprintf(os.Stderr, "Unable to open Apple SMC; return code %v\n", res)
-		os.Exit(1)
+	conn, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return nil
 	}
 	defer gosmc.SMCClose(conn)
 
@@ -48,7 +54,7 @@ func GetRaw() []RawKey {
 		return nil
 	}
 
-	total := smcBytesToUint32(countVal.Bytes, countVal.DataSize)
+	total := min(smcBytesToUint32(countVal.Bytes, countVal.DataSize), maxKeys)
 	keys := make([]RawKey, 0, total)
 
 	for i := range total {

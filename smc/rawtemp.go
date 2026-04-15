@@ -45,7 +45,7 @@ func RawKeyToFloat32(k RawKey) (float32, bool) {
 
 	switch k.DataType {
 	case gosmc.TypeFLT:
-		v, err := fltToFloat32(k.DataType, k.Bytes, k.DataSize)
+		v, err := fltToFloat32(k.Bytes, k.DataSize)
 		if err != nil {
 			return 0, false
 		}

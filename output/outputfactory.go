@@ -22,6 +22,8 @@ func Factory(outputType string) Output {
 	switch outputType {
 	case "table":
 		return NewTableOutput(false)
+	case "ascii":
+		return NewTableOutput(true)
 	case "json":
 		return NewJSONOutput()
 	case "influx":

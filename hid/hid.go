@@ -31,17 +31,10 @@ const (
 	SensorType      = "hid"
 )
 
-// SensorStat holds HID sensors names and values.
-type SensorStat struct {
-	Name  string  // HID sensor name
-	Value float32 // HID sensor readout
-}
-
 // getGeneric returns a map of HID sensor stats.
 func getGeneric(unit string, cStr *C.char) map[string]any {
-	var stats []SensorStat
-
 	goStr := C.GoString(cStr)
+	generic := make(map[string]any)
 
 	scanner := bufio.NewScanner(strings.NewReader(goStr))
 	for scanner.Scan() {
@@ -55,31 +48,20 @@ func getGeneric(unit string, cStr *C.char) map[string]any {
 			continue
 		}
 
-		if val > 0.0 && math.Round(val*100)/100 != 0.0 {
-			stats = append(stats, SensorStat{
-				Name:  split[0],
-				Value: float32(val),
-			})
+		if val <= 0.0 || math.Round(val*100)/100 == 0.0 {
+			continue
 		}
-	}
 
-	generic := make(map[string]any)
-
-	for _, v := range stats {
-		desc := v.Name
-		val := v.Value
-
+		name := split[0]
 		key := ""
-		str := strings.Fields(desc)
 
-		strLen := len(str)
-		if strLen > 1 {
-			key = str[strLen-1]
+		if i := strings.LastIndexByte(name, ' '); i >= 0 {
+			key = name[i+1:]
 		}
 
-		generic[desc] = map[string]any{
+		generic[name] = map[string]any{
 			"key":   key,
-			"value": fmt.Sprintf("%g %s", val, unit),
+			"value": fmt.Sprintf("%g %s", float32(val), unit),
 			"type":  SensorType,
 		}
 	}

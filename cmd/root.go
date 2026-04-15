@@ -39,7 +39,7 @@ information for various hardware in your Apple Mac hardware.`,
 // Execute runs the root Cobra command and exits with a non-zero status on error.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

@@ -48,7 +48,8 @@ type newstruct struct {
 
 // format enriches sensor map entries that carry a space-separated "value unit" string by
 // parsing the numeric part into a Quantity field and the unit into a Unit field.
-// It returns the enriched value or an error if d is not a map or JSON marshalling fails.
+// It returns the enriched value or an error if d is not a map or value parsing fails.
+// Note: format mutates the input map in place; callers must not pass shared or cached maps.
 func format(d any) (any, error) {
 	v, ok := d.(map[string]any)
 	if !ok {
@@ -56,41 +57,36 @@ func format(d any) (any, error) {
 	}
 
 	for key, entry := range v {
-		t, err := json.Marshal(entry)
-		if err != nil {
-			return v, err
-		}
-
-		buf := newstruct{}
-
-		err = json.Unmarshal(t, &buf)
-		if err != nil {
-			return v, err
+		sensorMap, ok := entry.(map[string]any)
+		if !ok {
+			continue
 		}
 
 		// Process only string values that contain a space-separated unit
-		switch buf.Value.(type) {
-		case string:
-			//nolint:forcetypeassert
-			if !strings.Contains(buf.Value.(string), " ") {
-				continue
-			}
-
-			//nolint:forcetypeassert
-			s := strings.Split(buf.Value.(string), " ")
-
-			switch buf.Type {
-			case "flt", "hid", "fp1f", "fp2e", "fp3d", "fp4c", "fp5b", "fp6a", "fp79", "fp88", "fpa6", "fpc4", "fpe2", "sp1e", "sp2d", "sp3c", "sp4b", "sp5a", "sp69", "sp78", "sp87", "sp96", "spa5", "spb4", "spf0":
-				f, err := strconv.ParseFloat(s[0], 64)
-				if err != nil {
-					return v, err
-				}
-
-				buf.Quantity = f
-				buf.Unit = s[1]
-			}
-		default:
+		valStr, ok := sensorMap["value"].(string)
+		if !ok || !strings.Contains(valStr, " ") {
 			continue
+		}
+
+		smcKey, _ := sensorMap["key"].(string)
+		typ, _ := sensorMap["type"].(string)
+
+		buf := newstruct{
+			Key:   smcKey,
+			Type:  typ,
+			Value: valStr,
+		}
+
+		if isFloatType(typ) {
+			numStr, unit, _ := strings.Cut(valStr, " ")
+
+			f, err := strconv.ParseFloat(numStr, 64)
+			if err != nil {
+				return v, err
+			}
+
+			buf.Quantity = f
+			buf.Unit = unit
 		}
 
 		v[key] = buf
@@ -100,19 +96,26 @@ func format(d any) (any, error) {
 }
 
 func (jo JSONOutput) All() {
-	var err error
-
 	data := GetAll()
 
 	for key, d := range data {
-		if data[key], err = format(d); err != nil {
-			jo.print(data)
+		enriched, err := format(d)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "could not format data: %v\n", err)
 
 			return
 		}
+
+		data[key] = enriched
 	}
 
-	out, _ := json.Marshal(data)
+	out, err := json.Marshal(data)
+	if err != nil {
+		fmt.Fprintf(jo.writer, "could not marshal data: %v\n", err)
+
+		return
+	}
+
 	fmt.Fprintln(jo.writer, string(out))
 }
 
@@ -145,15 +148,21 @@ func (jo JSONOutput) Voltage() {
 }
 
 // print formats v via format and writes the resulting JSON to the writer.
-// Formatting errors are reported to the writer and the function returns without printing sensor data.
+// Formatting and marshaling errors are reported to stderr; the writer receives no output on error.
 func (jo JSONOutput) print(v any) {
 	data, err := format(v)
 	if err != nil {
-		fmt.Fprintf(jo.writer, "could not format data: %v\n", err)
+		fmt.Fprintf(os.Stderr, "could not format data: %v\n", err)
 
 		return
 	}
 
-	out, _ := json.Marshal(data)
+	out, err := json.Marshal(data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "could not marshal data: %v\n", err)
+
+		return
+	}
+
 	fmt.Fprintln(jo.writer, string(out))
 }
