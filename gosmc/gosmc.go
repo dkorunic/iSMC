@@ -139,7 +139,7 @@ func SMCReadKey(connection uint, key string) (*SMCVal, int) {
 }
 
 // SMCCall wrapper for Apple IOKit SMCCall
-func SMCCall(connection uint, index int, inputStruct *SMCKeyData) (*SMCKeyData, int) {
+func SMCCall(connection uint, index uint, inputStruct *SMCKeyData) (*SMCKeyData, int) {
 	in := C.SMCKeyData_t{
 		key: C.uint(inputStruct.Key),
 		vers: C.SMCKeyData_vers_t{
@@ -169,7 +169,7 @@ func SMCCall(connection uint, index int, inputStruct *SMCKeyData) (*SMCKeyData, 
 	}
 
 	out := C.SMCKeyData_t{}
-	result := C.SMCCall(C.uint(connection), C.int(index), &in, &out)
+	result := C.SMCCall(C.uint(connection), C.uint(index), &in, &out)
 
 	return &SMCKeyData{
 		Key: uint32(out.key),

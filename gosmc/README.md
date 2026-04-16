@@ -29,7 +29,7 @@ fmt.Printf("key=%s type=%s size=%d bytes=%v\n",
     val.Key.ToString(), val.DataType.ToString(), val.DataSize, val.Bytes[:val.DataSize])
 ```
 
-`SMCReadKey` internally uses a process-wide sorted-array cache (up to 2048 entries, binary-searched) so that key-info lookups hit IOKit only on first access. Subsequent reads for the same key avoid the blocking `SMCGetKeyInfo` round-trip entirely.
+`SMCReadKey` internally uses a process-wide sorted-array cache (up to 2048 entries, binary-searched) so that key-info lookups hit IOKit only on first access. Subsequent reads for the same key avoid the blocking `SMCGetKeyInfo` round-trip entirely. Keys confirmed to be absent or restricted are negatively cached, so repeated lookups for unavailable keys also skip IOKit.
 
 ### Low-level call
 
@@ -41,7 +41,7 @@ input := &gosmc.SMCKeyData{
 output, result := gosmc.SMCCall(connection, gosmc.KernelIndexSMC, input)
 ```
 
-`SMCCall` maps directly to `IOConnectCallStructMethod`. Use it when you need raw index-based enumeration (e.g. iterating all keys via `CMDReadIndex`).
+`SMCCall` maps directly to `IOConnectCallStructMethod`. After a successful transport call it validates that the driver wrote enough bytes to cover at least the SMC result field; if the response is truncated it returns `kIOReturnUnderrun`. Use it when you need raw index-based enumeration (e.g. iterating all keys via `CMDReadIndex`).
 
 ### Writing a key
 
@@ -108,7 +108,7 @@ gosmc.TypeFLAG  // "flag" — single boolean byte
 ## Internal implementation notes
 
 - **`smc.c`** — the C layer. Key functions: `SMCOpen`, `SMCClose`, `SMCCall`, `SMCReadKey`, `SMCWriteKey`, `SMCGetKeyInfo`. Internal static helpers `smcPackKeyBytes` (4-char key string → big-endian `UInt32`) and `smcUnpackKeyBytes` (`UInt32` → 4-char null-terminated string) are not part of the public API. `SMCOpen` returns `kIOReturnNoMemory` if `IOServiceMatching` fails before any IOKit call is made.
-- **Key-info cache** — `SMCGetKeyInfo` maintains a process-global sorted array of up to 2048 `SMCKeyInfoCacheEntry_t` structs. Lookups use binary search (O(log N)); inserts append and mark the array dirty for a lazy `qsort` on the next lookup. The cache is populated on first access per key and never invalidated. The `os_unfair_lock` is held only for the short cache-lookup and cache-insert sections; the blocking `SMCCall` for a cache miss runs outside the lock.
+- **Key-info cache** — `SMCGetKeyInfo` maintains a process-global sorted array of up to 2048 `SMCKeyInfoCacheEntry_t` structs. Each entry carries a `negative` flag: positive entries store the key's metadata; negative entries record that the key is known to be absent or restricted, preventing repeated IOKit round-trips for unavailable keys. Lookups use binary search (O(log N)) and return +1 (hit), -1 (negative hit — skip IOKit), or 0 (miss). Inserts use binary search to find the insertion point and `memmove` to shift existing entries, keeping the array sorted at all times. A full cache blocks new insertions but never blocks in-place upgrades of negative entries to positive — the upgrade check runs before the capacity guard. `SMCClose` acquires the lock and flushes the cache before closing the port, preventing Mach port number recycling from causing a new connection to receive stale cached key-info from the old one. The `os_unfair_lock` is held only for the short cache-lookup and cache-insert sections; the blocking `SMCCall` for a cache miss runs outside the lock. After re-acquiring the lock to insert a result, the code re-checks that `g_cachedConn == conn` to discard results that belong to a connection that was switched by another thread while `SMCCall` was in progress.
 - **`gosmc.go`** — the Go layer. Converts between Go structs and their `C.*` equivalents for each API call.
 - **`values.go`** — IOReturn codes, SMC command codes, SMC type name constants, and SMC type size constants.
 
