@@ -228,10 +228,12 @@ func getGenericSensors(conn uint, unit string, smcSlice []SensorStat) map[string
 }
 
 // isValidReading reports whether val is a plausible sensor reading for the given unit.
-// It rejects zero, near-zero (after rounding to two decimal places), and non-positive
-// values. For temperature sensors (unit == TempUnit) it additionally rejects readings
-// below minTempCelsius, which are firmware sentinel values from inactive or
-// unimplemented sensor slots (observed: −4, 2.2, 3.4, 5.2 °C on M4 Pro 14-core).
+// It rejects any value below 0.005, which covers zero, near-zero, and all
+// non-positive readings (float32 comparison against a positive threshold
+// implicitly excludes negatives). For temperature sensors (unit == TempUnit) it
+// additionally rejects readings below minTempCelsius, which are firmware
+// sentinel values from inactive or unimplemented sensor slots (observed: −4,
+// 2.2, 3.4, 5.2 °C on M4 Pro 14-core).
 func isValidReading(val float32, unit string) bool {
 	if val < 0.005 {
 		return false

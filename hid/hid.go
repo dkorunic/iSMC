@@ -21,7 +21,6 @@ import "C"
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -48,7 +47,10 @@ func getGeneric(unit string, cStr *C.char) map[string]any {
 			continue
 		}
 
-		if val <= 0.0 || math.Round(val*100)/100 == 0.0 {
+		// Reject negatives, zero, and near-zero (|val| < 0.005). The C side
+		// already filters value <= 0.0, so this is a single consolidated
+		// near-zero guard matching smc.isValidReading's threshold.
+		if val < 0.005 {
 			continue
 		}
 

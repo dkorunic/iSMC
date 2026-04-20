@@ -17,17 +17,26 @@
 package smc
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
 	"github.com/dkorunic/iSMC/gosmc"
 )
 
+// errNoValue is the sentinel returned by getKey* when a key is absent, rejected
+// by the SMC, or returns zero-length data. Callers on the generic-sensor scan
+// path (getGenericSensors, getFans) discard the error, so returning a pre-built
+// value-less sentinel avoids a fmt.Errorf allocation on every miss — and misses
+// are the common case when iterating the full AppleTemp/AppleCurrent/etc.
+// sensor lists, which each contain far more keys than any single Mac reports.
+var errNoValue = errors.New("smc: no value")
+
 // getKeyFloat32 returns float32 value for a given SMC key.
 func getKeyFloat32(c uint, key string) (float32, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
-		return 0.0, "", fmt.Errorf("SMCReadKey(%q): result %v, dataSize %d", key, res, v.DataSize)
+		return 0.0, "", errNoValue
 	}
 
 	t := smcTypeToString(v.DataType)
@@ -71,7 +80,7 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 func getKeyUint32(c uint, key string) (uint32, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
-		return 0, "", fmt.Errorf("SMCReadKey(%q): result %v, dataSize %d", key, res, v.DataSize)
+		return 0, "", errNoValue
 	}
 
 	t := smcTypeToString(v.DataType)
@@ -89,7 +98,7 @@ func getKeyUint32(c uint, key string) (uint32, string, error) {
 func getKeyBool(c uint, key string) (bool, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
 	if res != gosmc.IOReturnSuccess || v.DataSize == 0 {
-		return false, "", fmt.Errorf("SMCReadKey(%q): result %v, dataSize %d", key, res, v.DataSize)
+		return false, "", errNoValue
 	}
 
 	t := smcTypeToString(v.DataType)

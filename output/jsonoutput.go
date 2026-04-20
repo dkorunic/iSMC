@@ -48,7 +48,9 @@ type newstruct struct {
 
 // format enriches sensor map entries that carry a space-separated "value unit" string by
 // parsing the numeric part into a Quantity field and the unit into a Unit field.
-// It returns the enriched value or an error if d is not a map or value parsing fails.
+// It returns the enriched value, or an error only if d is not a map. Entries whose
+// numeric part fails to parse are skipped (the original entry is left intact) rather
+// than aborting the whole output, so one malformed sensor cannot suppress all others.
 // Note: format mutates the input map in place; callers must not pass shared or cached maps.
 func format(d any) (any, error) {
 	v, ok := d.(map[string]any)
@@ -82,7 +84,9 @@ func format(d any) (any, error) {
 
 			f, err := strconv.ParseFloat(numStr, 64)
 			if err != nil {
-				return v, err
+				// Leave this entry unchanged and move on; one unparseable
+				// sensor value must not suppress the rest of the output.
+				continue
 			}
 
 			buf.Quantity = f

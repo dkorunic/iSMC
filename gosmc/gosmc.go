@@ -62,12 +62,14 @@ type SMCVal struct {
 type UInt32Char [5]byte
 
 // toC converts a Go UInt32Char to the equivalent C UInt32Char_t representation.
+//
+// UInt32Char is [5]byte and C.UInt32Char_t is char[5]; both are 5-byte arrays
+// of 1-byte elements with identical layout, so we reinterpret the address of
+// the by-value parameter rather than copying byte-by-byte. The dereference
+// returns a value copy, so the local bs never escapes. This turns a 5-iter
+// typed-assignment loop into a single SIMD-friendly move.
 func (bs UInt32Char) toC() C.UInt32Char_t {
-	var xs C.UInt32Char_t
-	for i := range bs {
-		xs[i] = C.char(bs[i])
-	}
-	return xs
+	return *(*C.UInt32Char_t)(unsafe.Pointer(&bs))
 }
 
 // ToString returns the UInt32Char as a Go string.
@@ -76,33 +78,25 @@ func (bs UInt32Char) ToString() string {
 }
 
 // uint32CharFromC converts a C UInt32Char_t to its Go UInt32Char representation.
+// Uses the same layout-compatible reinterpret as toC (see its doc comment).
 func uint32CharFromC(xs C.UInt32Char_t) UInt32Char {
-	var bs UInt32Char
-	for i := range xs {
-		bs[i] = byte(xs[i])
-	}
-	return bs
+	return *(*UInt32Char)(unsafe.Pointer(&xs))
 }
 
 // SMCBytes is IOKit UInt32Char SMCBytes (capped at the kernel's SMC_MAX_DATA_SIZE per-read limit).
 type SMCBytes [32]byte
 
 // toC converts a Go SMCBytes to the equivalent C SMCBytes_t array.
+// Both sides are 32-byte arrays of 1-byte elements; see UInt32Char.toC for
+// the rationale behind the layout-compatible reinterpret.
 func (bs SMCBytes) toC() C.SMCBytes_t {
-	var xs C.SMCBytes_t
-	for i := range bs {
-		xs[i] = C.uchar(bs[i])
-	}
-	return xs
+	return *(*C.SMCBytes_t)(unsafe.Pointer(&bs))
 }
 
 // smcBytesFromC converts a C SMCBytes_t to its Go SMCBytes representation.
+// Uses the same layout-compatible reinterpret as SMCBytes.toC.
 func smcBytesFromC(xs C.SMCBytes_t) SMCBytes {
-	var bs SMCBytes
-	for i := range xs {
-		bs[i] = byte(xs[i])
-	}
-	return bs
+	return *(*SMCBytes)(unsafe.Pointer(&xs))
 }
 
 // SMCOpen wrapper for Apple IOKit SMCOpen

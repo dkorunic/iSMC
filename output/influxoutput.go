@@ -84,6 +84,34 @@ func influxStringConvert(s string) string {
 	return s
 }
 
+// influxEscape backslash-escapes the InfluxDB line-protocol special characters
+// (comma, equals sign, space) in s. It is safe for use on measurement names,
+// tag keys, and tag values. influxStringConvert already folds spaces to
+// underscores, so in practice this guards against commas or equals signs
+// sneaking into future sensor descriptions or HID product names — either of
+// which would otherwise produce malformed line protocol that the ingest
+// endpoint rejects.
+func influxEscape(s string) string {
+	if !strings.ContainsAny(s, ",= ") {
+		return s
+	}
+
+	var b strings.Builder
+
+	b.Grow(len(s) + 4)
+
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == ',' || c == '=' || c == ' ' {
+			b.WriteByte('\\')
+		}
+
+		b.WriteByte(c)
+	}
+
+	return b.String()
+}
+
 // influxGetValue returns the numeric part of a "value unit" formatted sensor string.
 func influxGetValue(s string) string {
 	val, _, _ := strings.Cut(s, " ")
@@ -115,18 +143,22 @@ func (io InfluxOutput) print(name string, smcdata map[string]any) {
 		for _, k := range sortedKeys(smcdata) {
 			v := smcdata[k]
 			if sensorMap, ok := v.(map[string]any); ok {
+				// Structural ",key=" separator is fixed line-protocol syntax;
+				// only the tag value itself is user-controlled and must be
+				// escaped. Building the fragment out of already-escaped pieces
+				// avoids re-escaping the literal '=' that separates them.
 				var key string
 				if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
-					key = influxStringConvert(fmt.Sprintf(",key=%s", keyStr))
+					key = ",key=" + influxEscape(influxStringConvert(keyStr))
 				}
 
 				value := fmt.Sprintf("value=%v", sensorMap["value"])
 				unit := influxGetUnit(value)
 
 				fmt.Fprintf(io.writer, "%v,sensortype=%s,unit=%s%s %s %d\n",
-					influxStringConvert(k),
-					influxStringConvert(name),
-					unit,
+					influxEscape(influxStringConvert(k)),
+					influxEscape(influxStringConvert(name)),
+					influxEscape(unit),
 					key,
 					influxGetValue(value),
 					ct)
