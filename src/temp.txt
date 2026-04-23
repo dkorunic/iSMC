@@ -32,17 +32,10 @@ Northbridge Heatsink %:TN%H:All
 Northbridge Proximity %:TN%P:All
 Battery %:TB%T:All
 Battery Sensor %:TB%S:All
-PCIe Slot % Front:Te%F:Intel
-PCIe Slot % Side:Te%S:Intel
-PCIe Slot % Bottom:Te%T:Intel
-PCIe Slot % Ambient:Te%P:Intel
 Thermal Diode %:TD%P:All
 Drive Bay Front %:TH%F:All
 Drive Bay SATA %:TH%V:All
 Drive Bay Proximity %:TH%P:All
-Power Supply %:Tp%C:Intel
-Power Supply Diode %:Tp%D:Intel
-Power Supply Proximity %:Tp%P:Intel
 Ambient Diode %v:TA%D:All
 Ambient Enclosure %v:TA%E:All
 Ambient Front %v:TA%P:All
@@ -54,11 +47,14 @@ Northbridge Heatsink %:TN%H:All
 Northbridge Proximity %:TN%P:All
 Northbridge Sensor %:TN%S:All
 Voltage Regulator %:TV%R:All
+NVME % (A):TH%a:All
+NVME % (B):TH%b:All
+NVME % (C):TH%c:All
 // Intel
 Heatpipe %:Th%H:Intel
-GPU Intel Graphics:TCGC:All
+GPU Intel Graphics:TCGC:Intel
 System Agent:TCSA:Intel
-System Cluster:TCSC:All
+System Cluster:TCSC:Intel
 Powerboard %:Tp%P:Intel
 GPU %:TG%G:Intel
 Embedded Device:TIED:Intel
@@ -66,6 +62,13 @@ Thermal Group Target:THTG:Intel
 PCH SD:TPSD:Intel
 Thunderbolt TD:TTTD:Intel
 Thunderbolt XD:TTXD:Intel
+PCIe Slot % Front:Te%F:Intel
+PCIe Slot % Side:Te%S:Intel
+PCIe Slot % Bottom:Te%T:Intel
+PCIe Slot % Ambient:Te%P:Intel
+Power Supply %:Tp%C:Intel
+Power Supply Diode %:Tp%D:Intel
+Power Supply Proximity %:Tp%P:Intel
 // Apple
 Airflow Left:TaLP:Apple
 Airflow Right:TaRF:Apple
@@ -75,9 +78,21 @@ Thunderbolt Right Proximity:TaRT:Apple
 Airflow Left Wall:TaLW:Apple
 Airflow Right Wall:TaRW:Apple
 Ambient Top Proximity:TaTP:Apple
-NVME % (A):TH%a:All
-NVME % (B):TH%b:All
-NVME % (C):TH%c:All
+// CPU die/PMU max sensors (TCMb ≈ Tp0D, TCMz ≈ Tp0E peak)
+CPU Die Max:TCMz:Apple
+CPU Die Average:TCMb:Apple
+// Virtual / fused SoC probes
+Virtual Die:TVD0:Apple
+Virtual Memory:TVMR:Apple
+Virtual Memory Summary:TVmS:Apple
+Virtual Ambient %:TVA%:Apple
+Virtual Sensor %:TVS%:Apple
+// Power-delivery ICs (TPD0-9 per slot; TPDX is the aggregate max — reads 0 on A18 idle)
+Power Delivery IC %:TPD%:Apple
+Power Delivery IC Max:TPDX:Apple
+// RF front-end / radio delivery (TRD0-9 per slot; TRDX is the aggregate max)
+RF Delivery %:TRD%:Apple
+RF Delivery Max:TRDX:Apple
 // M1
 // Each core has a triplet of 3 SMC sensors; all three map to the same description
 // so addGeneric keeps whichever has a non-zero reading (fallback behaviour).
@@ -765,9 +780,6 @@ CPU Efficiency Cluster 1 Die:Tex0:A18
 CPU Efficiency Cluster 1 Die:Tex1:A18
 CPU Efficiency Cluster 2 Die:Tex2:A18
 CPU Efficiency Cluster 2 Die:Tex3:A18
-// CPU die/PMU max sensors (TCMb ≈ Tp0D, TCMz ≈ Tp0E peak)
-CPU Die Max:TCMz:A18
-CPU Die Average:TCMb:A18
 // GPU — four doublets (probe + max) on the A18 Pro GPU
 GPU 1:Tg04:A18
 GPU 1:Tg05:A18
@@ -798,29 +810,6 @@ SSD 6:Ts0L:A18
 SSD 6:Ts0M:A18
 SSD Aggregate:Tsx0:A18
 SSD Aggregate:Tsx1:A18
-// Virtual / fused SoC probes
-Virtual Die:TVD0:A18
-Virtual Memory:TVMR:A18
-Virtual Memory Summary:TVmS:A18
-Virtual Ambient 1:TVA0:A18
-Virtual Ambient 2:TVA1:A18
-Virtual Sensor 1:TVS0:A18
-Virtual Sensor 2:TVS1:A18
-Virtual Sensor 3:TVS3:A18
-Virtual Sensor 4:TVS4:A18
-// Power-delivery ICs (TPD0-6; TPDX is the aggregate max and reads 0 when idle)
-Power Delivery IC 1:TPD0:A18
-Power Delivery IC 2:TPD1:A18
-Power Delivery IC 3:TPD2:A18
-Power Delivery IC 4:TPD3:A18
-Power Delivery IC 5:TPD4:A18
-Power Delivery IC 6:TPD5:A18
-Power Delivery IC 7:TPD6:A18
-// RF front-end / radio delivery
-RF Delivery 1:TRD0:A18
-RF Delivery 2:TRD1:A18
-RF Delivery 3:TRD2:A18
-RF Delivery 4:TRD3:A18
 // Board proximity sensors (lowercase p suffix = proximity convention)
 Backlight Proximity:TBLp:A18
 Flash/SSD Proximity:TH0p:A18

@@ -198,9 +198,10 @@ func Test_filterByFamily_A18_GeneratedTable(t *testing.T) {
 		}
 	}
 
-	// Sanity: A18 must contribute the 91 rows we added (90 initial + TaTp).
-	assert.Equal(t, 91, byPlatform["A18"],
-		"expected 91 A18-tagged rows in AppleTemp; got %d", byPlatform["A18"])
+	// Sanity: A18 contributes 69 A18-exclusive rows after consolidating Apple-wide
+	// keys into wildcards (TVA%, TVS%, TPD%, TRD%) and promoting TVMR/TVmS to Apple.
+	assert.Equal(t, 69, byPlatform["A18"],
+		"expected 69 A18-tagged rows in AppleTemp; got %d", byPlatform["A18"])
 }
 
 // Test_filterForPlatform_exactFamilyMatch verifies that platform-specific sensors are
