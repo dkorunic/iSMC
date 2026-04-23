@@ -158,9 +158,7 @@ static NSString *dumpThermalNamesValues(NSArray *kvsN, NSArray *kvsV) {
 
             if (value <= 0.0) continue;
 
-            // PMU tdev sensors (e.g., "PMU tdev1") report temperatures in sp78 fixed-point
-            // format (raw = °C × 256, e.g. 6400.0 for 25°C). Values above kSP78RawThreshold
-            // are unambiguously raw sp78 — see kSP78RawThreshold definition for reasoning.
+            // PMU tdevN sensors encode values as sp78; convert when raw.
             NSRange range = [name rangeOfString:@"tdev"];
             if (range.location != NSNotFound) {
                 if (range.location + 4 < [name length]) {
@@ -335,8 +333,8 @@ HIDSensorData getAllHIDSensors(void) {
         }
 
         CFRelease(system);
-        }   // closes if (system)
-    }       // closes @autoreleasepool
+        }
+    }
 
     return result;
 }

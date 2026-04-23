@@ -41,7 +41,7 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 
 	t := smcTypeToString(v.DataType)
 
-	// Ta0P is mislabeled as 'flt' but actually uses 'sp78' format (2-byte signed fixed-point).
+	// Ta0P: mislabelled flt, decode as sp78.
 	if t == gosmc.TypeFLT && key == "Ta0P" && v.DataSize >= 2 {
 		val, err := fpToFloat32("sp78", v.Bytes, v.DataSize)
 
@@ -53,7 +53,7 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 	// TODO: Proper "hex_" handling
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
 		return smcBytesToFloat32(v.Bytes, v.DataSize), t, nil
-	// flt values can encode IEEE 754 NaN or Inf if a sensor slot is unused; reject them.
+	// Reject NaN/Inf from unused flt sensor slots.
 	case gosmc.TypeFLT:
 		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
 		if !ok {

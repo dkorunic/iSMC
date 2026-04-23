@@ -47,9 +47,7 @@ func getGeneric(unit string, cStr *C.char) map[string]any {
 			continue
 		}
 
-		// Reject negatives, zero, and near-zero (|val| < 0.005). The C side
-		// already filters value <= 0.0, so this is a single consolidated
-		// near-zero guard matching smc.isValidReading's threshold.
+		// Match smc.isValidReading near-zero threshold.
 		if val < 0.005 {
 			continue
 		}

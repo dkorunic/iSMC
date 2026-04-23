@@ -143,10 +143,7 @@ func (io InfluxOutput) print(name string, smcdata map[string]any) {
 		for _, k := range sortedKeys(smcdata) {
 			v := smcdata[k]
 			if sensorMap, ok := v.(map[string]any); ok {
-				// Structural ",key=" separator is fixed line-protocol syntax;
-				// only the tag value itself is user-controlled and must be
-				// escaped. Building the fragment out of already-escaped pieces
-				// avoids re-escaping the literal '=' that separates them.
+				// Only escape the user-controlled tag value, not the "=" separator.
 				var key string
 				if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
 					key = ",key=" + influxEscape(influxStringConvert(keyStr))

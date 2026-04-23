@@ -319,21 +319,21 @@ func filterForPlatform(smcSlice []SensorStat) []SensorStat {
 	familyApple := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == "Apple"
 
 	for _, v := range smcSlice {
-		// Generic/common sensors in Apple Silicon family
+		// Apple umbrella: admit on any Apple Silicon family.
 		if v.Platform == "Apple" && familyApple {
 			filteredSensors = append(filteredSensors, v)
 
 			continue
 		}
 
-		// Generic/common sensors
+		// Universal rows.
 		if v.Platform == "" || v.Platform == "All" {
 			filteredSensors = append(filteredSensors, v)
 
 			continue
 		}
 
-		// Platform-specific sensors for Intel or M-family
+		// Exact family match.
 		if v.Platform == family {
 			filteredSensors = append(filteredSensors, v)
 

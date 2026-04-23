@@ -58,7 +58,6 @@ func GetRaw() []RawKey {
 	keys := make([]RawKey, 0, total)
 
 	for i := range total {
-		// Fetch the key name at this index.
 		input := &gosmc.SMCKeyData{
 			Data8:  gosmc.CMDReadIndex,
 			Data32: i,
@@ -78,7 +77,6 @@ func GetRaw() []RawKey {
 			byte(k),
 		})
 
-		// Read the value for this key.
 		val, res := gosmc.SMCReadKey(conn, keyStr)
 		if res != gosmc.IOReturnSuccess {
 			continue

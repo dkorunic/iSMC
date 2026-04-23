@@ -32,10 +32,10 @@ Northbridge Heatsink %:TN%H:All
 Northbridge Proximity %:TN%P:All
 Battery %:TB%T:All
 Battery Sensor %:TB%S:All
-PCIe Slot % Front:Te%F:All
-PCIe Slot % Side:Te%S:All
-PCIe Slot % Bottom:Te%T:All
-PCIe Slot % Ambient:Te%P:All
+PCIe Slot % Front:Te%F:Intel
+PCIe Slot % Side:Te%S:Intel
+PCIe Slot % Bottom:Te%T:Intel
+PCIe Slot % Ambient:Te%P:Intel
 Thermal Diode %:TD%P:All
 Drive Bay Front %:TH%F:All
 Drive Bay SATA %:TH%V:All
@@ -724,3 +724,110 @@ Uncore Die 13:TUDc:M5
 Uncore Die 14:TUDd:M5
 Uncore Die 15:TUDe:M5
 Uncore Die 16:TUDf:M5
+// A18 (MacBook Neo — Mac17,5, 2P + 4E layout)
+// P-cores follow the M1 convention (Tp0x triplets at offsets 0 and 4).
+// Each core has a triplet of 3 SMC sensors (probe A, probe B, per-core max);
+// the isValidReading floor of 10 °C drops any absent key silently.
+CPU Performance Core 1:Tp00:A18
+CPU Performance Core 1:Tp01:A18
+CPU Performance Core 1:Tp02:A18
+CPU Performance Core 2:Tp04:A18
+CPU Performance Core 2:Tp05:A18
+CPU Performance Core 2:Tp06:A18
+// E-cores use a hybrid scheme: E-core 1/2 follow the M3/M4 Te-triplet
+// convention; E-core 3 is a Tp0* lowercase triplet; E-core 4 uses the
+// non-contiguous Tp0o/Tp0q/Tp0t triplet observed in report-a18.txt.
+CPU Efficiency Core 1:Te04:A18
+CPU Efficiency Core 1:Te05:A18
+CPU Efficiency Core 1:Te06:A18
+CPU Efficiency Core 2:Te0R:A18
+CPU Efficiency Core 2:Te0S:A18
+CPU Efficiency Core 2:Te0T:A18
+CPU Efficiency Core 3:Tp0l:A18
+CPU Efficiency Core 3:Tp0m:A18
+CPU Efficiency Core 3:Tp0n:A18
+CPU Efficiency Core 4:Tp0o:A18
+CPU Efficiency Core 4:Tp0q:A18
+CPU Efficiency Core 4:Tp0t:A18
+// CPU cluster / die aggregates. Tp08-0E mirror the P-core maxes (Tp0E == Tpx1
+// exactly in the report), confirming they are cluster-level sensors, not cores.
+CPU Performance Cluster 1:Tp08:A18
+CPU Performance Cluster 1:Tp09:A18
+CPU Performance Cluster 1:Tp0A:A18
+CPU Performance Cluster 2:Tp0C:A18
+CPU Performance Cluster 2:Tp0D:A18
+CPU Performance Cluster 2:Tp0E:A18
+CPU Performance Cluster 1 Die:Tpx0:A18
+CPU Performance Cluster 1 Die:Tpx1:A18
+CPU Performance Cluster 2 Die:Tpx2:A18
+CPU Performance Cluster 2 Die:Tpx3:A18
+CPU Efficiency Cluster 1 Die:Tex0:A18
+CPU Efficiency Cluster 1 Die:Tex1:A18
+CPU Efficiency Cluster 2 Die:Tex2:A18
+CPU Efficiency Cluster 2 Die:Tex3:A18
+// CPU die/PMU max sensors (TCMb ≈ Tp0D, TCMz ≈ Tp0E peak)
+CPU Die Max:TCMz:A18
+CPU Die Average:TCMb:A18
+// GPU — four doublets (probe + max) on the A18 Pro GPU
+GPU 1:Tg04:A18
+GPU 1:Tg05:A18
+GPU 2:Tg0C:A18
+GPU 2:Tg0D:A18
+GPU 3:Tg0K:A18
+GPU 3:Tg0L:A18
+GPU 4:Tg0d:A18
+GPU 4:Tg0e:A18
+// SSD — M4-style triplets; keys absent on the installed SKU are silently ignored
+SSD 1:Ts00:A18
+SSD 1:Ts01:A18
+SSD 1:Ts02:A18
+SSD 2:Ts04:A18
+SSD 2:Ts05:A18
+SSD 2:Ts06:A18
+SSD 3:Ts08:A18
+SSD 3:Ts09:A18
+SSD 3:Ts0A:A18
+SSD 4:Ts0C:A18
+SSD 4:Ts0D:A18
+SSD 4:Ts0E:A18
+SSD 5:Ts0G:A18
+SSD 5:Ts0H:A18
+SSD 5:Ts0I:A18
+SSD 6:Ts0K:A18
+SSD 6:Ts0L:A18
+SSD 6:Ts0M:A18
+SSD Aggregate:Tsx0:A18
+SSD Aggregate:Tsx1:A18
+// Virtual / fused SoC probes
+Virtual Die:TVD0:A18
+Virtual Memory:TVMR:A18
+Virtual Memory Summary:TVmS:A18
+Virtual Ambient 1:TVA0:A18
+Virtual Ambient 2:TVA1:A18
+Virtual Sensor 1:TVS0:A18
+Virtual Sensor 2:TVS1:A18
+Virtual Sensor 3:TVS3:A18
+Virtual Sensor 4:TVS4:A18
+// Power-delivery ICs (TPD0-6; TPDX is the aggregate max and reads 0 when idle)
+Power Delivery IC 1:TPD0:A18
+Power Delivery IC 2:TPD1:A18
+Power Delivery IC 3:TPD2:A18
+Power Delivery IC 4:TPD3:A18
+Power Delivery IC 5:TPD4:A18
+Power Delivery IC 6:TPD5:A18
+Power Delivery IC 7:TPD6:A18
+// RF front-end / radio delivery
+RF Delivery 1:TRD0:A18
+RF Delivery 2:TRD1:A18
+RF Delivery 3:TRD2:A18
+RF Delivery 4:TRD3:A18
+// Board proximity sensors (lowercase p suffix = proximity convention)
+Backlight Proximity:TBLp:A18
+Flash/SSD Proximity:TH0p:A18
+SSD Proximity 1:TS0p:A18
+SSD Proximity 2:TS1p:A18
+Touch Sensor Proximity:TTSp:A18
+USB-C Proximity:TUCp:A18
+WiFi Proximity:TW0p:A18
+5 GHz Radio Proximity:TR5p:A18
+Ambient Top Proximity:TaTp:A18

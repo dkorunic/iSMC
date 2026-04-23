@@ -160,10 +160,8 @@ func seriesKey(key string) string {
 			indexStarted = true
 			b[i] = '*'
 		case indexStarted && c >= 'A' && c <= 'F':
-			// Continue masking hex digits that are part of the index
 			b[i] = '*'
 		case indexStarted && (c < 'A' || c > 'F'):
-			// Stop masking once we hit a non-hex character after index started
 			indexStarted = false
 		}
 	}
@@ -185,17 +183,14 @@ func numericValue(key string) int {
 
 	for _, c := range []byte(key) {
 		if c >= '0' && c <= '9' {
-			// First digit marks the start of the index
 			indexStarted = true
 
 			digits = append(digits, c)
 		} else if indexStarted {
-			// Once index has started, continue to collect uppercase hex digits
 			if c >= 'A' && c <= 'F' {
 				digits = append(digits, c)
 				hasHexDigit = true
 			} else {
-				// Non-hex character after index started; stop collecting
 				break
 			}
 		}
@@ -399,19 +394,11 @@ func spinCore(affinityTag int, qosClass int, done <-chan struct{}) {
 
 	defer runtime.UnlockOSThread()
 
-	// QoS must be set before affinity so the scheduler applies the class when
-	// it first considers where to place this thread.
+	// QoS before affinity so placement sees the class.
 	stress.SetQoS(qosClass)
 	stress.SetAffinityTag(affinityTag)
 
-	// Four independent FMA+sqrt chains saturate all FP execution units simultaneously.
-	// Apple Silicon P-cores (Everest) have four FP ports; a single chain leaves three
-	// idle. math.FMA(a, a, c) lowers to FMADD on arm64 (fused multiply-add, one rounding)
-	// so each chain step is two instructions: FMADD + FSQRT. Because a, b, c, d carry no
-	// cross-chain data dependencies the out-of-order engine dispatches all four in parallel.
-	//
-	// Growth: a[n] ≈ √(n·π + a[0]²), so after 2 500 inner steps a ≈ 89 — well below 1e15.
-	// The overflow guards below are a safety net; they never fire during normal stress runs.
+	// Four independent FMA+sqrt chains saturate all four FP ports.
 	a, b, c, d := 1.0001, 1.0003, 1.0007, 1.0013
 
 	for {
@@ -422,7 +409,7 @@ func spinCore(affinityTag int, qosClass int, done <-chan struct{}) {
 			d = math.Sqrt(math.FMA(d, d, math.Phi))
 		}
 
-		// Safety resets outside the hot loop — no per-iteration branch in the inner path.
+		// Overflow guard outside hot loop.
 		if a > 1e15 {
 			a = 1.0001
 		}

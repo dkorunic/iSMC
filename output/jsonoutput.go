@@ -64,7 +64,7 @@ func format(d any) (any, error) {
 			continue
 		}
 
-		// Process only string values that contain a space-separated unit
+		// Require "number unit" string.
 		valStr, ok := sensorMap["value"].(string)
 		if !ok || !strings.Contains(valStr, " ") {
 			continue
@@ -84,8 +84,7 @@ func format(d any) (any, error) {
 
 			f, err := strconv.ParseFloat(numStr, 64)
 			if err != nil {
-				// Leave this entry unchanged and move on; one unparseable
-				// sensor value must not suppress the rest of the output.
+				// Skip unparseable entry; do not fail whole output.
 				continue
 			}
 

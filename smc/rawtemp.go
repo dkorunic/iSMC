@@ -32,8 +32,7 @@ import (
 // Returns (value, true) on success and (0, false) for unsupported types, insufficient
 // data, or non-finite results.
 func RawKeyToFloat32(k RawKey) (float32, bool) {
-	// Ta0P is mislabelled as flt but is actually sp78 – apply the same workaround as
-	// getKeyFloat32 in get.go.
+	// Ta0P: mislabelled flt, decode as sp78. Mirrors getKeyFloat32.
 	if k.DataType == gosmc.TypeFLT && k.Key == "Ta0P" && k.DataSize >= 2 {
 		v, err := fpToFloat32("sp78", k.Bytes, k.DataSize)
 		if err != nil {
