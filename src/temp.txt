@@ -54,6 +54,18 @@ NVME % (C):TH%c:All
 // Apple Silicon family (real readings 22-46 °C across reports/).
 Power Management Proximity:TPMP:All
 Power Supply Proximity:TPSP:All
+// Cross-platform standalone diodes observed on Intel/T2 and Apple Silicon
+// (reports/ shows real readings 19-49 °C — previously unmapped).
+// TIOP/TSCD: I/O processor and system controller diodes (Intel-T2 + M4 base).
+// TCHP: CPU Heatpipe (Intel-T2 + most Apple Silicon families).
+// TMVR: Memory Voltage Regulator (Intel-T2 + every Apple Silicon family).
+// TT%D wildcard expands to TT0D-TT9D (Thunderbolt diodes; observed slots 0/1).
+IO Processor:TIOP:All
+System Controller:TSCD:All
+CPU Heatpipe:TCHP:All
+Memory Voltage Regulator:TMVR:All
+Thunderbolt Diode %:TT%D:All
+Embedded Device:TIED:All
 // Intel
 Heatpipe %:Th%H:Intel
 GPU Intel Graphics:TCGC:Intel
@@ -61,7 +73,6 @@ System Agent:TCSA:Intel
 System Cluster:TCSC:Intel
 Powerboard %:Tp%P:Intel
 GPU %:TG%G:Intel
-Embedded Device:TIED:Intel
 Thermal Group Target:THTG:Intel
 PCH SD:TPSD:Intel
 Thunderbolt TD:TTTD:Intel
@@ -81,10 +92,13 @@ Thunderbolt Left Proximity:TaLT:Apple
 Thunderbolt Right Proximity:TaRT:Apple
 Airflow Left Wall:TaLW:Apple
 Airflow Right Wall:TaRW:Apple
-// TAOL appears on every Apple Silicon family with ambient-range readings
-// (18-34 °C); name is best-guess "Ambient Outside Lid".
 Ambient Outside Lid:TAOL:Apple
 Ambient Top Proximity:TaTP:Apple
+// SSD proximity sensors observed on M1/M3/M4 Pro/M5 Pro reports (24-48 °C).
+// Case-distinct from Ts0P/Ts1P (lowercase t = SSD Controller) and from the
+// A18 TS0p/TS1p (lowercase p, mapped separately in the A18 section).
+SSD Proximity 1:TS0P:Apple
+SSD Proximity 2:TS1P:Apple
 // CPU die/PMU max sensors (TCMb ≈ Tp0D, TCMz ≈ Tp0E peak)
 CPU Die Max:TCMz:Apple
 CPU Die Average:TCMb:Apple
@@ -240,6 +254,17 @@ SSD 3:Ts22:M1
 SSD 4:Ts24:M1
 SSD 4:Ts25:M1
 SSD 4:Ts26:M1
+// M1 Ultra die-2 power-delivery / RF-delivery cluster (lowercase Tp/Tr is
+// case-distinct from TPD/TRD; absent on M1 Pro/Max so silently ignored there).
+// Real readings 33-37 °C across the M1 Ultra report; wildcard % covers digit
+// slots 0-9 only — letter slots need explicit rows.
+Power Delivery IC Die 2 %:TpD%:M1
+Power Delivery IC Die 2 Max:TpDX:M1
+Power Delivery IC Die 2 11:TpDa:M1
+Power Delivery IC Die 2 12:TpDb:M1
+RF Delivery Die 2 %:TrD%:M1
+RF Delivery Die 2 Max:TrDX:M1
+RF Delivery Die 2 11:TrDa:M1
 // M2
 CPU Efficiency Core 1:Tp1h:M2
 CPU Efficiency Core 2:Tp1t:M2
@@ -435,10 +460,13 @@ CPU Efficiency Core 3:Te0A:M4
 CPU Efficiency Core 4:Te0G:M4
 CPU Efficiency Core 4:Te0H:M4
 CPU Efficiency Core 4:Te0I:M4
-CPU Efficiency Core 5:Te0U:M4
-CPU Efficiency Core 5:Te0V:M4
-CPU Efficiency Core 6:Te0W:M4
-CPU Efficiency Core 6:Te0X:M4
+// Te0U/V mirror cluster-1 per-core max keys (Te06, Te0A) across M4 base reports;
+// Te0W/X track Te0T (cluster-2 Core 2 max). They are cluster aggregates, not
+// physical "Core 5/6" probes (M4 base has no such cores).
+CPU Efficiency Cluster Aggregate 1:Te0U:M4
+CPU Efficiency Cluster Aggregate 1:Te0V:M4
+CPU Efficiency Cluster Aggregate 2:Te0W:M4
+CPU Efficiency Cluster Aggregate 2:Te0X:M4
 // E-cluster 2 per-core triplets: confirmed on M4 Pro 14-core (10P+4E); absent on M4 base where
 // the second cluster uses Te08/Te0G instead. Listed first so that Te08/Te0G (below) overwrite
 // on M4 base (where Tpx8-D return 0 and are skipped), and Tpx8-D are used on M4 Pro 14-core
