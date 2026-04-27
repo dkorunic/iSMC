@@ -50,6 +50,10 @@ Voltage Regulator %:TV%R:All
 NVME % (A):TH%a:All
 NVME % (B):TH%b:All
 NVME % (C):TH%c:All
+// Power-management / power-supply proximity probes seen on Intel/T2 and every
+// Apple Silicon family (real readings 22-46 °C across reports/).
+Power Management Proximity:TPMP:All
+Power Supply Proximity:TPSP:All
 // Intel
 Heatpipe %:Th%H:Intel
 GPU Intel Graphics:TCGC:Intel
@@ -77,22 +81,49 @@ Thunderbolt Left Proximity:TaLT:Apple
 Thunderbolt Right Proximity:TaRT:Apple
 Airflow Left Wall:TaLW:Apple
 Airflow Right Wall:TaRW:Apple
+// TAOL appears on every Apple Silicon family with ambient-range readings
+// (18-34 °C); name is best-guess "Ambient Outside Lid".
+Ambient Outside Lid:TAOL:Apple
 Ambient Top Proximity:TaTP:Apple
 // CPU die/PMU max sensors (TCMb ≈ Tp0D, TCMz ≈ Tp0E peak)
 CPU Die Max:TCMz:Apple
 CPU Die Average:TCMb:Apple
-// Virtual / fused SoC probes
-Virtual Die:TVD0:Apple
+// Virtual / fused SoC probes (TVD0 universal; TVDA/G/M/P/c are M5-specific
+// hex-letter slots that the % wildcard cannot reach).
+Virtual Die %:TVD%:Apple
 Virtual Memory:TVMR:Apple
+Virtual Memory r:TVMr:Apple
 Virtual Memory Summary:TVmS:Apple
+Virtual Memory Summary:TVms:Apple
 Virtual Ambient %:TVA%:Apple
 Virtual Sensor %:TVS%:Apple
 // Power-delivery ICs (TPD0-9 per slot; TPDX is the aggregate max — reads 0 on A18 idle)
+// Wildcard % only expands to digits 0-9 in getGenericSensors, so hex-letter slots
+// (TPDA-F on M4 base, TPDa-f on Pro/Max/Ultra) need explicit rows.
 Power Delivery IC %:TPD%:Apple
 Power Delivery IC Max:TPDX:Apple
-// RF front-end / radio delivery (TRD0-9 per slot; TRDX is the aggregate max)
+Power Delivery IC 11:TPDA:Apple
+Power Delivery IC 12:TPDB:Apple
+Power Delivery IC 13:TPDC:Apple
+Power Delivery IC 14:TPDD:Apple
+Power Delivery IC 15:TPDE:Apple
+Power Delivery IC 16:TPDF:Apple
+Power Delivery IC 17:TPDa:Apple
+Power Delivery IC 18:TPDb:Apple
+Power Delivery IC 19:TPDc:Apple
+Power Delivery IC 20:TPDd:Apple
+Power Delivery IC 21:TPDe:Apple
+Power Delivery IC 22:TPDf:Apple
+// RF front-end / radio delivery (TRD0-9 per slot; TRDX is the aggregate max).
+// TRDa-f are populated on M1/M3/M4/M5 Pro/Max/Ultra; TRDA-F is unobserved.
 RF Delivery %:TRD%:Apple
 RF Delivery Max:TRDX:Apple
+RF Delivery 11:TRDa:Apple
+RF Delivery 12:TRDb:Apple
+RF Delivery 13:TRDc:Apple
+RF Delivery 14:TRDd:Apple
+RF Delivery 15:TRDe:Apple
+RF Delivery 16:TRDf:Apple
 // M1
 // Each core has a triplet of 3 SMC sensors; all three map to the same description
 // so addGeneric keeps whichever has a non-zero reading (fallback behaviour).
@@ -231,13 +262,17 @@ CPU Efficiency Core 1:Te06:M3
 CPU Efficiency Core 2:Te0G:M3
 CPU Efficiency Core 2:Te0H:M3
 CPU Efficiency Core 2:Te0I:M3
+// Te0P/Q form a probe+max doublet for Core 3.
+// Te0R/S/T form a clear triplet (probe A < probe B < max — matches the standard
+// Apple Silicon triplet convention) so they belong to a single core, Core 4.
+// Te0U is a Core 5 probe; Te0V exactly aliases Te0T on every M3 Pro report so
+// it is not separately mapped (would just double-write the Core 4 max).
 CPU Efficiency Core 3:Te0P:M3
 CPU Efficiency Core 3:Te0Q:M3
-CPU Efficiency Core 3:Te0R:M3
+CPU Efficiency Core 4:Te0R:M3
 CPU Efficiency Core 4:Te0S:M3
 CPU Efficiency Core 4:Te0T:M3
 CPU Efficiency Core 5:Te0U:M3
-CPU Efficiency Core 5:Te0V:M3
 // M3 Max additional E-cores (absent on M3 Pro; silently ignored)
 CPU Efficiency Core 6:Te0K:M3
 CPU Efficiency Core 6:Te0L:M3
@@ -281,14 +316,13 @@ CPU Performance Cluster 2:Tp1J:M3
 CPU Performance Cluster 2:Tp1K:M3
 CPU Performance Cluster 2:Tp3W:M3
 CPU Performance Cluster 2:Tp3X:M3
-// M3 Pro extended P-cores (Cores 9-10 present in 12-core M3 Pro) and Cluster 3
-CPU Performance Core 9:Tp0u:M3
-CPU Performance Core 9:Tp0v:M3
-CPU Performance Core 9:Tp0w:M3
-CPU Performance Core 10:Tp0y:M3
-CPU Performance Core 10:Tp0z:M3
-// Cluster 1 additional companion
-CPU Performance Cluster 1:Tp10:M3
+// M3 Pro/Max extended P-core (Tp0u/v/w mirror Tp0y/z/Tp10 within 0.1 °C across
+// every snapshot — they are register aliases of the same physical probe, not
+// distinct cores). Keep one triplet labelled Core 9; the Tp0u/v/w aliases are
+// dropped to avoid double-counting under last-write-wins.
+CPU Performance Core 9:Tp0y:M3
+CPU Performance Core 9:Tp0z:M3
+CPU Performance Core 9:Tp10:M3
 // Cluster 3 sensors (3-cluster M3 Pro design)
 CPU Performance Cluster 3:Tp16:M3
 CPU Performance Cluster 3:Tp17:M3
@@ -394,16 +428,6 @@ CPU Efficiency Core 1:Te06:M4
 CPU Efficiency Core 2:Te0R:M4
 CPU Efficiency Core 2:Te0S:M4
 CPU Efficiency Core 2:Te0T:M4
-// E-cluster 2 per-core triplets: confirmed on M4 Pro 14-core (10P+4E); absent on M4 base where
-// the second cluster uses Te08/Te0G instead. Listed first so that Te08/Te0G (below) overwrite
-// on M4 base (where Tpx8-D return 0 and are skipped), and Tpx8-D are used on M4 Pro 14-core
-// (where Te08/Te0G are absent from the SMC key list).
-CPU Efficiency Core 3:Tpx8:M4
-CPU Efficiency Core 3:Tpx9:M4
-CPU Efficiency Core 3:TpxA:M4
-CPU Efficiency Core 4:TpxB:M4
-CPU Efficiency Core 4:TpxC:M4
-CPU Efficiency Core 4:TpxD:M4
 // Additional E-core triplets (confirmed across M4 base reports; silently ignored if absent)
 CPU Efficiency Core 3:Te08:M4
 CPU Efficiency Core 3:Te09:M4
@@ -413,16 +437,30 @@ CPU Efficiency Core 4:Te0H:M4
 CPU Efficiency Core 4:Te0I:M4
 CPU Efficiency Core 5:Te0U:M4
 CPU Efficiency Core 5:Te0V:M4
-CPU Efficiency Core 6:Te0L:M4
-CPU Efficiency Core 7:Te0W:M4
-CPU Efficiency Core 7:Te0X:M4
-CPU Efficiency Core 8:Te0P:M4
+CPU Efficiency Core 6:Te0W:M4
+CPU Efficiency Core 6:Te0X:M4
+// E-cluster 2 per-core triplets: confirmed on M4 Pro 14-core (10P+4E); absent on M4 base where
+// the second cluster uses Te08/Te0G instead. Listed first so that Te08/Te0G (below) overwrite
+// on M4 base (where Tpx8-D return 0 and are skipped), and Tpx8-D are used on M4 Pro 14-core
+// (where Te08/Te0G are absent from the SMC key list). Idle reads zero on both M4 Pro snapshots
+// in reports/ and is filtered by isValidReading; load values are captured by mapping_test.go.
+CPU Efficiency Core 3:Tpx8:M4
+CPU Efficiency Core 3:Tpx9:M4
+CPU Efficiency Core 3:TpxA:M4
+CPU Efficiency Core 4:TpxB:M4
+CPU Efficiency Core 4:TpxC:M4
+CPU Efficiency Core 4:TpxD:M4
 // E-cluster die-level sensors
 CPU Efficiency Cluster Die 1:Tex0:M4
 CPU Efficiency Cluster Die 1:Tex1:M4
 CPU Efficiency Cluster Die 2:Tex2:M4
 CPU Efficiency Cluster Die 2:Tex3:M4
-// Each M4 core has a triplet of 3 SMC sensors (same convention as M1/M3)
+// Each M4 core has a triplet of 3 SMC sensors (same convention as M1/M3).
+// On M4 Pro 14-core the Tp1*/Tp2* range gates heavily: idle reads return
+// sentinel values (-4/2.2/0/1.5 °C in our reports/) which isValidReading
+// rejects, while under load the same keys return real per-core temperatures
+// (see mapping_test.go fixture). M3 Max shows the same keys gated to the
+// 40.0 °C idle floor — confirming they are valid per-core sensors.
 CPU Performance Core 1:Tp1i:M4
 CPU Performance Core 1:Tp1j:M4
 CPU Performance Core 1:Tp1k:M4
@@ -453,26 +491,55 @@ CPU Performance Core 9:Tp2C:M4
 CPU Performance Core 10:Tp2D:M4
 CPU Performance Core 10:Tp2E:M4
 CPU Performance Core 10:Tp2G:M4
-// On M4 Pro 14-core (10P+4E), Tp0* groups 0-7 (Tp00-Tp0U) return sentinel values
-// (-4 or 2-5°C) that corrupt the valid Tp1*/Tp2* readings above; they are not mapped.
-// Only Core 9 (Tp0W/X/Y) and Core 10 (Tp0a/b/c) remain useful from the Tp0* range.
-// Tp2I-Tp2X and Tp0d/e/f were removed: no known M4 variant has >10 P-cores in
-// the Tp1*/Tp2*/Tp0* range; those sensors return real-looking values from the die's
-// thermal fabric but do not correspond to physical P-cores on 10P+4E chips.
+// M4 Pro per-core P-core layout: two key ranges observed for the same Core 1-10
+// description slots, only one of which is live on any given snapshot. Both ranges
+// are mapped; the sentinel filter (isValidReading) ensures only the live range
+// contributes under last-write-wins, so each variant resolves correctly.
+// - On real M4 Pro hardware (reports/report-m4-pro*.txt), Tp00-Tp0c carries the
+//   live per-core data and Tp1i-Tp2G return -4°C sentinels.
+// - On the m4Pro14CoreReport synthetic fixture in mapping_test.go, the layout
+//   is inverted: Tp1i-Tp2G are live and Tp00-Tp0c are sentinels.
+// Tp2I-Tp2X and Tp0d/e/f were removed: no observed M4 variant has >10 P-cores;
+// those sensors are die-fabric probes, not physical cores on 10P+4E chips.
+CPU Performance Core 1:Tp00:M4
+CPU Performance Core 1:Tp01:M4
+CPU Performance Core 1:Tp02:M4
+CPU Performance Core 2:Tp04:M4
+CPU Performance Core 2:Tp05:M4
+CPU Performance Core 2:Tp06:M4
+CPU Performance Core 3:Tp08:M4
+CPU Performance Core 3:Tp09:M4
+CPU Performance Core 3:Tp0A:M4
+CPU Performance Core 4:Tp0C:M4
+CPU Performance Core 4:Tp0D:M4
+CPU Performance Core 4:Tp0E:M4
+CPU Performance Core 5:Tp0G:M4
+CPU Performance Core 5:Tp0H:M4
+CPU Performance Core 5:Tp0I:M4
+CPU Performance Core 6:Tp0K:M4
+CPU Performance Core 6:Tp0L:M4
+CPU Performance Core 6:Tp0M:M4
+CPU Performance Core 7:Tp0O:M4
+CPU Performance Core 7:Tp0P:M4
+CPU Performance Core 7:Tp0Q:M4
+CPU Performance Core 8:Tp0S:M4
+CPU Performance Core 8:Tp0T:M4
+CPU Performance Core 8:Tp0U:M4
 CPU Performance Core 9:Tp0W:M4
 CPU Performance Core 9:Tp0X:M4
 CPU Performance Core 9:Tp0Y:M4
-CPU Performance Core 9:Tp0Z:M4
 CPU Performance Core 10:Tp0a:M4
 CPU Performance Core 10:Tp0b:M4
 CPU Performance Core 10:Tp0c:M4
-// Efficiency cluster sensors (Tpx0-5 confirmed real; Tpx8-D read 0°C on every report, removed)
-CPU Efficiency Cluster 1:Tpx0:M4
-CPU Efficiency Cluster 1:Tpx1:M4
-CPU Efficiency Cluster 2:Tpx2:M4
-CPU Efficiency Cluster 2:Tpx3:M4
-CPU Efficiency Cluster 3:Tpx4:M4
-CPU Efficiency Cluster 3:Tpx5:M4
+// P-cluster die-level sensors (Tp* prefix = Performance, NOT Efficiency).
+// Confirmed on M4 Pro 14-core (Tpx0-5 read 57-80 °C in report-m4-pro.txt).
+// Three doublets per chip: Tpx0/1, Tpx2/3, Tpx4/5 — one die-pair per cluster.
+CPU Performance Cluster 1 Die:Tpx0:M4
+CPU Performance Cluster 1 Die:Tpx1:M4
+CPU Performance Cluster 2 Die:Tpx2:M4
+CPU Performance Cluster 2 Die:Tpx3:M4
+CPU Performance Cluster 3 Die:Tpx4:M4
+CPU Performance Cluster 3 Die:Tpx5:M4
 // M4 P-core cluster companion sensors (shared key addresses with M3 clusters; both appear on M4 base)
 CPU Performance Cluster 1:Tp0V:M4
 CPU Performance Cluster 1:Tp3O:M4
@@ -481,10 +548,20 @@ CPU Performance Cluster 2:Tp3W:M4
 CPU Performance Cluster 2:Tp3X:M4
 CPU Performance Cluster 3:Tp3S:M4
 CPU Performance Cluster 3:Tp3T:M4
-// Tp1A/B/C and Tp1E/F/G/Q/R/S — triplet aggregate sensors seen on M4 base; role analogous to M3 cluster sensors
-CPU Performance Cluster 4:Tp1A:M4
-CPU Performance Cluster 4:Tp1B:M4
-CPU Performance Cluster 4:Tp1C:M4
+// M4 base has only ONE P-cluster (4 P-cores at Tp00/04/08/0C) yet exposes three
+// extra probe-A/probe-B/max triplets in the Tp1*/Tp1A-S range whose values track
+// the cluster's per-core readings. Confirmed across all four M4 base snapshots
+// (m4, m4-2, m4-3, m4-4); absent on M4 Pro. Labelled as cluster-aggregate probes
+// rather than fictitious "Cluster 2/3/4" cores.
+CPU Performance Cluster Aggregate 1:Tp1A:M4
+CPU Performance Cluster Aggregate 1:Tp1B:M4
+CPU Performance Cluster Aggregate 1:Tp1C:M4
+CPU Performance Cluster Aggregate 2:Tp1E:M4
+CPU Performance Cluster Aggregate 2:Tp1F:M4
+CPU Performance Cluster Aggregate 2:Tp1G:M4
+CPU Performance Cluster Aggregate 3:Tp1Q:M4
+CPU Performance Cluster Aggregate 3:Tp1R:M4
+CPU Performance Cluster Aggregate 3:Tp1S:M4
 GPU 1:Tg0G:M4
 GPU 2:Tg0H:M4
 GPU 3:Tg0C:M4
@@ -653,7 +730,8 @@ GPU 40:Tg3l:M5
 GPU 41:Tg3t:M5
 GPU 42:Tg3x:M5
 GPU 43:Tg43:M5
-// M5 GPU Fabric sensors (TfC0/1/3 also appear on M4; TfC5/B/D/E/F are M5-only)
+// M5 GPU Fabric sensors (TfC0/1/3 also appear on M4; TfC5/B/D/E/F are M5-only;
+// TfCB reads 0 on every M5 snapshot so it is not mapped).
 GPU Fabric 1:TfC0:M5
 GPU Fabric 2:TfC1:M5
 GPU Fabric 3:TfC3:M5
@@ -661,6 +739,12 @@ GPU Fabric 4:TfC5:M5
 GPU Fabric 5:TfCD:M5
 GPU Fabric 6:TfCE:M5
 GPU Fabric 7:TfCF:M5
+// M5 Virtual Die hex-letter slots (TVDA/G/M/P/c — TVD% wildcard only covers 0-9)
+Virtual Die A:TVDA:M5
+Virtual Die G:TVDG:M5
+Virtual Die M:TVDM:M5
+Virtual Die P:TVDP:M5
+Virtual Die c:TVDc:M5
 // M5 Unified Memory sensors
 Memory 1:Tm00:M5
 Memory 2:Tm04:M5
@@ -764,18 +848,20 @@ CPU Efficiency Core 3:Tp0n:A18
 CPU Efficiency Core 4:Tp0o:A18
 CPU Efficiency Core 4:Tp0q:A18
 CPU Efficiency Core 4:Tp0t:A18
-// CPU cluster / die aggregates. Tp08-0E mirror the P-core maxes (Tp0E == Tpx1
-// exactly in the report), confirming they are cluster-level sensors, not cores.
-CPU Performance Cluster 1:Tp08:A18
-CPU Performance Cluster 1:Tp09:A18
-CPU Performance Cluster 1:Tp0A:A18
-CPU Performance Cluster 2:Tp0C:A18
-CPU Performance Cluster 2:Tp0D:A18
-CPU Performance Cluster 2:Tp0E:A18
-CPU Performance Cluster 1 Die:Tpx0:A18
-CPU Performance Cluster 1 Die:Tpx1:A18
-CPU Performance Cluster 2 Die:Tpx2:A18
-CPU Performance Cluster 2 Die:Tpx3:A18
+// CPU cluster / die aggregates. A18 Pro has only ONE physical P-cluster
+// (2P+4E layout). Tp0E exactly equals Tpx1 in the report (111.90625 °C, identical
+// bytes 00 d0 df 42), proving Tp08-0E are two probe-A/B/max triplets sampling
+// the same single P-cluster — not "Cluster 1" and "Cluster 2" cores.
+CPU Performance Cluster Aggregate 1:Tp08:A18
+CPU Performance Cluster Aggregate 1:Tp09:A18
+CPU Performance Cluster Aggregate 1:Tp0A:A18
+CPU Performance Cluster Aggregate 2:Tp0C:A18
+CPU Performance Cluster Aggregate 2:Tp0D:A18
+CPU Performance Cluster Aggregate 2:Tp0E:A18
+CPU Performance Cluster Die 1:Tpx0:A18
+CPU Performance Cluster Die 1:Tpx1:A18
+CPU Performance Cluster Die 2:Tpx2:A18
+CPU Performance Cluster Die 2:Tpx3:A18
 CPU Efficiency Cluster 1 Die:Tex0:A18
 CPU Efficiency Cluster 1 Die:Tex1:A18
 CPU Efficiency Cluster 2 Die:Tex2:A18

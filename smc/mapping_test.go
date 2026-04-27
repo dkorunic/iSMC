@@ -409,11 +409,11 @@ func Test_A18ProMapping(t *testing.T) {
 	assert.Equal(t, 4, eCores,
 		"A18 Pro must resolve to exactly 4 Efficiency Cores; got %v", eCoreNames)
 
-	// Verify cluster aggregates resolved but are NOT labelled as cores.
-	_, c1 := resolved["CPU Performance Cluster 1"]
-	_, c2 := resolved["CPU Performance Cluster 2"]
-	assert.True(t, c1, "CPU Performance Cluster 1 must resolve from Tp08/09/0A")
-	assert.True(t, c2, "CPU Performance Cluster 2 must resolve from Tp0C/0D/0E")
+	// Cluster aggregates must resolve under non-core labels (single P-cluster on A18 Pro).
+	_, ca1 := resolved["CPU Performance Cluster Aggregate 1"]
+	_, ca2 := resolved["CPU Performance Cluster Aggregate 2"]
+	assert.True(t, ca1, "CPU Performance Cluster Aggregate 1 must resolve from Tp08/09/0A")
+	assert.True(t, ca2, "CPU Performance Cluster Aggregate 2 must resolve from Tp0C/0D/0E")
 
 	// Guard against phantom P-cores 3+: only 2 P-cores exist on A18 Pro.
 	for i := 3; i <= 6; i++ {
