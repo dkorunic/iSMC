@@ -220,7 +220,7 @@ GPU 3:Tg0K:M1
 GPU 3:Tg0L:M1
 GPU 4:Tg0S:M1
 GPU 4:Tg0T:M1
-// M1 Ultra die 1 GPU (absent on M1/M1 Pro/M1 Max, silently ignored)
+// M1 Ultra die 2 GPU (absent on M1/M1 Pro/M1 Max, silently ignored)
 GPU 5:Tg0a:M1
 GPU 5:Tg0b:M1
 GPU 6:Tg0i:M1
@@ -383,22 +383,60 @@ CPU Performance Cluster 3:Tp17:M3
 CPU Performance Cluster 3:Tp18:M3
 CPU Performance Cluster 3:Tp3S:M3
 CPU Performance Cluster 3:Tp3T:M3
-GPU 1:Tf14:M3
-GPU 1:Tf15:M3
-GPU 1:Tf16:M3
-GPU 1:Tf1D:M3
-GPU 1:Tf1E:M3
-GPU 2:Tf18:M3
-GPU 3:Tf19:M3
-GPU 4:Tf1A:M3
-GPU 5:Tf24:M3
-GPU 5:Tf25:M3
-GPU 5:Tf26:M3
-GPU 5:Tf2D:M3
-GPU 5:Tf2E:M3
-GPU 6:Tf28:M3
-GPU 7:Tf29:M3
-GPU 8:Tf2A:M3
+// M3 GPU fabric — five blocks on M3 Max (Tf0?, Tf1?, Tf2?, Tf3?, Tf4?); only
+// Tf1? and Tf2? are present on M3 Pro. Per block: Tf?4/Tf?D/Tf?E are aggregate
+// aliases (mirror values), Tf?5 is the block minimum, Tf?6 is the block maximum,
+// Tf?8/9/A/B are four sub-block probes. Tf0B mirrors the aggregate on the bottom
+// band and is mapped as Probe 4 for symmetry. Tf9F/TfA0 are M3 Max-only fabric
+// aggregates. Block index matches the second hex digit of the SMC key for
+// raw-dump traceability.
+GPU Fabric Block 0:Tf04:M3
+GPU Fabric Block 0:Tf0D:M3
+GPU Fabric Block 0:Tf0E:M3
+GPU Fabric Block 0 Min:Tf05:M3
+GPU Fabric Block 0 Max:Tf06:M3
+GPU Fabric Block 0 Probe 1:Tf08:M3
+GPU Fabric Block 0 Probe 2:Tf09:M3
+GPU Fabric Block 0 Probe 3:Tf0A:M3
+GPU Fabric Block 0 Probe 4:Tf0B:M3
+GPU Fabric Block 1:Tf14:M3
+GPU Fabric Block 1:Tf1D:M3
+GPU Fabric Block 1:Tf1E:M3
+GPU Fabric Block 1 Min:Tf15:M3
+GPU Fabric Block 1 Max:Tf16:M3
+GPU Fabric Block 1 Probe 1:Tf18:M3
+GPU Fabric Block 1 Probe 2:Tf19:M3
+GPU Fabric Block 1 Probe 3:Tf1A:M3
+GPU Fabric Block 1 Probe 4:Tf1B:M3
+GPU Fabric Block 2:Tf24:M3
+GPU Fabric Block 2:Tf2D:M3
+GPU Fabric Block 2:Tf2E:M3
+GPU Fabric Block 2 Min:Tf25:M3
+GPU Fabric Block 2 Max:Tf26:M3
+GPU Fabric Block 2 Probe 1:Tf28:M3
+GPU Fabric Block 2 Probe 2:Tf29:M3
+GPU Fabric Block 2 Probe 3:Tf2A:M3
+GPU Fabric Block 2 Probe 4:Tf2B:M3
+GPU Fabric Block 3:Tf34:M3
+GPU Fabric Block 3:Tf3D:M3
+GPU Fabric Block 3:Tf3E:M3
+GPU Fabric Block 3 Min:Tf35:M3
+GPU Fabric Block 3 Max:Tf36:M3
+GPU Fabric Block 3 Probe 1:Tf38:M3
+GPU Fabric Block 3 Probe 2:Tf39:M3
+GPU Fabric Block 3 Probe 3:Tf3A:M3
+GPU Fabric Block 3 Probe 4:Tf3B:M3
+GPU Fabric Block 4:Tf44:M3
+GPU Fabric Block 4:Tf4D:M3
+GPU Fabric Block 4:Tf4E:M3
+GPU Fabric Block 4 Min:Tf45:M3
+GPU Fabric Block 4 Max:Tf46:M3
+GPU Fabric Block 4 Probe 1:Tf48:M3
+GPU Fabric Block 4 Probe 2:Tf49:M3
+GPU Fabric Block 4 Probe 3:Tf4A:M3
+GPU Fabric Block 4 Probe 4:Tf4B:M3
+GPU Fabric Aggregate:Tf9F:M3
+GPU Fabric Aggregate Max:TfA0:M3
 // Tg* GPU cluster keys also present on M3 (same die-level GPU sensor addresses as M1)
 GPU 1:Tg04:M3
 GPU 1:Tg05:M3
@@ -808,7 +846,7 @@ GPU 41:Tg3t:M5
 GPU 42:Tg3x:M5
 GPU 43:Tg43:M5
 // M5 GPU Fabric sensors (TfC0/1/3 also appear on M4; TfC5/B/D/E/F are M5-only;
-// TfCB reads 0 on every M5 snapshot so it is not mapped).
+// TfCB reads 0 on the available M5 snapshot so it is not mapped).
 GPU Fabric 1:TfC0:M5
 GPU Fabric 2:TfC1:M5
 GPU Fabric 3:TfC3:M5
