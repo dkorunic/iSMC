@@ -426,10 +426,7 @@ func buildPhases(perfLevels []platform.PerfLevel, layout platform.SKULayout) []p
 
 	bottomQoS := stress.QoSBackground
 	if layout.PairSignature == platform.PairSignatureSP {
-		// S+P chips have no E-cores; bias bottom phase toward Performance cores
-		// rather than the (non-existent) Efficiency tier so the OS still routes
-		// threads to the second physical tier rather than to the high-throughput
-		// Super cores. UserInitiated is the right hint here.
+		// S+P has no E-tier; route bottom phase to Performance cores.
 		bottomQoS = stress.QoSUserInitiated
 	}
 
@@ -770,9 +767,7 @@ func warnAbsentTypes(l platform.SKULayout, results []phaseResult) {
 			continue
 		}
 
-		// This phase's core type is absent on the SKU yet sensors heated up.
-		// Could be that the kernel routed the QoS hint to whatever it had
-		// available; the resulting label will be wrong for temp.txt.
+		// Sensors heated for a core type the SKU lacks — kernel routed elsewhere.
 		fmt.Printf("// WARNING: phase %q produced sensors but SKU pair signature %s "+
 			"has no cores of this type — relabel before pasting into src/temp.txt.\n",
 			r.spec.label, l.PairSignature)
@@ -790,7 +785,6 @@ func warnAbsentTypes(l platform.SKULayout, results []phaseResult) {
 func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	layout platform.SKULayout, layoutOK bool, product platform.Product, results []phaseResult,
 ) {
-	// Union of all observed sensor keys across all phases.
 	allKeys := make(map[string]struct{})
 
 	for _, r := range results {
@@ -799,13 +793,11 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 		}
 	}
 
-	// phaseKeys[i] holds keys whose dominant phase is results[i].
 	phaseKeys := make([][]string, len(results))
 
 	var clusterKeys []string
 
 	for key := range allKeys {
-		// Find index of dominant phase (highest delta ≥ threshold).
 		dominantIdx := -1
 		dominantDelta := float32(0)
 
@@ -821,7 +813,6 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 			continue
 		}
 
-		// Cluster detection: find second-best phase.
 		secondDelta := float32(0)
 
 		for i, r := range results {

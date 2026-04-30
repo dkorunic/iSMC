@@ -124,7 +124,6 @@ func familyFromFilename(name string) string {
 		return "Intel"
 	}
 
-	// "m1" → "M1", "a18" → "A18".
 	return strings.ToUpper(first[:1]) + first[1:]
 }
 

@@ -141,7 +141,7 @@ func TestFamilies(t *testing.T) {
 func TestIngest_skipsNonTKeys(t *testing.T) {
 	t.Parallel()
 
-	// Reset the package state for an isolated test.
+	// Isolate from other tests' parser state.
 	byFamily = map[string]map[string]struct{}{}
 
 	body := `
