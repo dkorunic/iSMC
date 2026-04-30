@@ -149,3 +149,132 @@ func Test_GetFamily_consistency(t *testing.T) {
 	assert.Equal(t, p.Family, family,
 		"GetFamily() must match products[%q].Family", modelID)
 }
+
+// Test_skuLayoutsIntegrity walks the SKU roster and verifies every entry honours
+// the invariants the validate-temp-mappings skill encodes:
+//   - Min ≤ Max for every {S,P,E,GPU}Cores pair.
+//   - PairSignature is one of P+E / S+E / S+P.
+//   - The "absent" core type for the pair signature has zero Min/Max
+//     (e.g. M5 Pro is S+P → ECoresMax must be zero; M5 base is S+E → PCoresMax
+//     must be zero).
+//   - Dies is 1 (monolithic) or 2 (UltraFusion).
+//   - GPUCoresMax is positive (every shipped Apple Silicon SKU has GPU cores).
+func Test_skuLayoutsIntegrity(t *testing.T) {
+	t.Parallel()
+
+	for sku, layout := range skuLayouts {
+		t.Run(sku, func(t *testing.T) {
+			t.Parallel()
+
+			assert.LessOrEqual(t, layout.SCoresMin, layout.SCoresMax,
+				"%s: SCoresMin > SCoresMax", sku)
+			assert.LessOrEqual(t, layout.PCoresMin, layout.PCoresMax,
+				"%s: PCoresMin > PCoresMax", sku)
+			assert.LessOrEqual(t, layout.ECoresMin, layout.ECoresMax,
+				"%s: ECoresMin > ECoresMax", sku)
+			assert.LessOrEqual(t, layout.GPUCoresMin, layout.GPUCoresMax,
+				"%s: GPUCoresMin > GPUCoresMax", sku)
+
+			assert.Contains(t,
+				[]string{PairSignaturePE, PairSignatureSE, PairSignatureSP},
+				layout.PairSignature,
+				"%s: PairSignature %q is not one of the known constants", sku, layout.PairSignature)
+
+			switch layout.PairSignature {
+			case PairSignaturePE:
+				assert.Zero(t, layout.SCoresMax, "%s: P+E SKU must have no S-cores", sku)
+				assert.Positive(t, layout.PCoresMax, "%s: P+E SKU must have P-cores", sku)
+				assert.Positive(t, layout.ECoresMax, "%s: P+E SKU must have E-cores", sku)
+			case PairSignatureSE:
+				assert.Zero(t, layout.PCoresMax, "%s: S+E SKU must have no P-cores", sku)
+				assert.Positive(t, layout.SCoresMax, "%s: S+E SKU must have S-cores", sku)
+				assert.Positive(t, layout.ECoresMax, "%s: S+E SKU must have E-cores", sku)
+			case PairSignatureSP:
+				assert.Zero(t, layout.ECoresMax, "%s: S+P SKU must have no E-cores", sku)
+				assert.Positive(t, layout.SCoresMax, "%s: S+P SKU must have S-cores", sku)
+				assert.Positive(t, layout.PCoresMax, "%s: S+P SKU must have P-cores", sku)
+			}
+
+			assert.Contains(t, []int{1, 2}, layout.Dies,
+				"%s: Dies %d not in {1, 2}", sku, layout.Dies)
+			assert.Positive(t, layout.GPUCoresMax,
+				"%s: GPUCoresMax must be > 0", sku)
+		})
+	}
+}
+
+// Test_skuLayouts_coverage verifies that every Apple Silicon SKU referenced from
+// the products map has a corresponding entry in skuLayouts. Intel SKUs are
+// excluded — they have no per-core SMC convention worth modelling here.
+func Test_skuLayouts_coverage(t *testing.T) {
+	t.Parallel()
+
+	for modelID, p := range products {
+		if p.Family == "Intel" {
+			continue
+		}
+
+		_, ok := skuLayouts[p.CPU]
+		assert.True(t, ok,
+			"model %q (CPU %q, family %q) has no entry in skuLayouts; add it to the family roster",
+			modelID, p.CPU, p.Family)
+	}
+}
+
+// Test_LookupSKULayout_known verifies lookup of a few well-known SKUs returns
+// the expected pair signature and core counts. Catches column-swap regressions.
+func Test_LookupSKULayout_known(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		cpu                    string
+		wantPairSig            string
+		wantPMin, wantPMax     int
+		wantEMin, wantEMax     int
+		wantSMin, wantSMax     int
+		wantDies               int
+		wantGPUMin, wantGPUMax int
+	}{
+		// Base M1: 4P+4E, monolithic, 7 or 8 GPU cores.
+		{"M1", PairSignaturePE, 4, 4, 4, 4, 0, 0, 1, 7, 8},
+		// M1 Ultra: dual-die fused 16P+4E.
+		{"M1 Ultra", PairSignaturePE, 16, 16, 4, 4, 0, 0, 2, 48, 64},
+		// M3 Pro: variable P-count (5 or 6), 6E baseline.
+		{"M3 Pro", PairSignaturePE, 5, 6, 6, 6, 0, 0, 1, 14, 18},
+		// M5 base: S+E, no P-cores.
+		{"M5", PairSignatureSE, 0, 0, 6, 6, 3, 4, 1, 8, 10},
+		// M5 Pro: S+P, no E-cores.
+		{"M5 Pro", PairSignatureSP, 10, 12, 0, 0, 5, 6, 1, 16, 20},
+		// A18 Pro: P+E.
+		{"A18 Pro", PairSignaturePE, 2, 2, 4, 4, 0, 0, 1, 6, 6},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.cpu, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok := LookupSKULayout(tt.cpu)
+			assert.True(t, ok, "%s: must be present", tt.cpu)
+			assert.Equal(t, tt.wantPairSig, got.PairSignature, "%s: PairSignature", tt.cpu)
+			assert.Equal(t, tt.wantPMin, got.PCoresMin, "%s: PCoresMin", tt.cpu)
+			assert.Equal(t, tt.wantPMax, got.PCoresMax, "%s: PCoresMax", tt.cpu)
+			assert.Equal(t, tt.wantEMin, got.ECoresMin, "%s: ECoresMin", tt.cpu)
+			assert.Equal(t, tt.wantEMax, got.ECoresMax, "%s: ECoresMax", tt.cpu)
+			assert.Equal(t, tt.wantSMin, got.SCoresMin, "%s: SCoresMin", tt.cpu)
+			assert.Equal(t, tt.wantSMax, got.SCoresMax, "%s: SCoresMax", tt.cpu)
+			assert.Equal(t, tt.wantDies, got.Dies, "%s: Dies", tt.cpu)
+			assert.Equal(t, tt.wantGPUMin, got.GPUCoresMin, "%s: GPUCoresMin", tt.cpu)
+			assert.Equal(t, tt.wantGPUMax, got.GPUCoresMax, "%s: GPUCoresMax", tt.cpu)
+		})
+	}
+}
+
+// Test_LookupSKULayout_unknown verifies that an unknown SKU string returns the
+// zero SKULayout and false, so callers can use the boolean to skip validation.
+func Test_LookupSKULayout_unknown(t *testing.T) {
+	t.Parallel()
+
+	got, ok := LookupSKULayout("M99 Imaginary")
+	assert.False(t, ok)
+	assert.Equal(t, SKULayout{}, got)
+}

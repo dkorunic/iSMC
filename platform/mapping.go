@@ -23,6 +23,81 @@ type Product struct {
 	Year   int
 }
 
+// Pair signatures describe which two core types coexist on an Apple Silicon SKU.
+// Driven by the validate-temp-mappings family roster: M1–M4 and A18 use P+E; M5
+// base uses S+E; M5 Pro/Max use S+P. The same Tp* SMC prefix maps to different
+// physical core types depending on this signature, so any consumer that names
+// per-core sensors must consult it (cmd/guess.go does so when labelling phases).
+const (
+	PairSignaturePE = "P+E" // Performance + Efficiency (M1–M4, A18, all variants)
+	PairSignatureSE = "S+E" // Super + Efficiency (M5 base only)
+	PairSignatureSP = "S+P" // Super + Performance (M5 Pro / M5 Max)
+)
+
+// SKULayout describes the per-SKU physical core composition, GPU core counts, die
+// count, and pair signature for an Apple Silicon variant. Sourced from the
+// validate-temp-mappings family roster (.claude/skills/validate-temp-mappings).
+//
+// Multiple field configurations exist for many SKUs (e.g. M1 Pro: 6P+2E or 8P+2E,
+// M3 Max: 10P+4E or 12P+4E). The {Min,Max} pairs span every observed variant, so
+// a runtime-detected count is consistent with the SKU iff it falls inside the
+// inclusive range. A zero value for a core type means that type is absent on the
+// SKU (e.g. M5 Pro has no E-cores → ECoresMin = ECoresMax = 0).
+//
+// PairSignature uses one of the PairSignature* constants. Dies is 1 for monolithic
+// chips and 2 for UltraFusion SKUs (M1/M2/M3 Ultra) — die count drives the
+// "look for parallel die-2 sensor sets" expectation in validators.
+type SKULayout struct {
+	PairSignature            string
+	PCoresMin, PCoresMax     int
+	ECoresMin, ECoresMax     int
+	SCoresMin, SCoresMax     int
+	GPUCoresMin, GPUCoresMax int
+	Dies                     int
+}
+
+// skuLayouts maps an Apple Silicon SKU (the Product.CPU string) to its known core
+// composition. This is the on-device counterpart of the validate-temp-mappings
+// family roster and is the single source of truth used by cmd/guess.go for phase
+// labelling and detected-count validation.
+//
+// When a new chip is announced: add an entry here, add the corresponding model
+// IDs to the products map above, and (only if the family tag introduces a new
+// pair signature) add a temp.txt sub-family split per the skill's procedure.
+var skuLayouts = map[string]SKULayout{
+	// M1 family — P+E
+	"M1":       {PCoresMin: 4, PCoresMax: 4, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 7, GPUCoresMax: 8, PairSignature: PairSignaturePE, Dies: 1},
+	"M1 Pro":   {PCoresMin: 6, PCoresMax: 8, ECoresMin: 2, ECoresMax: 2, GPUCoresMin: 14, GPUCoresMax: 16, PairSignature: PairSignaturePE, Dies: 1},
+	"M1 Max":   {PCoresMin: 8, PCoresMax: 8, ECoresMin: 2, ECoresMax: 2, GPUCoresMin: 24, GPUCoresMax: 32, PairSignature: PairSignaturePE, Dies: 1},
+	"M1 Ultra": {PCoresMin: 16, PCoresMax: 16, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 48, GPUCoresMax: 64, PairSignature: PairSignaturePE, Dies: 2},
+
+	// M2 family — P+E
+	"M2":       {PCoresMin: 4, PCoresMax: 4, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignaturePE, Dies: 1},
+	"M2 Pro":   {PCoresMin: 6, PCoresMax: 8, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 16, GPUCoresMax: 19, PairSignature: PairSignaturePE, Dies: 1},
+	"M2 Max":   {PCoresMin: 8, PCoresMax: 8, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 30, GPUCoresMax: 38, PairSignature: PairSignaturePE, Dies: 1},
+	"M2 Ultra": {PCoresMin: 16, PCoresMax: 16, ECoresMin: 8, ECoresMax: 8, GPUCoresMin: 60, GPUCoresMax: 76, PairSignature: PairSignaturePE, Dies: 2},
+
+	// M3 family — P+E
+	"M3":       {PCoresMin: 4, PCoresMax: 4, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignaturePE, Dies: 1},
+	"M3 Pro":   {PCoresMin: 5, PCoresMax: 6, ECoresMin: 6, ECoresMax: 6, GPUCoresMin: 14, GPUCoresMax: 18, PairSignature: PairSignaturePE, Dies: 1},
+	"M3 Max":   {PCoresMin: 10, PCoresMax: 12, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 30, GPUCoresMax: 40, PairSignature: PairSignaturePE, Dies: 1},
+	"M3 Ultra": {PCoresMin: 20, PCoresMax: 24, ECoresMin: 8, ECoresMax: 8, GPUCoresMin: 60, GPUCoresMax: 80, PairSignature: PairSignaturePE, Dies: 2},
+
+	// M4 family — P+E
+	"M4":     {PCoresMin: 3, PCoresMax: 4, ECoresMin: 4, ECoresMax: 6, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignaturePE, Dies: 1},
+	"M4 Pro": {PCoresMin: 8, PCoresMax: 10, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 16, GPUCoresMax: 20, PairSignature: PairSignaturePE, Dies: 1},
+	"M4 Max": {PCoresMin: 10, PCoresMax: 12, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 32, GPUCoresMax: 40, PairSignature: PairSignaturePE, Dies: 1},
+
+	// M5 family — base = S+E, Pro/Max = S+P. Two distinct pair signatures share
+	// the "M5" family tag; do not collapse without also splitting temp.txt.
+	"M5":     {SCoresMin: 3, SCoresMax: 4, ECoresMin: 6, ECoresMax: 6, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignatureSE, Dies: 1},
+	"M5 Pro": {SCoresMin: 5, SCoresMax: 6, PCoresMin: 10, PCoresMax: 12, GPUCoresMin: 16, GPUCoresMax: 20, PairSignature: PairSignatureSP, Dies: 1},
+	"M5 Max": {SCoresMin: 6, SCoresMax: 6, PCoresMin: 12, PCoresMax: 12, GPUCoresMin: 32, GPUCoresMax: 40, PairSignature: PairSignatureSP, Dies: 1},
+
+	// A-series
+	"A18 Pro": {PCoresMin: 2, PCoresMax: 2, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 6, GPUCoresMax: 6, PairSignature: PairSignaturePE, Dies: 1},
+}
+
 // https://en.wikipedia.org/wiki/List_of_Mac_models
 // https://github.com/exelban/stats/blob/master/Kit/plugins/SystemKit.swift
 var products = map[string]Product{

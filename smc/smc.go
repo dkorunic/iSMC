@@ -304,42 +304,120 @@ func GetVoltage() map[string]any {
 // "Apple" are included for any Apple Silicon family. Falls back to runtime architecture when the
 // model cannot be identified.
 func filterForPlatform(smcSlice []SensorStat) []SensorStat {
+	family := resolveFamily()
 	filteredSensors := make([]SensorStat, 0, len(smcSlice))
 
-	family := platform.GetFamily()
-	if family == "" || family == "Unknown" {
-		switch runtime.GOARCH {
-		case "arm64":
-			family = "Apple"
-		case "amd64", "386":
-			family = "Intel"
-		}
-	}
-
-	familyApple := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == "Apple"
-
 	for _, v := range smcSlice {
-		// Apple umbrella: admit on any Apple Silicon family.
-		if v.Platform == "Apple" && familyApple {
+		if platformMatches(v.Platform, family) {
 			filteredSensors = append(filteredSensors, v)
-
-			continue
-		}
-
-		// Universal rows.
-		if v.Platform == "" || v.Platform == "All" {
-			filteredSensors = append(filteredSensors, v)
-
-			continue
-		}
-
-		// Exact family match.
-		if v.Platform == family {
-			filteredSensors = append(filteredSensors, v)
-
-			continue
 		}
 	}
 
 	return filteredSensors
+}
+
+// resolveFamily returns the chip family for the current host, falling back to
+// the runtime architecture when platform.GetFamily cannot identify the model.
+func resolveFamily() string {
+	family := platform.GetFamily()
+	if family != "" && family != "Unknown" {
+		return family
+	}
+
+	switch runtime.GOARCH {
+	case "arm64":
+		return "Apple"
+	case "amd64", "386":
+		return "Intel"
+	}
+
+	return family
+}
+
+// platformMatches reports whether a SensorStat row's Platform tag accepts the
+// given chip family. Mirrors the per-row scope of filterForPlatform but operates
+// on a caller-supplied family rather than querying platform.GetFamily, so it can
+// be used for offline cross-checks (e.g. cmd/guess against any family tag).
+//
+//	rowPlatform == "" || "All": always matches.
+//	rowPlatform == "Apple":     matches any Apple Silicon family ("M*", "A*", or "Apple").
+//	rowPlatform == family:      exact family match.
+func platformMatches(rowPlatform, family string) bool {
+	if rowPlatform == "" || rowPlatform == "All" {
+		return true
+	}
+
+	if rowPlatform == "Apple" {
+		return strings.HasPrefix(family, "M") ||
+			strings.HasPrefix(family, "A") ||
+			family == "Apple"
+	}
+
+	return rowPlatform == family
+}
+
+// LookupTempDesc returns the canonical description from the AppleTemp table for
+// a single concrete SMC key, with the row's Platform column filtered against
+// family. Wildcard rows are expanded to digits 0–9 to mirror getGenericSensors.
+//
+// The returned description matches what GetTemperature would produce at runtime
+// (last-write-wins on duplicate (Key, Platform) entries). Useful for annotating
+// guess-command output with the description that already exists in src/temp.txt.
+func LookupTempDesc(key, family string) (string, bool) {
+	var (
+		desc  string
+		found bool
+	)
+
+	for _, s := range AppleTemp {
+		if !platformMatches(s.Platform, family) {
+			continue
+		}
+
+		if !strings.Contains(s.Key, KeyWildcard) {
+			if s.Key == key {
+				desc, found = s.Desc, true
+			}
+
+			continue
+		}
+
+		for i := range 10 {
+			iKey := strings.Replace(s.Key, KeyWildcard, strconv.Itoa(i), 1)
+			if iKey == key {
+				desc = strings.Replace(s.Desc, KeyWildcard, strconv.Itoa(i+1), 1)
+				found = true
+			}
+		}
+	}
+
+	return desc, found
+}
+
+// MappedTempKeys returns every concrete SMC temperature key mapped in the
+// AppleTemp table that is in scope for the given chip family. Wildcards are
+// expanded to digits 0–9; the returned map mirrors the resolved descriptions
+// emitted by GetTemperature for that family.
+func MappedTempKeys(family string) map[string]string {
+	out := make(map[string]string)
+
+	for _, s := range AppleTemp {
+		if !platformMatches(s.Platform, family) {
+			continue
+		}
+
+		if !strings.Contains(s.Key, KeyWildcard) {
+			out[s.Key] = s.Desc
+
+			continue
+		}
+
+		for i := range 10 {
+			iKey := strings.Replace(s.Key, KeyWildcard, strconv.Itoa(i), 1)
+			iDesc := strings.Replace(s.Desc, KeyWildcard, strconv.Itoa(i+1), 1)
+			out[iKey] = iDesc
+		}
+	}
+
+	return out
 }

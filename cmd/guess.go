@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dkorunic/iSMC/platform"
+	"github.com/dkorunic/iSMC/reports"
 	"github.com/dkorunic/iSMC/smc"
 	"github.com/dkorunic/iSMC/stress"
 	"github.com/spf13/cobra"
@@ -62,22 +63,30 @@ var guessCmd = &cobra.Command{
 	Use:   "guess",
 	Short: "Map SMC temperature sensors to CPU cores by thermal correlation",
 	Long: `guess stresses all logical CPU cores simultaneously — in two or three phases
-depending on chip topology — and correlates the resulting temperature rise in
-T-prefixed SMC sensors to produce a sensor mapping list in the format used by
-src/temp.txt.
+depending on the chip's pair signature — and correlates the resulting temperature
+rise in T-prefixed SMC sensors to produce a sensor mapping list in the format used
+by src/temp.txt.
 
-On 2-tier chips (M1–M4) the phases are QOS_CLASS_USER_INITIATED (biases the OS
-toward P-cores) and QOS_CLASS_BACKGROUND (biases toward E-cores). On 3-tier chips
-(M5+) a third phase with QOS_CLASS_USER_INTERACTIVE precedes the others to bias
-toward Super cores.
+Phase labels and QoS hints are driven by the SKU's pair signature (from the
+validate-temp-mappings family roster):
+  - P+E (M1–M4 family, A18 Pro):   Performance + Efficiency
+  - S+E (M5 base):                 Super + Efficiency
+  - S+P (M5 Pro / M5 Max):         Super + Performance
+  - 3-level perflevel hierarchy:   Super + Performance + Efficiency
+
+QOS_CLASS_USER_INTERACTIVE biases the kernel toward Super cores, USER_INITIATED
+toward Performance cores, and BACKGROUND toward Efficiency cores.
 
 Within each phase, per-core labels are derived from SMC key naming patterns:
 keys sharing the same non-numeric structure (e.g. TC*c) form a series, then
 stride/gap analysis within each series groups sensors that belong to the same
-physical core into a single sub-group.
+physical core into a single sub-group. The detected per-type counts are
+cross-checked against the SKU's expected layout (e.g. M5 Pro: 5–6 Super + 10–12
+Performance), and deviations are flagged inline so the operator knows which lines
+need manual review before pasting into src/temp.txt.
 
-The process takes roughly 34 seconds on 2-tier chips, or ~55 seconds on 3-tier chips.
-Run on an otherwise-idle machine for best results.`,
+The process takes roughly 34 seconds on 2-phase chips, or ~55 seconds on 3-phase
+chips. Run on an otherwise-idle machine for best results.`,
 	Run: runGuess,
 }
 
@@ -321,6 +330,14 @@ func groupByStrideWithinSeries(sensors []string) [][]string {
 	return append(groups, current)
 }
 
+// Phase label prefixes. Kept as constants so guess.go and tests stay in sync with
+// the descriptions emitted in src/temp.txt (e.g. "CPU Super Core 1:Tp00:M5").
+const (
+	labelSuperCore       = "CPU Super Core"
+	labelPerformanceCore = "CPU Performance Core"
+	labelEfficiencyCore  = "CPU Efficiency Core"
+)
+
 // phaseSpec describes one stress phase: its label prefix, QoS class, and expected
 // physical core count from platform topology data.
 type phaseSpec struct {
@@ -361,28 +378,64 @@ func qosName(qos int) string {
 	}
 }
 
-// buildPhases constructs the ordered list of stress phases from live topology data.
-// For 3-level chips (M5+): Super → Performance → Efficiency.
-// For 2-level chips (M1–M4) or nil: Performance → Efficiency.
-func buildPhases(perfLevels []platform.PerfLevel) []phaseSpec {
-	switch len(perfLevels) {
-	case 3:
+// buildPhases constructs the ordered list of stress phases from live topology data
+// and the SKU's pair signature.
+//
+// 3-level perflevel hierarchy: Super → Performance → Efficiency (e.g. a future
+// M-series chip exposing all three tiers as distinct OS perflevels).
+//
+// 2-level hierarchy: top + bottom labels are driven by layout.PairSignature so the
+// same Tp* prefix is named correctly for the SKU. Mapping is:
+//   - P+E (M1–M4, A18 across all variants): Performance + Efficiency
+//   - S+E (M5 base): Super + Efficiency — the OS may name perflevel0 "Performance"
+//     but the family-roster pair signature is authoritative; per the skill,
+//     low-stride Tp0? slots on M5 base are Super cores, not Performance cores.
+//   - S+P (M5 Pro / M5 Max): Super + Performance — no E-cores on these SKUs
+//
+// nil/empty perflevels falls back to P+E with zero core counts (legacy behaviour
+// for hardware where the perflevel sysctls are unavailable).
+//
+// The SKU's preferred top-tier QoS class (UserInteractive for Super, UserInitiated
+// for Performance) biases the kernel scheduler toward the right tier.
+func buildPhases(perfLevels []platform.PerfLevel, layout platform.SKULayout) []phaseSpec {
+	if len(perfLevels) == 3 {
 		return []phaseSpec{
-			{label: "CPU Super Core", qos: stress.QoSUserInteractive, cores: perfLevels[0].PhysicalCPU},
-			{label: "CPU Performance Core", qos: stress.QoSUserInitiated, cores: perfLevels[1].PhysicalCPU},
-			{label: "CPU Efficiency Core", qos: stress.QoSBackground, cores: perfLevels[2].PhysicalCPU},
+			{label: labelSuperCore, qos: stress.QoSUserInteractive, cores: perfLevels[0].PhysicalCPU},
+			{label: labelPerformanceCore, qos: stress.QoSUserInitiated, cores: perfLevels[1].PhysicalCPU},
+			{label: labelEfficiencyCore, qos: stress.QoSBackground, cores: perfLevels[2].PhysicalCPU},
 		}
-	default:
-		pcpu, ecpu := 0, 0
-		if len(perfLevels) == 2 {
-			pcpu = perfLevels[0].PhysicalCPU
-			ecpu = perfLevels[1].PhysicalCPU
-		}
+	}
 
-		return []phaseSpec{
-			{label: "CPU Performance Core", qos: stress.QoSUserInitiated, cores: pcpu},
-			{label: "CPU Efficiency Core", qos: stress.QoSBackground, cores: ecpu},
-		}
+	topLabel, bottomLabel := labelPerformanceCore, labelEfficiencyCore
+	topQoS := stress.QoSUserInitiated
+
+	switch layout.PairSignature {
+	case platform.PairSignatureSE:
+		topLabel = labelSuperCore
+		topQoS = stress.QoSUserInteractive
+	case platform.PairSignatureSP:
+		topLabel, bottomLabel = labelSuperCore, labelPerformanceCore
+		topQoS = stress.QoSUserInteractive
+	}
+
+	topCores, bottomCores := 0, 0
+	if len(perfLevels) == 2 {
+		topCores = perfLevels[0].PhysicalCPU
+		bottomCores = perfLevels[1].PhysicalCPU
+	}
+
+	bottomQoS := stress.QoSBackground
+	if layout.PairSignature == platform.PairSignatureSP {
+		// S+P chips have no E-cores; bias bottom phase toward Performance cores
+		// rather than the (non-existent) Efficiency tier so the OS still routes
+		// threads to the second physical tier rather than to the high-throughput
+		// Super cores. UserInitiated is the right hint here.
+		bottomQoS = stress.QoSUserInitiated
+	}
+
+	return []phaseSpec{
+		{label: topLabel, qos: topQoS, cores: topCores},
+		{label: bottomLabel, qos: bottomQoS, cores: bottomCores},
 	}
 }
 
@@ -473,10 +526,22 @@ func runGuess(_ *cobra.Command, _ []string) {
 		fmt.Printf("Warning: chip family not detected; using %q as platform tag.\n\n", family)
 	}
 
+	product, _ := platform.GetProduct()
+	layout, layoutOK := platform.GetSKULayout()
 	perfLevels := platform.GetPerfLevels()
-	phases := buildPhases(perfLevels)
+	phases := buildPhases(perfLevels, layout)
 
 	fmt.Printf("Platform : %s\n", family)
+
+	if product.CPU != "" {
+		fmt.Printf("Model    : %s (%s)\n", product.Name, product.CPU)
+	}
+
+	if layoutOK {
+		fmt.Printf("SKU      : %s, %d die(s)\n", layout.PairSignature, layout.Dies)
+		fmt.Printf("Expected : %s\n", layoutSummary(layout))
+	}
+
 	fmt.Printf("CPUs     : %d logical\n", numCPU)
 	fmt.Printf("Per-phase: %v stress  (×%d phases, all %d cores simultaneously)\n\n",
 		guessStressDuration, len(phases), numCPU)
@@ -515,13 +580,216 @@ func runGuess(_ *cobra.Command, _ []string) {
 		}
 	}
 
-	printMapping(family, numCPU, perfLevels, results)
+	printMapping(family, numCPU, perfLevels, layout, layoutOK, product, results)
+}
+
+// layoutSummary returns a one-line human-readable description of the SKU's
+// expected core composition, e.g. "8–10P + 4E, 16–20 GPU cores" or
+// "5–6S + 10–12P, 16–20 GPU cores". A single value (e.g. "4P") is shown when
+// the min and max bounds match. Used in the guess command's preamble.
+func layoutSummary(l platform.SKULayout) string {
+	parts := make([]string, 0, 4)
+
+	if l.SCoresMax > 0 {
+		parts = append(parts, formatRange(l.SCoresMin, l.SCoresMax)+"S")
+	}
+
+	if l.PCoresMax > 0 {
+		parts = append(parts, formatRange(l.PCoresMin, l.PCoresMax)+"P")
+	}
+
+	if l.ECoresMax > 0 {
+		parts = append(parts, formatRange(l.ECoresMin, l.ECoresMax)+"E")
+	}
+
+	cpu := strings.Join(parts, " + ")
+
+	if l.GPUCoresMax > 0 {
+		return fmt.Sprintf("%s, %s GPU cores", cpu, formatRange(l.GPUCoresMin, l.GPUCoresMax))
+	}
+
+	return cpu
+}
+
+// formatRange returns "n" if min == max, else "min–max" using an en-dash.
+func formatRange(minN, maxN int) string {
+	if minN == maxN {
+		return strconv.Itoa(minN)
+	}
+
+	return fmt.Sprintf("%d–%d", minN, maxN)
+}
+
+// expectedCores returns the SKU-expected (min, max) core count for a phase label.
+// Returns (0, 0) when the phase's core type is absent on this SKU (legitimate
+// case for S+E and S+P pair signatures), letting the caller skip range checks.
+func expectedCores(l platform.SKULayout, phaseLabel string) (int, int) {
+	switch phaseLabel {
+	case labelSuperCore:
+		return l.SCoresMin, l.SCoresMax
+	case labelPerformanceCore:
+		return l.PCoresMin, l.PCoresMax
+	case labelEfficiencyCore:
+		return l.ECoresMin, l.ECoresMax
+	default:
+		return 0, 0
+	}
+}
+
+// printPhase emits the comment header, per-series mapping rows, and SKU-aware
+// validation footer for one phase of guess output. Extracted from printMapping to
+// keep that function's cyclomatic complexity below the project lint threshold.
+func printPhase(family string, i int, r phaseResult, keys []string,
+	layout platform.SKULayout, layoutOK bool,
+) {
+	groups := groupBySeries(keys)
+	seriesKeys := sortedSeriesKeys(groups)
+
+	if len(seriesKeys) == 0 {
+		fmt.Printf("// WARNING: Phase %d (%s) produced no sensor responses above threshold.\n",
+			i+1, phaseMidWord(r.spec.label))
+		fmt.Println("// Run on an idle machine or increase stress duration.")
+
+		if layoutOK {
+			if expMin, expMax := expectedCores(layout, r.spec.label); expMax > 0 {
+				fmt.Printf("// SKU expects %s for this phase; verify the chip's actual layout.\n",
+					formatRange(expMin, expMax))
+			}
+		}
+
+		return
+	}
+
+	coreIdx := 1
+
+	for _, sk := range seriesKeys {
+		coreIdx = printSeries(family, r.spec.label, sk, groups[sk], coreIdx)
+	}
+
+	detected := coreIdx - 1
+	if layoutOK {
+		printDetectionVerdict(layout, r.spec.label, detected)
+	}
+}
+
+// printSeries emits one series block (header comment + per-core sensor lines) and
+// returns the next coreIdx. Pulled out of printPhase to flatten nesting. Each
+// line is annotated with the canonical description from src/temp.txt (via
+// smc.LookupTempDesc) so the operator can see at a glance whether the guessed
+// label matches the existing mapping or proposes a new/conflicting one.
+func printSeries(family, label, sk string, sensors []string, coreIdx int) int {
+	subGroups := groupByStrideWithinSeries(sensors)
+
+	fmt.Printf("// Series %-6s → %d sensor(s) in %d group(s) → %s %d..%d\n",
+		sk, len(sensors), len(subGroups), label, coreIdx, coreIdx+len(subGroups)-1)
+
+	if len(subGroups) == 1 && len(subGroups[0]) > 3 {
+		fmt.Printf("// NOTE: %d-sensor group; manual review recommended (check src/temp.txt)\n",
+			len(subGroups[0]))
+	}
+
+	for _, sg := range subGroups {
+		for _, k := range sg {
+			line := fmt.Sprintf("%s %d:%s:%s", label, coreIdx, k, family)
+			fmt.Println(annotateLine(line, label, k, family, coreIdx))
+		}
+
+		coreIdx++
+	}
+
+	return coreIdx
+}
+
+// annotateLine appends a comment to a temp.txt-style mapping line indicating
+// whether the key already has a canonical description in the AppleTemp table:
+//
+//	✓ when src/temp.txt's description matches the guessed label exactly
+//	⚠ when the key is mapped but to a different description (likely mis-label)
+//	★ when the key is not yet mapped for this family
+//
+// The fixed alignment column (45) keeps annotations readable even with
+// 16-core SKUs whose lines reach ~36 characters.
+func annotateLine(line, label, key, family string, coreIdx int) string {
+	const annotationCol = 45
+
+	guessed := fmt.Sprintf("%s %d", label, coreIdx)
+	existing, ok := smc.LookupTempDesc(key, family)
+
+	switch {
+	case !ok:
+		return fmt.Sprintf("%-*s // ★ NEW for %s — not yet in src/temp.txt",
+			annotationCol, line, family)
+	case existing == guessed:
+		return fmt.Sprintf("%-*s // ✓ matches src/temp.txt", annotationCol, line)
+	default:
+		return fmt.Sprintf("%-*s // ⚠ src/temp.txt has %q",
+			annotationCol, line, existing)
+	}
+}
+
+// printDetectionVerdict compares the count of detected core groups against the
+// SKU's expected range and emits a one-line OK / WARNING comment. Skips silently
+// when the SKU has no cores of this label's type (the absence is handled by
+// warnAbsentTypes after the per-phase loop completes).
+func printDetectionVerdict(layout platform.SKULayout, label string, detected int) {
+	expMin, expMax := expectedCores(layout, label)
+	if expMax == 0 {
+		return
+	}
+
+	mid := phaseMidWord(label)
+	expectedStr := formatRange(expMin, expMax)
+
+	switch {
+	case detected < expMin:
+		fmt.Printf("// WARNING: detected %d %s group(s) but SKU expects %s — "+
+			"some cores may have failed to heat up; rerun on an idle machine.\n",
+			detected, mid, expectedStr)
+	case detected > expMax:
+		fmt.Printf("// WARNING: detected %d %s group(s) but SKU expects %s — "+
+			"likely a cluster-aggregate sensor mis-classified as a per-core; review.\n",
+			detected, mid, expectedStr)
+	default:
+		fmt.Printf("// OK: detected %d %s group(s), within SKU expectation %s.\n",
+			detected, mid, expectedStr)
+	}
+}
+
+// warnAbsentTypes emits a warning whenever the resolved per-phase results contain
+// core groupings for a type the SKU is not supposed to have (e.g. P-cores reported
+// on an M5 base, which is S+E only). Mirrors the validate-temp-mappings skill's
+// Phase 4a pair-signature validation.
+func warnAbsentTypes(l platform.SKULayout, results []phaseResult) {
+	for _, r := range results {
+		if len(r.deltas) == 0 {
+			continue
+		}
+
+		_, expMax := expectedCores(l, r.spec.label)
+		if expMax > 0 {
+			continue
+		}
+
+		// This phase's core type is absent on the SKU yet sensors heated up.
+		// Could be that the kernel routed the QoS hint to whatever it had
+		// available; the resulting label will be wrong for temp.txt.
+		fmt.Printf("// WARNING: phase %q produced sensors but SKU pair signature %s "+
+			"has no cores of this type — relabel before pasting into src/temp.txt.\n",
+			r.spec.label, l.PairSignature)
+	}
 }
 
 // printMapping analyses N-phase delta results and emits a src/temp.txt-style mapping.
 // Sensors are classified by dominant phase, then grouped by SMC key series and
 // further split by stride/gap analysis to assign correct per-core indices.
-func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel, results []phaseResult) {
+//
+// When layoutOK is true, the SKU's per-type expected counts (S/P/E) are checked
+// against the detected per-phase core groups; deviations are emitted as inline
+// warnings so the operator knows to inspect the output before copy-pasting it
+// into src/temp.txt.
+func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
+	layout platform.SKULayout, layoutOK bool, product platform.Product, results []phaseResult,
+) {
 	// Union of all observed sensor keys across all phases.
 	allKeys := make(map[string]struct{})
 
@@ -589,6 +857,15 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel, re
 	fmt.Println()
 	fmt.Printf("// %s (%d logical CPUs) – guessed sensor mappings\n", family, numCPU)
 
+	if product.CPU != "" {
+		fmt.Printf("// SKU: %s (%s)\n", product.CPU, product.Name)
+	}
+
+	if layoutOK {
+		fmt.Printf("// Pair signature: %s | dies: %d | expected: %s\n",
+			layout.PairSignature, layout.Dies, layoutSummary(layout))
+	}
+
 	if len(perfLevels) > 0 {
 		fmt.Printf("// Topology: %d perf level(s)", len(perfLevels))
 
@@ -607,40 +884,11 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel, re
 
 	// ── Per-phase sensor sections ────────────────────────────────────────────────
 	for i, r := range results {
-		keys := phaseKeys[i]
-		groups := groupBySeries(keys)
-		seriesKeys := sortedSeriesKeys(groups)
+		printPhase(family, i, r, phaseKeys[i], layout, layoutOK)
+	}
 
-		if len(seriesKeys) == 0 {
-			fmt.Printf("// WARNING: Phase %d (%s) produced no sensor responses above threshold.\n",
-				i+1, phaseMidWord(r.spec.label))
-			fmt.Println("// Run on an idle machine or increase stress duration.")
-
-			continue
-		}
-
-		coreIdx := 1
-
-		for _, sk := range seriesKeys {
-			sensors := groups[sk]
-			subGroups := groupByStrideWithinSeries(sensors)
-
-			fmt.Printf("// Series %-6s → %d sensor(s) in %d group(s) → %s %d..%d\n",
-				sk, len(sensors), len(subGroups), r.spec.label, coreIdx, coreIdx+len(subGroups)-1)
-
-			if len(subGroups) == 1 && len(subGroups[0]) > 3 {
-				fmt.Printf("// NOTE: %d-sensor group; manual review recommended (check src/temp.txt)\n",
-					len(subGroups[0]))
-			}
-
-			for _, sg := range subGroups {
-				for _, k := range sg {
-					fmt.Printf("%s %d:%s:%s\n", r.spec.label, coreIdx, k, family)
-				}
-
-				coreIdx++
-			}
-		}
+	if layoutOK {
+		warnAbsentTypes(layout, results)
 	}
 
 	// ── Cluster / package sensors ────────────────────────────────────────────────
@@ -659,7 +907,157 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel, re
 				}
 			}
 
-			fmt.Printf("// %-6s  %s\n", k, strings.Join(parts, "  "))
+			line := fmt.Sprintf("// %-6s  %s", k, strings.Join(parts, "  "))
+			if existing, ok := smc.LookupTempDesc(k, family); ok {
+				fmt.Printf("%-50s ← src/temp.txt: %q\n", line, existing)
+			} else {
+				fmt.Println(line)
+			}
+		}
+	}
+
+	detected := allDetectedKeys(results, clusterKeys)
+	printTempTxtCrosscheck(family, detected)
+	printReportsCrosscheck(family, detected)
+}
+
+// allDetectedKeys returns the union of detected sensor keys across every phase
+// plus the cluster/package keys. Used by the temp.txt and reports/ cross-checks
+// to compute matched / novel / silent sets without re-walking the per-phase
+// data structures.
+func allDetectedKeys(results []phaseResult, clusterKeys []string) map[string]struct{} {
+	all := make(map[string]struct{})
+
+	for _, r := range results {
+		for k := range r.deltas {
+			all[k] = struct{}{}
+		}
+	}
+
+	for _, k := range clusterKeys {
+		all[k] = struct{}{}
+	}
+
+	return all
+}
+
+// printTempTxtCrosscheck emits a summary of the diff between detected SMC keys
+// and the set of keys already mapped in src/temp.txt for the family. The
+// summary line reports four cardinalities:
+//
+//	matched: in temp.txt AND detected this run
+//	novel:   detected this run but NOT in temp.txt        → candidates to add
+//	silent:  in temp.txt but NOT detected this run        → mapping may be stale,
+//	         OR sensor failed to heat under stress
+//
+// When silent keys exist, the first few are listed with their canonical
+// descriptions so the operator can spot-check whether they belong to a
+// no-longer-present sensor or simply did not fire in this run.
+func printTempTxtCrosscheck(family string, detected map[string]struct{}) {
+	mapped := smc.MappedTempKeys(family)
+	if len(mapped) == 0 {
+		return
+	}
+
+	matched := 0
+
+	for k := range detected {
+		if _, ok := mapped[k]; ok {
+			matched++
+		}
+	}
+
+	novel := len(detected) - matched
+	silent := make([]string, 0)
+
+	for k := range mapped {
+		if _, ok := detected[k]; !ok {
+			silent = append(silent, k)
+		}
+	}
+
+	sort.Strings(silent)
+
+	fmt.Println()
+	fmt.Printf("// %s\n", strings.Repeat("─", 72))
+	fmt.Printf("// Cross-check vs src/temp.txt for %q:\n", family)
+	fmt.Printf("//   detected: %d  |  mapped: %d  |  matched: %d  |  novel: %d  |  silent: %d\n",
+		len(detected), len(mapped), matched, novel, len(silent))
+
+	if len(silent) == 0 {
+		return
+	}
+
+	const maxSilent = 25
+
+	shown := min(len(silent), maxSilent)
+
+	fmt.Printf("// Mapped in src/temp.txt but silent in this run (showing %d of %d):\n",
+		shown, len(silent))
+
+	for _, k := range silent[:shown] {
+		fmt.Printf("//   %-6s  %s\n", k, mapped[k])
+	}
+}
+
+// printReportsCrosscheck compares the detected keys against the union of keys
+// observed in reports/ for the same family. The reports represent ground-truth
+// sensor presence captured from real machines, so missing detections often
+// reflect runtime conditions (e.g. GPU/SSD sensors that don't heat from a
+// CPU stress phase) rather than mapping bugs. Truly novel keys (detected this
+// run but absent from every prior dump) are worth investigating — they may be
+// new firmware additions or evidence the chip is a sub-variant we haven't
+// captured in the reports/ set yet.
+func printReportsCrosscheck(family string, detected map[string]struct{}) {
+	observed := reports.Keys(family)
+	if len(observed) == 0 {
+		return
+	}
+
+	matched := 0
+
+	for k := range detected {
+		if _, ok := observed[k]; ok {
+			matched++
+		}
+	}
+
+	silent := make([]string, 0)
+
+	for k := range observed {
+		if _, ok := detected[k]; !ok {
+			silent = append(silent, k)
+		}
+	}
+
+	sort.Strings(silent)
+
+	novel := make([]string, 0)
+
+	for k := range detected {
+		if _, ok := observed[k]; !ok {
+			novel = append(novel, k)
+		}
+	}
+
+	sort.Strings(novel)
+
+	fmt.Println()
+	fmt.Printf("// %s\n", strings.Repeat("─", 72))
+	fmt.Printf("// Cross-check vs reports/ observations for %q:\n", family)
+	fmt.Printf("//   detected: %d  |  observed: %d  |  matched: %d  |  novel: %d  |  silent: %d\n",
+		len(detected), len(observed), matched, len(novel), len(silent))
+
+	if len(novel) > 0 {
+		const maxNovel = 20
+
+		shown := min(len(novel), maxNovel)
+
+		fmt.Printf("// Detected but never seen in any %s report (showing %d of %d):\n",
+			family, shown, len(novel))
+
+		for _, k := range novel[:shown] {
+			fmt.Printf("//   %s\n", k)
 		}
 	}
 }

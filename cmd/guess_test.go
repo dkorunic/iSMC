@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/dkorunic/iSMC/platform"
@@ -316,17 +317,45 @@ func TestPhaseMidWord(t *testing.T) {
 	}
 }
 
-// TestBuildPhases verifies the phase specification construction for the three
-// supported chip topologies:
-//   - nil / empty perfLevels → 2 phases with zero core counts
-//   - 2-level (M1–M4) → Performance + Efficiency with correct PhysicalCPU counts
-//   - 3-level (M5+) → Super + Performance + Efficiency with correct PhysicalCPU counts
+// TestBuildPhases verifies the phase specification construction across the chip
+// topologies the validate-temp-mappings family roster covers:
+//   - nil / empty perfLevels → 2 phases with zero core counts (legacy fallback)
+//   - 2-level P+E (M1–M4) → Performance + Efficiency, UserInitiated + Background QoS
+//   - 2-level S+E (M5 base) → Super + Efficiency, UserInteractive + Background QoS
+//   - 2-level S+P (M5 Pro/Max) → Super + Performance, UserInteractive + UserInitiated QoS
+//   - 3-level → Super + Performance + Efficiency (hypothetical future tri-tier chip)
 func TestBuildPhases(t *testing.T) {
 	t.Parallel()
+
+	twoLevelPE := []platform.PerfLevel{
+		{Name: "Performance", PhysicalCPU: 10, LogicalCPU: 10},
+		{Name: "Efficiency", PhysicalCPU: 4, LogicalCPU: 4},
+	}
+
+	twoLevelSE := []platform.PerfLevel{
+		{Name: "Performance", PhysicalCPU: 4, LogicalCPU: 4},
+		{Name: "Efficiency", PhysicalCPU: 6, LogicalCPU: 6},
+	}
+
+	twoLevelSP := []platform.PerfLevel{
+		{Name: "Performance", PhysicalCPU: 6, LogicalCPU: 6},
+		{Name: "Performance", PhysicalCPU: 12, LogicalCPU: 12},
+	}
+
+	threeLevel := []platform.PerfLevel{
+		{Name: "Super", PhysicalCPU: 4, LogicalCPU: 4},
+		{Name: "Performance", PhysicalCPU: 8, LogicalCPU: 8},
+		{Name: "Efficiency", PhysicalCPU: 4, LogicalCPU: 4},
+	}
+
+	m4Pro, _ := platform.LookupSKULayout("M4 Pro")
+	m5Base, _ := platform.LookupSKULayout("M5")
+	m5Pro, _ := platform.LookupSKULayout("M5 Pro")
 
 	tests := []struct {
 		name       string
 		levels     []platform.PerfLevel
+		layout     platform.SKULayout
 		wantLabels []string
 		wantCores  []int
 		wantQoS    []int
@@ -334,27 +363,39 @@ func TestBuildPhases(t *testing.T) {
 		{
 			name:       "nil levels → 2 phases with zero cores",
 			levels:     nil,
+			layout:     platform.SKULayout{},
 			wantLabels: []string{"CPU Performance Core", "CPU Efficiency Core"},
 			wantCores:  []int{0, 0},
 			wantQoS:    []int{stress.QoSUserInitiated, stress.QoSBackground},
 		},
 		{
-			name: "2-level chip (M1–M4)",
-			levels: []platform.PerfLevel{
-				{Name: "Performance", PhysicalCPU: 10, LogicalCPU: 10},
-				{Name: "Efficiency", PhysicalCPU: 4, LogicalCPU: 4},
-			},
+			name:       "2-level P+E (M4 Pro)",
+			levels:     twoLevelPE,
+			layout:     m4Pro,
 			wantLabels: []string{"CPU Performance Core", "CPU Efficiency Core"},
 			wantCores:  []int{10, 4},
 			wantQoS:    []int{stress.QoSUserInitiated, stress.QoSBackground},
 		},
 		{
-			name: "3-level chip (M5+)",
-			levels: []platform.PerfLevel{
-				{Name: "Super", PhysicalCPU: 4, LogicalCPU: 4},
-				{Name: "Performance", PhysicalCPU: 8, LogicalCPU: 8},
-				{Name: "Efficiency", PhysicalCPU: 4, LogicalCPU: 4},
-			},
+			name:       "2-level S+E (M5 base) — top label is Super, not Performance",
+			levels:     twoLevelSE,
+			layout:     m5Base,
+			wantLabels: []string{"CPU Super Core", "CPU Efficiency Core"},
+			wantCores:  []int{4, 6},
+			wantQoS:    []int{stress.QoSUserInteractive, stress.QoSBackground},
+		},
+		{
+			name:       "2-level S+P (M5 Pro) — Super + Performance, no Efficiency",
+			levels:     twoLevelSP,
+			layout:     m5Pro,
+			wantLabels: []string{"CPU Super Core", "CPU Performance Core"},
+			wantCores:  []int{6, 12},
+			wantQoS:    []int{stress.QoSUserInteractive, stress.QoSUserInitiated},
+		},
+		{
+			name:       "3-level chip (hypothetical Super+Performance+Efficiency)",
+			levels:     threeLevel,
+			layout:     platform.SKULayout{},
 			wantLabels: []string{"CPU Super Core", "CPU Performance Core", "CPU Efficiency Core"},
 			wantCores:  []int{4, 8, 4},
 			wantQoS:    []int{stress.QoSUserInteractive, stress.QoSUserInitiated, stress.QoSBackground},
@@ -365,7 +406,7 @@ func TestBuildPhases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := buildPhases(tt.levels)
+			got := buildPhases(tt.levels, tt.layout)
 
 			if len(got) != len(tt.wantLabels) {
 				t.Fatalf("buildPhases: got %d phases, want %d; phases=%v",
@@ -384,6 +425,107 @@ func TestBuildPhases(t *testing.T) {
 				if phase.qos != tt.wantQoS[i] {
 					t.Errorf("buildPhases[%d].qos = %d, want %d", i, phase.qos, tt.wantQoS[i])
 				}
+			}
+		})
+	}
+}
+
+func TestFormatRange(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		min  int
+		max  int
+		want string
+	}{
+		{"equal bounds collapse", 8, 8, "8"},
+		{"distinct bounds use en-dash", 8, 10, "8–10"},
+		{"zero is a valid singleton", 0, 0, "0"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := formatRange(tt.min, tt.max)
+			if got != tt.want {
+				t.Errorf("formatRange(%d, %d) = %q, want %q", tt.min, tt.max, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestExpectedCores covers the per-phase-label lookup for SKU expectations,
+// including the "absent core type" case that the Phase 4a pair-signature
+// validation depends on (returning 0,0 to mean "skip range check").
+func TestExpectedCores(t *testing.T) {
+	t.Parallel()
+
+	m4Pro, _ := platform.LookupSKULayout("M4 Pro")
+	m5Pro, _ := platform.LookupSKULayout("M5 Pro")
+	m5Base, _ := platform.LookupSKULayout("M5")
+
+	tests := []struct {
+		name             string
+		layout           platform.SKULayout
+		label            string
+		wantMin, wantMax int
+	}{
+		{"M4 Pro Performance: 8–10P", m4Pro, labelPerformanceCore, 8, 10},
+		{"M4 Pro Efficiency: 4E", m4Pro, labelEfficiencyCore, 4, 4},
+		{"M4 Pro has no Super tier → 0,0", m4Pro, labelSuperCore, 0, 0},
+		{"M5 Pro Super: 5–6S", m5Pro, labelSuperCore, 5, 6},
+		{"M5 Pro Performance: 10–12P", m5Pro, labelPerformanceCore, 10, 12},
+		{"M5 Pro has no Efficiency tier → 0,0", m5Pro, labelEfficiencyCore, 0, 0},
+		{"M5 base has no Performance tier → 0,0", m5Base, labelPerformanceCore, 0, 0},
+		{"unknown label → 0,0", m4Pro, "CPU Bogus Core", 0, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotMin, gotMax := expectedCores(tt.layout, tt.label)
+			if gotMin != tt.wantMin || gotMax != tt.wantMax {
+				t.Errorf("expectedCores(%q): got (%d, %d), want (%d, %d)",
+					tt.label, gotMin, gotMax, tt.wantMin, tt.wantMax)
+			}
+		})
+	}
+}
+
+// TestLayoutSummary verifies the human-readable preamble line, including the
+// "S + P" composition (no Efficiency on M5 Pro/Max) and the "S + E" composition
+// (no Performance on M5 base) which are the cases the existing buildPhases
+// could otherwise mis-label.
+func TestLayoutSummary(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		cpu  string
+		want string
+	}{
+		{"M1", "4P + 4E, 7–8 GPU cores"},
+		{"M4 Pro", "8–10P + 4E, 16–20 GPU cores"},
+		{"M5", "3–4S + 6E, 8–10 GPU cores"},
+		{"M5 Pro", "5–6S + 10–12P, 16–20 GPU cores"},
+		{"M5 Max", "6S + 12P, 32–40 GPU cores"},
+		{"A18 Pro", "2P + 4E, 6 GPU cores"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.cpu, func(t *testing.T) {
+			t.Parallel()
+
+			layout, ok := platform.LookupSKULayout(tt.cpu)
+			if !ok {
+				t.Fatalf("LookupSKULayout(%q) returned !ok", tt.cpu)
+			}
+
+			got := layoutSummary(layout)
+			if got != tt.want {
+				t.Errorf("layoutSummary(%q) = %q, want %q", tt.cpu, got, tt.want)
 			}
 		})
 	}
@@ -437,5 +579,101 @@ func TestSortedSeriesKeys(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestAnnotateLine covers the three branches of the per-line annotator:
+// canonical match (✓), key mapped under a different description (⚠), and
+// not-yet-mapped key (★). Uses real AppleTemp entries so the test would catch
+// a regression in the smc.LookupTempDesc filter logic too.
+func TestAnnotateLine(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		line     string
+		label    string
+		key      string
+		family   string
+		coreIdx  int
+		contains string
+	}{
+		{
+			name:     "M5 Tp00 matches Super Core 1 exactly",
+			line:     "CPU Super Core 1:Tp00:M5",
+			label:    "CPU Super Core",
+			key:      "Tp00",
+			family:   "M5",
+			coreIdx:  1,
+			contains: "✓ matches src/temp.txt",
+		},
+		{
+			name: "M5 Tp00 mis-labelled as Performance shows mismatch",
+			// Guessed label is wrong: temp.txt says Super Core 1.
+			line:     "CPU Performance Core 1:Tp00:M5",
+			label:    "CPU Performance Core",
+			key:      "Tp00",
+			family:   "M5",
+			coreIdx:  1,
+			contains: `⚠ src/temp.txt has "CPU Super Core 1"`,
+		},
+		{
+			name:     "Unknown key flagged as NEW",
+			line:     "CPU Performance Core 1:TZZZ:M5",
+			label:    "CPU Performance Core",
+			key:      "TZZZ",
+			family:   "M5",
+			coreIdx:  1,
+			contains: "★ NEW for M5",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := annotateLine(tt.line, tt.label, tt.key, tt.family, tt.coreIdx)
+			if !strings.Contains(got, tt.contains) {
+				t.Errorf("annotateLine(...) = %q\n  must contain %q", got, tt.contains)
+			}
+
+			if !strings.Contains(got, tt.line) {
+				t.Errorf("annotateLine(...) = %q\n  must contain original line %q",
+					got, tt.line)
+			}
+		})
+	}
+}
+
+// TestAllDetectedKeys verifies the union semantics: keys appear regardless of
+// which phase produced them, and cluster keys are merged in. Duplicate keys
+// across phases are de-duplicated.
+func TestAllDetectedKeys(t *testing.T) {
+	t.Parallel()
+
+	results := []phaseResult{
+		{
+			spec:   phaseSpec{label: labelPerformanceCore},
+			deltas: map[string]float32{"Tp00": 5.0, "Tp01": 4.5},
+		},
+		{
+			spec: phaseSpec{label: labelEfficiencyCore},
+			// Tp01 also appears here (cross-phase) — must dedup.
+			deltas: map[string]float32{"Tp01": 2.0, "Te04": 7.0},
+		},
+	}
+	cluster := []string{"Tex0", "Tpx0"}
+
+	got := allDetectedKeys(results, cluster)
+
+	want := []string{"Tp00", "Tp01", "Te04", "Tex0", "Tpx0"}
+	if len(got) != len(want) {
+		t.Fatalf("allDetectedKeys returned %d keys, want %d: %v", len(got), len(want), got)
+	}
+
+	for _, k := range want {
+		if _, ok := got[k]; !ok {
+			t.Errorf("allDetectedKeys missing %q (got %v)", k, got)
+		}
 	}
 }

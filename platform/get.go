@@ -98,6 +98,29 @@ func GetProduct() (Product, bool) {
 	return p, ok
 }
 
+// GetSKULayout returns the validated core composition for the current machine's
+// SKU (looked up by Product.CPU). Returns the zero SKULayout and false when the
+// model is unknown or the SKU has no roster entry — callers should treat that
+// as "no validation possible" rather than as an error.
+func GetSKULayout() (SKULayout, bool) {
+	p, ok := products[getModel()]
+	if !ok {
+		return SKULayout{}, false
+	}
+
+	layout, ok := skuLayouts[p.CPU]
+
+	return layout, ok
+}
+
+// LookupSKULayout returns the roster entry for the given Product.CPU string.
+// Exposed for testing and for callers that already hold a Product struct.
+func LookupSKULayout(cpu string) (SKULayout, bool) {
+	layout, ok := skuLayouts[cpu]
+
+	return layout, ok
+}
+
 // GetTotalCPU returns the total physical and logical CPU counts via the
 // hw.physicalcpu and hw.logicalcpu sysctls.
 func GetTotalCPU() (physical, logical int) {

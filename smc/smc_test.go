@@ -253,3 +253,155 @@ func Test_filterByFamily_NoPCIeLeakOnAppleSilicon(t *testing.T) {
 		}
 	}
 }
+
+func Test_platformMatches(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		rowPlatform  string
+		family       string
+		wantMatching bool
+	}{
+		{"empty row matches all", "", "M5", true},
+		{"All row matches all", "All", "Intel", true},
+		{"Apple row matches M-family", "Apple", "M1", true},
+		{"Apple row matches A-family", "Apple", "A18", true},
+		{"Apple row matches generic Apple", "Apple", "Apple", true},
+		{"Apple row rejects Intel", "Apple", "Intel", false},
+		{"Exact M5 match", "M5", "M5", true},
+		{"M3 row rejects M5 family", "M3", "M5", false},
+		{"Intel row rejects Apple Silicon", "Intel", "M1", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := platformMatches(tt.rowPlatform, tt.family)
+			if got != tt.wantMatching {
+				t.Errorf("platformMatches(%q, %q) = %v, want %v",
+					tt.rowPlatform, tt.family, got, tt.wantMatching)
+			}
+		})
+	}
+}
+
+// Test_LookupTempDesc_directMatch covers the three matching paths in
+// LookupTempDesc: direct (no-wildcard) keys, wildcard expansion, and
+// platform-scoped rejection. Sentinel: a key tagged Platform="M1" must not
+// resolve when queried under a different family.
+func Test_LookupTempDesc_directMatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		key      string
+		family   string
+		wantDesc string
+		wantOK   bool
+	}{
+		{
+			name: "M5 base Tp00 maps to Super Core 1",
+			// AppleTemp has explicit M5 rows for Tp00/Tp04/Tp08/Tp0C as Super Core 1..4.
+			key: "Tp00", family: "M5",
+			wantDesc: "CPU Super Core 1", wantOK: true,
+		},
+		{
+			name: "M3 Tp1E maps to Performance Core 7",
+			key:  "Tp1E", family: "M3",
+			wantDesc: "CPU Performance Core 7", wantOK: true,
+		},
+		{
+			name: "Wildcard TC%c expands for digit indices",
+			key:  "TC0c", family: "Intel",
+			wantDesc: "CPU Core 1", wantOK: true,
+		},
+		{
+			name: "Apple-tagged keys match any M-family",
+			key:  "TaLP", family: "M4",
+			wantDesc: "Airflow Left", wantOK: true,
+		},
+		{
+			name:   "Unknown key returns false",
+			key:    "ZZZZ",
+			family: "M5",
+			wantOK: false,
+		},
+		{
+			name: "M1-only key rejected on M3",
+			// Tp08 maps to "CPU Efficiency Core 1" only on M1 in AppleTemp.
+			key: "Tp08", family: "M3",
+			wantOK: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			desc, ok := LookupTempDesc(tt.key, tt.family)
+			if ok != tt.wantOK {
+				t.Errorf("LookupTempDesc(%q, %q) ok = %v, want %v",
+					tt.key, tt.family, ok, tt.wantOK)
+			}
+
+			if ok && desc != tt.wantDesc {
+				t.Errorf("LookupTempDesc(%q, %q) desc = %q, want %q",
+					tt.key, tt.family, desc, tt.wantDesc)
+			}
+		})
+	}
+}
+
+// Test_MappedTempKeys_M5 exercises the wildcard expansion path: every Tp0?
+// slot from AppleTemp's M5 rows must appear as a concrete key in the result.
+func Test_MappedTempKeys_M5(t *testing.T) {
+	t.Parallel()
+
+	got := MappedTempKeys("M5")
+
+	// Spot-check M5 super cores (explicit AppleTemp rows).
+	for _, k := range []string{"Tp00", "Tp04", "Tp08", "Tp0C"} {
+		if _, ok := got[k]; !ok {
+			t.Errorf("MappedTempKeys(M5) missing %q", k)
+		}
+	}
+
+	// Wildcard expansion: TC%c → TC0c..TC9c, all should be present.
+	for i := range 10 {
+		want := "TC" + string(rune('0'+i)) + "c"
+		if _, ok := got[want]; !ok {
+			t.Errorf("MappedTempKeys(M5) missing wildcard-expanded key %q", want)
+		}
+	}
+
+	// Apple universal rows must come through (e.g. SSD Proximity 1).
+	if desc, ok := got["TS0P"]; !ok || desc != "SSD Proximity 1" {
+		t.Errorf("MappedTempKeys(M5)[TS0P] = (%q, %v), want (\"SSD Proximity 1\", true)",
+			desc, ok)
+	}
+}
+
+// Test_MappedTempKeys_familyIsolation makes sure family-scoped rows do not leak
+// across families. Tp08 is M1-specific (Efficiency Core 1); querying M1 must
+// return it while querying other families must not.
+func Test_MappedTempKeys_familyIsolation(t *testing.T) {
+	t.Parallel()
+
+	m1 := MappedTempKeys("M1")
+	m3 := MappedTempKeys("M3")
+
+	if d, ok := m1["Tp08"]; !ok || d != "CPU Efficiency Core 1" {
+		t.Errorf("MappedTempKeys(M1)[Tp08] = (%q, %v), want (\"CPU Efficiency Core 1\", true)", d, ok)
+	}
+
+	// Tp1E is M3-specific (Performance Core 7); should not appear on M1.
+	if _, ok := m1["Tp1E"]; ok {
+		t.Errorf("MappedTempKeys(M1) leaked M3-only key Tp1E")
+	}
+
+	if d, ok := m3["Tp1E"]; !ok || d != "CPU Performance Core 7" {
+		t.Errorf("MappedTempKeys(M3)[Tp1E] = (%q, %v), want (\"CPU Performance Core 7\", true)", d, ok)
+	}
+}
