@@ -111,6 +111,8 @@ Virtual Memory Summary:TVmS:Apple
 Virtual Memory Summary:TVms:Apple
 Virtual Ambient %:TVA%:Apple
 Virtual Sensor %:TVS%:Apple
+// TVSx (lowercase x) is not reachable via the % wildcard; mirrors TVS0 across snapshots.
+Virtual Sensor x:TVSx:Apple
 // Power-delivery ICs (TPD0-9 per slot; TPDX is the aggregate max — reads 0 on A18 idle)
 // Wildcard % only expands to digits 0-9 in getGenericSensors, so hex-letter slots
 // (TPDA-F on M4 base, TPDa-f on Pro/Max/Ultra) need explicit rows.
@@ -801,6 +803,15 @@ CPU Performance Cluster 1:Tp1I:M5
 CPU Performance Cluster 2:Tp1Q:M5
 CPU Performance Cluster 3:Tp1U:M5
 CPU Performance Cluster 4:Tp1g:M5
+// Ta00-Ta0R are byte-identical aliases of a single die-level temperature signal
+// (47.31 °C on M5 Pro, 27.11 °C on M5 Max idle). Map under one description so
+// last-write-wins surfaces a single value.
+CPU Die Thermal Headroom:Ta00:M5
+CPU Die Thermal Headroom:Ta04:M5
+CPU Die Thermal Headroom:Ta08:M5
+CPU Die Thermal Headroom:Ta0K:M5
+CPU Die Thermal Headroom:Ta0O:M5
+CPU Die Thermal Headroom:Ta0R:M5
 // M5 GPU cluster sensors (all confirmed in report-m5-pro.txt)
 GPU 1:Tg08:M5
 GPU 2:Tg0C:M5
@@ -845,8 +856,25 @@ GPU 40:Tg3l:M5
 GPU 41:Tg3t:M5
 GPU 42:Tg3x:M5
 GPU 43:Tg43:M5
-// M5 GPU Fabric sensors (TfC0/1/3 also appear on M4; TfC5/B/D/E/F are M5-only;
-// TfCB reads 0 on the available M5 snapshot so it is not mapped).
+// M5 Max GPU fabric blocks (Tf0?/Tf1? — absent on M5 base/Pro, silently ignored).
+// Per-block convention matches M3: Tf?4 = aggregate; Tf?6 = max (static threshold,
+// reads ~64 °C constant on M5 Max); Tf?8/9/A/B = four probes. Min (Tf?5) and
+// aggregate aliases (Tf?D/Tf?E) are not present on M5 Max.
+GPU Fabric Block 0:Tf04:M5
+GPU Fabric Block 0 Max:Tf06:M5
+GPU Fabric Block 0 Probe 1:Tf08:M5
+GPU Fabric Block 0 Probe 2:Tf09:M5
+GPU Fabric Block 0 Probe 3:Tf0A:M5
+GPU Fabric Block 0 Probe 4:Tf0B:M5
+GPU Fabric Block 1:Tf14:M5
+GPU Fabric Block 1 Max:Tf16:M5
+GPU Fabric Block 1 Probe 1:Tf18:M5
+GPU Fabric Block 1 Probe 2:Tf19:M5
+GPU Fabric Block 1 Probe 3:Tf1A:M5
+GPU Fabric Block 1 Probe 4:Tf1B:M5
+// M5 GPU Fabric sensors. M5 Pro populates TfC0/1/3/5/D/E/F (TfCB sentinel);
+// M5 Max populates the complementary TfC1/3/5/6/7/8/9/A (TfCC sentinel).
+// Both sets mapped; absent keys silently ignored per filterForPlatform.
 GPU Fabric 1:TfC0:M5
 GPU Fabric 2:TfC1:M5
 GPU Fabric 3:TfC3:M5
@@ -854,6 +882,11 @@ GPU Fabric 4:TfC5:M5
 GPU Fabric 5:TfCD:M5
 GPU Fabric 6:TfCE:M5
 GPU Fabric 7:TfCF:M5
+GPU Fabric 8:TfC6:M5
+GPU Fabric 9:TfC7:M5
+GPU Fabric 10:TfC8:M5
+GPU Fabric 11:TfC9:M5
+GPU Fabric 12:TfCA:M5
 // M5 Virtual Die hex-letter slots (TVDA/G/M/P/c — TVD% wildcard only covers 0-9)
 Virtual Die A:TVDA:M5
 Virtual Die G:TVDG:M5
@@ -913,6 +946,8 @@ SSD 8:Ts0R:M5
 SSD 9:Ts0U:M5
 SSD 10:Ts0X:M5
 SSD 11:Ts0a:M5
+SSD 12:Ts0d:M5
+SSD 13:Ts0g:M5
 SSD Controller:Ts0P:M5
 SSD Controller:Ts1P:M5
 // M5 package/northbridge sensors
