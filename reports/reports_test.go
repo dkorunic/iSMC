@@ -68,7 +68,7 @@ func TestFamilyFromFilename(t *testing.T) {
 func TestKeysIntegration(t *testing.T) {
 	t.Parallel()
 
-	for _, family := range []string{"M1", "M3", "M4", "M5", "A18"} {
+	for _, family := range []string{"M1", "M2", "M3", "M4", "M5", "A18"} {
 		got := Keys(family)
 		if len(got) < 20 {
 			t.Errorf("Keys(%q): %d keys parsed, expected ≥20; "+
@@ -141,9 +141,6 @@ func TestFamilies(t *testing.T) {
 func TestIngest_skipsNonTKeys(t *testing.T) {
 	t.Parallel()
 
-	// Isolate from other tests' parser state.
-	byFamily = map[string]map[string]struct{}{}
-
 	body := `
   TB0T  [flt ]  19 (bytes 98 99 99 41)
   AC-B  [si8 ]  -1 (bytes ff)
@@ -152,9 +149,10 @@ func TestIngest_skipsNonTKeys(t *testing.T) {
   XYZ   not a real key
 no leading whitespace
 `
-	ingest(body, "Test")
+	local := map[string]map[string]struct{}{}
+	ingest(local, body, "Test")
 
-	got := byFamily["Test"]
+	got := local["Test"]
 	if len(got) != 2 {
 		t.Errorf("ingest recorded %d keys, want 2 (TB0T + Tp00): %v", len(got), got)
 	}

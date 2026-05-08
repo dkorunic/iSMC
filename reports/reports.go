@@ -93,7 +93,7 @@ func load() {
 			continue
 		}
 
-		ingest(string(data), family)
+		ingest(byFamily, string(data), family)
 	}
 }
 
@@ -128,7 +128,7 @@ func familyFromFilename(name string) string {
 }
 
 // ingest scans body for lines that start with a 4-character T-prefixed SMC
-// key and records each unique key under the given family.
+// key and records each unique key under the given family in target.
 //
 // The expected line shape is:
 //
@@ -137,11 +137,11 @@ func familyFromFilename(name string) string {
 // Anything that does not start with whitespace + Tabcd (where each abcd is
 // printable) is ignored, including comment lines and counter/header rows that
 // share the file but begin with non-T keys (e.g. "AC-B", "BNum").
-func ingest(body, family string) {
-	set, ok := byFamily[family]
+func ingest(target map[string]map[string]struct{}, body, family string) {
+	set, ok := target[family]
 	if !ok {
 		set = make(map[string]struct{})
-		byFamily[family] = set
+		target[family] = set
 	}
 
 	for line := range strings.SplitSeq(body, "\n") {

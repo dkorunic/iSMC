@@ -423,6 +423,117 @@ func Test_A18ProMapping(t *testing.T) {
 	}
 }
 
+// m2ProReport is a representative key→value snapshot captured from report-m2.txt
+// (M2 Pro, 8 P-cores + 4 E-cores). Per-E-core sensors are not exposed individually
+// on this SKU; the four E-cores share one Te04/05/06 cluster-aggregate triplet.
+// Tp0a/0b/0c violates third-is-max (third value 35.77 < probe-B 37.02) and is
+// mapped as a cluster aggregate rather than a per-core triplet.
+var m2ProReport = map[string]float32{
+	// ── P-Cores 1-4 (capital Tp triplets, M1-style) ───────────────────────
+	"Tp00": 31.821533, "Tp01": 37.92153, "Tp02": 40.415627,
+	"Tp04": 31.96039, "Tp05": 37.04739, "Tp06": 38.72475,
+	"Tp08": 31.56863, "Tp09": 37.66863, "Tp0A": 39.99375,
+	"Tp0C": 31.724152, "Tp0D": 36.81115, "Tp0E": 38.302876,
+	// ── P-Cores 5-8 (lowercase Tp triplets) ───────────────────────────────
+	"Tp0e": 31.713661, "Tp0f": 37.81366, "Tp0g": 39.853127,
+	"Tp0i": 31.820509, "Tp0j": 36.90751, "Tp0k": 38.521626,
+	"Tp0m": 30.874327, "Tp0n": 36.974327, "Tp0o": 38.7125,
+	"Tp0q": 31.240982, "Tp0r": 36.32798, "Tp0s": 38.09975,
+	// ── P-Cluster aggregate (third-is-max violation, clean mantissa) ──────
+	"Tp0a": 31.569178, "Tp0b": 37.019176, "Tp0c": 35.765625,
+	// ── E-Cluster aggregate (single triplet for 4 E-cores on this SKU) ────
+	"Te04": 31.497454, "Te05": 36.947453, "Te06": 38.51875,
+	// ── GPU clusters (probe + max doublets) ───────────────────────────────
+	"Tg0e": 31.15997, "Tg0f": 35.767967,
+	"Tg0m": 31.263393, "Tg0n": 35.87139,
+	"Tg0q": 31.873512, "Tg0r": 36.481514,
+	// ── SSD slots (probe-A/probe-B mirrored, third is max) ────────────────
+	"Ts0K": 31.30121, "Ts0L": 31.30121, "Ts0M": 31.921875,
+	"Ts0O": 30.718437, "Ts0P": 30.718437, "Ts0Q": 31.171875,
+	"Ts0S": 31.572407, "Ts0T": 31.572407, "Ts0U": 31.8125,
+	"Ts0W": 31.525024, "Ts0X": 36.975025, "Ts0Y": 38.409374,
+	"Ts0a": 31.75509, "Ts0b": 31.75509, "Ts0c": 32.328125,
+	// ── SSD controllers ───────────────────────────────────────────────────
+	"Ts1P": 26.125, "TsOP": 27.375,
+}
+
+// Test_M2ProMapping verifies that the M2 temperature sensor definitions in
+// AppleTemp, combined with the isValidReading filter, resolve the M2 Pro
+// SMC report snapshot to exactly 8 Performance Cores, no per-E-core rows
+// (the 4 E-cores share a cluster-aggregate triplet on this SKU), and the
+// expected GPU / SSD / cluster-aggregate counts.
+func Test_M2ProMapping(t *testing.T) {
+	m2Sensors := make([]SensorStat, 0, 64)
+
+	for _, s := range AppleTemp {
+		if s.Platform == "M2" {
+			m2Sensors = append(m2Sensors, s)
+		}
+	}
+
+	resolved := resolveM4Sensors(m2Sensors, m2ProReport)
+
+	var (
+		pCores     int
+		eCores     int
+		gpus       int
+		ssds       int
+		pCoreNames []string
+	)
+
+	for desc := range resolved {
+		switch {
+		case strings.HasPrefix(desc, "CPU Performance Core "):
+			pCores++
+			pCoreNames = append(pCoreNames, desc)
+		case strings.HasPrefix(desc, "CPU Efficiency Core "):
+			eCores++
+		case strings.HasPrefix(desc, "GPU "):
+			gpus++
+		case strings.HasPrefix(desc, "SSD ") && !strings.HasPrefix(desc, "SSD Controller"):
+			ssds++
+		}
+	}
+
+	assert.Equal(t, 8, pCores,
+		"M2 Pro must resolve to exactly 8 Performance Cores; got %v", pCoreNames)
+	assert.Equal(t, 0, eCores,
+		"M2 Pro must not resolve per-E-core rows (cluster aggregate only)")
+	assert.Equal(t, 3, gpus, "M2 Pro must resolve to exactly 3 GPU clusters")
+	assert.Equal(t, 5, ssds, "M2 Pro must resolve to exactly 5 SSD slots")
+
+	_, pAgg := resolved["CPU Performance Cluster Aggregate 1"]
+	_, eAgg := resolved["CPU Efficiency Cluster Aggregate 1"]
+	assert.True(t, pAgg, "CPU Performance Cluster Aggregate 1 must resolve from Tp0a/0b/0c")
+	assert.True(t, eAgg, "CPU Efficiency Cluster Aggregate 1 must resolve from Te04/05/06")
+
+	// Guard against phantom P-cores 9+: only 8 P-cores exist on M2 Pro.
+	for i := 9; i <= 16; i++ {
+		phantom := fmt.Sprintf("CPU Performance Core %d", i)
+		_, found := resolved[phantom]
+		assert.False(t, found, "phantom %q must not appear (M2 Pro has 8 P-cores)", phantom)
+	}
+
+	// Each P-core's resolved value must be the triplet's max (third position),
+	// not the probe-B value — verifies the triplet last-write-wins ordering.
+	expectedMax := map[string]float32{
+		"CPU Performance Core 1": 40.415627,
+		"CPU Performance Core 2": 38.72475,
+		"CPU Performance Core 3": 39.99375,
+		"CPU Performance Core 4": 38.302876,
+		"CPU Performance Core 5": 39.853127,
+		"CPU Performance Core 6": 38.521626,
+		"CPU Performance Core 7": 38.7125,
+		"CPU Performance Core 8": 38.09975,
+	}
+	for name, want := range expectedMax {
+		got, ok := resolved[name]
+		assert.True(t, ok, "%s missing from resolved map", name)
+		assert.InDelta(t, want, got, 0.001,
+			"%s resolved to %g °C; expected triplet max %g °C", name, got, want)
+	}
+}
+
 // Test_isValidReading verifies the sentinel-rejection and minimum-temperature logic.
 func Test_isValidReading(t *testing.T) {
 	tests := []struct {

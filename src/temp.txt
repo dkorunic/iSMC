@@ -194,6 +194,10 @@ SoC Heatsink 4:Th0E:Apple
 SoC Heatsink 5:Th0G:Apple
 SoC Heatsink 5:Th0H:Apple
 SoC Heatsink 5:Th0I:Apple
+// M2 Pro extra triplet.
+SoC Heatsink 6:Th0K:Apple
+SoC Heatsink 6:Th0L:Apple
+SoC Heatsink 6:Th0M:Apple
 // M1 Ultra die 2.
 SoC Heatsink Die 2 1:Th20:Apple
 SoC Heatsink Die 2 1:Th21:Apple
@@ -352,20 +356,67 @@ RF Delivery Die 2 20:TrDj:M1
 // M1 Pro/Max power-voltage probe.
 Power Probe Voltage Diode:TPVD:M1
 // M2
-CPU Efficiency Core 1:Tp1h:M2
-CPU Efficiency Core 2:Tp1t:M2
-CPU Efficiency Core 3:Tp1p:M2
-CPU Efficiency Core 4:Tp1l:M2
+// M1-style Tp triplets (probe A, probe B, max); last-write-wins captures the max.
+// Tp01 ≡ TCMb and Tp02 ≡ TCMz byte-for-byte on M2 — Core 1 may coincide with the
+// cluster max value when Core 1 is hottest.
+CPU Performance Core 1:Tp00:M2
 CPU Performance Core 1:Tp01:M2
+CPU Performance Core 1:Tp02:M2
+CPU Performance Core 2:Tp04:M2
 CPU Performance Core 2:Tp05:M2
+CPU Performance Core 2:Tp06:M2
+CPU Performance Core 3:Tp08:M2
 CPU Performance Core 3:Tp09:M2
+CPU Performance Core 3:Tp0A:M2
+CPU Performance Core 4:Tp0C:M2
 CPU Performance Core 4:Tp0D:M2
-CPU Performance Core 5:Tp0X:M2
-CPU Performance Core 6:Tp0b:M2
-CPU Performance Core 7:Tp0f:M2
-CPU Performance Core 8:Tp0j:M2
+CPU Performance Core 4:Tp0E:M2
+CPU Performance Core 5:Tp0e:M2
+CPU Performance Core 5:Tp0f:M2
+CPU Performance Core 5:Tp0g:M2
+CPU Performance Core 6:Tp0i:M2
+CPU Performance Core 6:Tp0j:M2
+CPU Performance Core 6:Tp0k:M2
+CPU Performance Core 7:Tp0m:M2
+CPU Performance Core 7:Tp0n:M2
+CPU Performance Core 7:Tp0o:M2
+CPU Performance Core 8:Tp0q:M2
+CPU Performance Core 8:Tp0r:M2
+CPU Performance Core 8:Tp0s:M2
+// Tp0a/0b/0c third position breaks third-is-max; treat as cluster aggregate.
+CPU Performance Cluster Aggregate 1:Tp0a:M2
+CPU Performance Cluster Aggregate 1:Tp0b:M2
+CPU Performance Cluster Aggregate 1:Tp0c:M2
+// 4 E-cores share a single cluster-aggregate triplet on this M2 SKU.
+CPU Efficiency Cluster Aggregate 1:Te04:M2
+CPU Efficiency Cluster Aggregate 1:Te05:M2
+CPU Efficiency Cluster Aggregate 1:Te06:M2
+// Three GPU clusters; probe + max doublets.
+GPU 1:Tg0e:M2
 GPU 1:Tg0f:M2
-GPU 2:Tg0j:M2
+GPU 2:Tg0m:M2
+GPU 2:Tg0n:M2
+GPU 3:Tg0q:M2
+GPU 3:Tg0r:M2
+// SSD triplets: probe A and probe B mirror; third position is the max.
+SSD 1:Ts0K:M2
+SSD 1:Ts0L:M2
+SSD 1:Ts0M:M2
+SSD 2:Ts0O:M2
+SSD 2:Ts0P:M2
+SSD 2:Ts0Q:M2
+SSD 3:Ts0S:M2
+SSD 3:Ts0T:M2
+SSD 3:Ts0U:M2
+SSD 4:Ts0W:M2
+SSD 4:Ts0X:M2
+SSD 4:Ts0Y:M2
+SSD 5:Ts0a:M2
+SSD 5:Ts0b:M2
+SSD 5:Ts0c:M2
+// TsOP uses letter O, not digit 0.
+SSD Controller:Ts1P:M2
+SSD Controller:TsOP:M2
 // M3
 CPU Efficiency Core 1:Te04:M3
 CPU Efficiency Core 1:Te05:M3
