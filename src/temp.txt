@@ -14,6 +14,11 @@ GPU Heatsink %:TG%H:All
 GPU Proximity %:TG%P:All
 GPU Sensor %:TG%S:All
 GPU Die %:TG%T:All
+// Aliased: TG0B ≈ TG0V ≈ TG1B/2B; TG0C runs cooler.
+GPU Probe A %:TG%A:All
+GPU Probe B %:TG%B:All
+GPU Probe C %:TG%C:All
+GPU Probe V %:TG%V:All
 Memory Bank Proximity %:Tm%P:All
 Memory Proximity %:TM%P:All
 Memory Slot %:TM%S:All
@@ -50,18 +55,11 @@ Voltage Regulator %:TV%R:All
 NVME % (A):TH%a:All
 NVME % (B):TH%b:All
 NVME % (C):TH%c:All
-// Power-management / power-supply proximity probes seen on Intel/T2 and every
-// Apple Silicon family (real readings 22-46 °C across reports/).
 Power Management Proximity:TPMP:All
 Power Supply Proximity:TPSP:All
-// Cross-platform standalone diodes observed on Intel/T2 and Apple Silicon
-// (reports/ shows real readings 19-49 °C — previously unmapped).
-// TIOP/TSCD: I/O processor and system controller diodes (Intel-T2 + M4 base).
-// TCHP: CPU Heatpipe (Intel-T2 + most Apple Silicon families).
-// TMVR: Memory Voltage Regulator (Intel-T2 + every Apple Silicon family).
-// TT%D wildcard expands to TT0D-TT9D (Thunderbolt diodes; observed slots 0/1).
 IO Processor:TIOP:All
 System Controller:TSCD:All
+System Disk Diode:TSDD:All
 CPU Heatpipe:TCHP:All
 Memory Voltage Regulator:TMVR:All
 Thunderbolt Diode %:TT%D:All
@@ -92,18 +90,27 @@ Thunderbolt Left Proximity:TaLT:Apple
 Thunderbolt Right Proximity:TaRT:Apple
 Airflow Left Wall:TaLW:Apple
 Airflow Right Wall:TaRW:Apple
+// Mac Studio 4-corner zones; distinct from TaL*/TaR* above.
+Airflow Front Left:TaFL:Apple
+Airflow Front Right:TaFR:Apple
+Airflow Rear Left:TaRL:Apple
+Airflow Rear Right:TaRR:Apple
 Ambient Outside Lid:TAOL:Apple
 Ambient Top Proximity:TaTP:Apple
-// SSD proximity sensors observed on M1/M3/M4 Pro/M5 Pro reports (24-48 °C).
-// Case-distinct from Ts0P/Ts1P (lowercase t = SSD Controller) and from the
-// A18 TS0p/TS1p (lowercase p, mapped separately in the A18 section).
+// Case-distinct from Ts0P/1P and A18 TS0p/1p.
 SSD Proximity 1:TS0P:Apple
 SSD Proximity 2:TS1P:Apple
-// CPU die/PMU max sensors (TCMb ≈ Tp0D, TCMz ≈ Tp0E peak)
+// SoC regulator V/W/X; Pro/Max/Ultra SKUs.
+SoC Regulator V:TSVR:Apple
+SoC Regulator W:TSWR:Apple
+SoC Regulator X:TSXR:Apple
+// Pro-tier only.
+Sensor Group 1:TSG1:Apple
+Sensor Group 2:TSG2:Apple
+// CPU die/PMU peak sensors.
 CPU Die Max:TCMz:Apple
 CPU Die Average:TCMb:Apple
-// Virtual / fused SoC probes (TVD0 universal; TVDA/G/M/P/c are M5-specific
-// hex-letter slots that the % wildcard cannot reach).
+// M5 hex-letter slots listed under M5 section.
 Virtual Die %:TVD%:Apple
 Virtual Memory:TVMR:Apple
 Virtual Memory r:TVMr:Apple
@@ -111,11 +118,9 @@ Virtual Memory Summary:TVmS:Apple
 Virtual Memory Summary:TVms:Apple
 Virtual Ambient %:TVA%:Apple
 Virtual Sensor %:TVS%:Apple
-// TVSx (lowercase x) is not reachable via the % wildcard; mirrors TVS0 across snapshots.
+// TVSx mirrors TVS0; % is digits-only.
 Virtual Sensor x:TVSx:Apple
-// Power-delivery ICs (TPD0-9 per slot; TPDX is the aggregate max — reads 0 on A18 idle)
-// Wildcard % only expands to digits 0-9 in getGenericSensors, so hex-letter slots
-// (TPDA-F on M4 base, TPDa-f on Pro/Max/Ultra) need explicit rows.
+// Hex-letter slots need explicit rows.
 Power Delivery IC %:TPD%:Apple
 Power Delivery IC Max:TPDX:Apple
 Power Delivery IC 11:TPDA:Apple
@@ -130,13 +135,12 @@ Power Delivery IC 19:TPDc:Apple
 Power Delivery IC 20:TPDd:Apple
 Power Delivery IC 21:TPDe:Apple
 Power Delivery IC 22:TPDf:Apple
-// TPDg-j populated on M1 Pro/Max/Ultra (32-49 °C real readings).
+// TPDg-j: M1 Pro/Max/Ultra only.
 Power Delivery IC 23:TPDg:Apple
 Power Delivery IC 24:TPDh:Apple
 Power Delivery IC 25:TPDi:Apple
 Power Delivery IC 26:TPDj:Apple
-// RF front-end / radio delivery (TRD0-9 per slot; TRDX is the aggregate max).
-// TRDa-f are populated on M1/M3/M4/M5 Pro/Max/Ultra; TRDA-F is unobserved.
+// TRDa-f explicit; TRDA-F unobserved.
 RF Delivery %:TRD%:Apple
 RF Delivery Max:TRDX:Apple
 RF Delivery 11:TRDa:Apple
@@ -145,14 +149,68 @@ RF Delivery 13:TRDc:Apple
 RF Delivery 14:TRDd:Apple
 RF Delivery 15:TRDe:Apple
 RF Delivery 16:TRDf:Apple
-// TRDg-j populated on M1 Pro/Max/Ultra (26-54 °C real readings).
+// TRDg-j: M1 Pro/Max/Ultra only.
 RF Delivery 17:TRDg:Apple
 RF Delivery 18:TRDh:Apple
 RF Delivery 19:TRDi:Apple
 RF Delivery 20:TRDj:Apple
-// M1
-// Each core has a triplet of 3 SMC sensors; all three map to the same description
-// so addGeneric keeps whichever has a non-zero reading (fallback behaviour).
+// TR0Z: fixed reference (~51.85°C); TR1d/2d live.
+// TR3d/4d/5d: M4 + Intel/T2.
+RF Reference:TR0Z:All
+RF Probe 1:TR1d:All
+RF Probe 2:TR2d:All
+RF Probe 3:TR3d:All
+RF Probe 4:TR4d:All
+RF Probe 5:TR5d:All
+// 3 clusters × 5 digit-slot probes.
+SoC Thermal Diode Cluster 1 Probe %:TD0%:Apple
+SoC Thermal Diode Cluster 2 Probe %:TD1%:Apple
+SoC Thermal Diode Cluster 3 Probe %:TD2%:Apple
+// Case-distinct: TDEL/TDeL, TDER/TDeR are different sensors.
+Board Diode Battery Proximity:TDBP:Apple
+Board Diode Edge Left:TDEL:Apple
+Board Diode Edge Right:TDER:Apple
+Board Diode edge Left:TDeL:Apple
+Board Diode edge Right:TDeR:Apple
+Board Diode Top Proximity:TDTP:Apple
+Board Diode Top Center:TDTC:Apple
+Board Diode Center Right:TDCR:Apple
+Board Diode Edge Center:TDEC:Apple
+Board Diode Virtual:TDVx:Apple
+// Heatsink triplets (probe, probe, max); M4/M5/A18 don't populate Th**.
+SoC Heatsink 1:Th00:Apple
+SoC Heatsink 1:Th01:Apple
+SoC Heatsink 1:Th02:Apple
+SoC Heatsink 2:Th04:Apple
+SoC Heatsink 2:Th05:Apple
+SoC Heatsink 2:Th06:Apple
+SoC Heatsink 3:Th08:Apple
+SoC Heatsink 3:Th09:Apple
+SoC Heatsink 3:Th0A:Apple
+SoC Heatsink 4:Th0C:Apple
+SoC Heatsink 4:Th0D:Apple
+SoC Heatsink 4:Th0E:Apple
+// M1 Max/Ultra extra triplet.
+SoC Heatsink 5:Th0G:Apple
+SoC Heatsink 5:Th0H:Apple
+SoC Heatsink 5:Th0I:Apple
+// M1 Ultra die 2.
+SoC Heatsink Die 2 1:Th20:Apple
+SoC Heatsink Die 2 1:Th21:Apple
+SoC Heatsink Die 2 1:Th22:Apple
+SoC Heatsink Die 2 2:Th24:Apple
+SoC Heatsink Die 2 2:Th25:Apple
+SoC Heatsink Die 2 2:Th26:Apple
+SoC Heatsink Die 2 3:Th28:Apple
+SoC Heatsink Die 2 3:Th29:Apple
+SoC Heatsink Die 2 3:Th2A:Apple
+SoC Heatsink Die 2 4:Th2C:Apple
+SoC Heatsink Die 2 4:Th2D:Apple
+SoC Heatsink Die 2 4:Th2E:Apple
+SoC Heatsink Die 2 5:Th2G:Apple
+SoC Heatsink Die 2 5:Th2H:Apple
+SoC Heatsink Die 2 5:Th2I:Apple
+// Triplet convention; last non-zero wins.
 CPU Efficiency Core 1:Tp08:M1
 CPU Efficiency Core 1:Tp09:M1
 CPU Efficiency Core 1:Tp0A:M1
@@ -183,7 +241,7 @@ CPU Performance Core 7:Tp0Y:M1
 CPU Performance Core 8:Tp0a:M1
 CPU Performance Core 8:Tp0b:M1
 CPU Performance Core 8:Tp0c:M1
-// M1 Ultra die 1 (absent on M1/M1 Pro/M1 Max, silently ignored)
+// M1 Ultra die 2 (rejected on non-Ultra SKUs).
 CPU Efficiency Core 3:Tp28:M1
 CPU Efficiency Core 3:Tp29:M1
 CPU Efficiency Core 3:Tp2A:M1
@@ -222,7 +280,7 @@ GPU 3:Tg0K:M1
 GPU 3:Tg0L:M1
 GPU 4:Tg0S:M1
 GPU 4:Tg0T:M1
-// M1 Ultra die 2 GPU (absent on M1/M1 Pro/M1 Max, silently ignored)
+// M1 Ultra die 2 GPU.
 GPU 5:Tg0a:M1
 GPU 5:Tg0b:M1
 GPU 6:Tg0i:M1
@@ -243,14 +301,14 @@ Memory 3:Tm0A:M1
 Memory 4:Tm0C:M1
 Memory 4:Tm0D:M1
 Memory 4:Tm0E:M1
-// M1 die-level aggregate sensors (present on M1 Pro/Max/Ultra; exact die role TBD)
+// Die-level aggregates (M1 Pro/Max/Ultra).
 CPU Die 1:Te00:M1
 CPU Die 2:Te01:M1
 CPU Die 3:Te02:M1
-// M1 Ultra die 2 aggregate sensors (absent on M1 Pro/Max, silently ignored)
+// M1 Ultra die 2 aggregates.
 CPU Die 4:Te20:M1
 CPU Die 5:Te21:M1
-// M1 Pro/Max/Ultra NVMe/SSD die temperature sensors (absent on M1 base; silently ignored)
+// SSD die sensors (M1 Pro/Max/Ultra).
 SSD 1:Ts00:M1
 SSD 1:Ts01:M1
 SSD 1:Ts02:M1
@@ -259,17 +317,14 @@ SSD 2:Ts05:M1
 SSD 2:Ts06:M1
 SSD Controller:Ts0P:M1
 SSD Controller:Ts1P:M1
-// M1 Ultra die-2 SSD sensors (absent on M1 Pro/Max; silently ignored)
+// M1 Ultra die-2 SSD.
 SSD 3:Ts20:M1
 SSD 3:Ts21:M1
 SSD 3:Ts22:M1
 SSD 4:Ts24:M1
 SSD 4:Ts25:M1
 SSD 4:Ts26:M1
-// M1 Ultra die-2 power-delivery / RF-delivery cluster (lowercase Tp/Tr is
-// case-distinct from TPD/TRD; absent on M1 Pro/Max so silently ignored there).
-// Real readings 33-37 °C across the M1 Ultra report; wildcard % covers digit
-// slots 0-9 only — letter slots need explicit rows.
+// Die 2 PD/RF (lowercase Tp/Tr); hex slots explicit.
 Power Delivery IC Die 2 %:TpD%:M1
 Power Delivery IC Die 2 Max:TpDX:M1
 Power Delivery IC Die 2 11:TpDa:M1
@@ -294,6 +349,8 @@ RF Delivery Die 2 17:TrDg:M1
 RF Delivery Die 2 18:TrDh:M1
 RF Delivery Die 2 19:TrDi:M1
 RF Delivery Die 2 20:TrDj:M1
+// M1 Pro/Max power-voltage probe.
+Power Probe Voltage Diode:TPVD:M1
 // M2
 CPU Efficiency Core 1:Tp1h:M2
 CPU Efficiency Core 2:Tp1t:M2
@@ -316,18 +373,14 @@ CPU Efficiency Core 1:Te06:M3
 CPU Efficiency Core 2:Te0G:M3
 CPU Efficiency Core 2:Te0H:M3
 CPU Efficiency Core 2:Te0I:M3
-// Te0P/Q form a probe+max doublet for Core 3.
-// Te0R/S/T form a clear triplet (probe A < probe B < max — matches the standard
-// Apple Silicon triplet convention) so they belong to a single core, Core 4.
-// Te0U is a Core 5 probe; Te0V exactly aliases Te0T on every M3 Pro report so
-// it is not separately mapped (would just double-write the Core 4 max).
+// Irregular: Te0P/Q→3, Te0R/S/T→4, Te0U→5; Te0V aliases Te0T (dropped).
 CPU Efficiency Core 3:Te0P:M3
 CPU Efficiency Core 3:Te0Q:M3
 CPU Efficiency Core 4:Te0R:M3
 CPU Efficiency Core 4:Te0S:M3
 CPU Efficiency Core 4:Te0T:M3
 CPU Efficiency Core 5:Te0U:M3
-// M3 Max additional E-cores (absent on M3 Pro; silently ignored)
+// M3 Max additional E-cores.
 CPU Efficiency Core 6:Te0K:M3
 CPU Efficiency Core 6:Te0L:M3
 CPU Efficiency Core 6:Te0M:M3
@@ -355,7 +408,7 @@ CPU Performance Core 7:Tp1G:M3
 CPU Performance Core 8:Tp1Q:M3
 CPU Performance Core 8:Tp1R:M3
 CPU Performance Core 8:Tp1S:M3
-// Cluster 1 has several companion keys in Tp0* uppercase range adjacent to Tp0W
+// Cluster 1 companion keys.
 CPU Performance Cluster 1:Tp0R:M3
 CPU Performance Cluster 1:Tp0S:M3
 CPU Performance Cluster 1:Tp0T:M3
@@ -364,34 +417,23 @@ CPU Performance Cluster 1:Tp0V:M3
 CPU Performance Cluster 1:Tp0W:M3
 CPU Performance Cluster 1:Tp3O:M3
 CPU Performance Cluster 1:Tp3P:M3
-// Cluster 2 companion keys
+// Cluster 2 companion keys.
 CPU Performance Cluster 2:Tp1I:M3
 CPU Performance Cluster 2:Tp1J:M3
 CPU Performance Cluster 2:Tp1K:M3
 CPU Performance Cluster 2:Tp3W:M3
 CPU Performance Cluster 2:Tp3X:M3
-// M3 Pro/Max extended P-core: Tp0u/v probes track Tp0y/z within ~0.1 °C
-// across all snapshots, but the third position diverges (Tp0w vs Tp10 up
-// to 0.67 °C on M3 Pro snapshot 1; Tp0u vs Tp0y up to 0.47 °C on M3 Max).
-// Treated as the same physical core's redundant probe set rather than two
-// independent cores. Keep one triplet labelled Core 9; drop Tp0u/v/w to
-// avoid double-counting under last-write-wins.
+// Tp0u/v/w alias Tp0y/z/10; dropped to avoid double-counting Core 9.
 CPU Performance Core 9:Tp0y:M3
 CPU Performance Core 9:Tp0z:M3
 CPU Performance Core 9:Tp10:M3
-// Cluster 3 sensors (3-cluster M3 Pro design)
+// Cluster 3 (3-cluster M3 Pro layout).
 CPU Performance Cluster 3:Tp16:M3
 CPU Performance Cluster 3:Tp17:M3
 CPU Performance Cluster 3:Tp18:M3
 CPU Performance Cluster 3:Tp3S:M3
 CPU Performance Cluster 3:Tp3T:M3
-// M3 GPU fabric — five blocks on M3 Max (Tf0?, Tf1?, Tf2?, Tf3?, Tf4?); only
-// Tf1? and Tf2? are present on M3 Pro. Per block: Tf?4/Tf?D/Tf?E are aggregate
-// aliases (mirror values), Tf?5 is the block minimum, Tf?6 is the block maximum,
-// Tf?8/9/A/B are four sub-block probes. Tf0B mirrors the aggregate on the bottom
-// band and is mapped as Probe 4 for symmetry. Tf9F/TfA0 are M3 Max-only fabric
-// aggregates. Block index matches the second hex digit of the SMC key for
-// raw-dump traceability.
+// Tf?4/D/E=aggregate, Tf?5=min, Tf?6=max, Tf?8-B=probes.
 GPU Fabric Block 0:Tf04:M3
 GPU Fabric Block 0:Tf0D:M3
 GPU Fabric Block 0:Tf0E:M3
@@ -439,14 +481,14 @@ GPU Fabric Block 4 Probe 3:Tf4A:M3
 GPU Fabric Block 4 Probe 4:Tf4B:M3
 GPU Fabric Aggregate:Tf9F:M3
 GPU Fabric Aggregate Max:TfA0:M3
-// Tg* GPU cluster keys also present on M3 (same die-level GPU sensor addresses as M1)
+// GPU clusters (M1-style addressing).
 GPU 1:Tg04:M3
 GPU 1:Tg05:M3
 GPU 2:Tg0C:M3
 GPU 2:Tg0D:M3
 GPU 3:Tg0K:M3
 GPU 3:Tg0L:M3
-// Additional M3 Pro Tg* GPU cluster sensors (secondary per-cluster pairs)
+// M3 Pro secondary Tg* pairs.
 GPU 4:Tg00:M3
 GPU 4:Tg01:M3
 GPU 5:Tg0U:M3
@@ -459,7 +501,7 @@ GPU 8:Tg1A:M3
 GPU 8:Tg1B:M3
 GPU 9:Tg1k:M3
 GPU 9:Tg1l:M3
-// M3 Max additional GPU cluster sensors (absent on M3 Pro; silently ignored)
+// M3 Max additional GPU clusters.
 GPU 10:Tg0y:M3
 GPU 10:Tg0z:M3
 GPU 11:Tg1E:M3
@@ -484,10 +526,7 @@ GPU 20:Tg3J:M3
 GPU 20:Tg3K:M3
 GPU 21:Tg3x:M3
 GPU 21:Tg3y:M3
-// M3 NVMe/SSD die temperature sensors (triplet convention; Ts0P/Ts1P are controller sensors)
-// M3 Pro addresses: Ts00/01/02, Ts0C/D/E, Ts0K/L/M, Ts0Y/Z/a, Ts0h/i
-// M3 Max addresses: Ts04/05/06, Ts0C/D/E, Ts0R/S/T, Ts0U/V/W, Ts0h/i
-// Keys absent on a given SKU are silently ignored.
+// SSD dies; Ts0P/Ts1P are controllers.
 SSD 1:Ts00:M3
 SSD 1:Ts01:M3
 SSD 1:Ts02:M3
@@ -514,50 +553,39 @@ SSD 8:Ts0i:M3
 SSD Controller:Ts0P:M3
 SSD Controller:Ts1P:M3
 // M4
-// E-core cluster 1 triplet (confirmed on both M4 base and M4 Pro)
+// E-core cluster 1 triplet.
 CPU Efficiency Core 1:Te04:M4
 CPU Efficiency Core 1:Te05:M4
 CPU Efficiency Core 1:Te06:M4
-// E-core cluster 2 die-level triplet
+// E-core cluster 2 die-level triplet.
 CPU Efficiency Core 2:Te0R:M4
 CPU Efficiency Core 2:Te0S:M4
 CPU Efficiency Core 2:Te0T:M4
-// Additional E-core triplets (confirmed across M4 base reports; silently ignored if absent)
+// Additional M4 base E-core triplets.
 CPU Efficiency Core 3:Te08:M4
 CPU Efficiency Core 3:Te09:M4
 CPU Efficiency Core 3:Te0A:M4
 CPU Efficiency Core 4:Te0G:M4
 CPU Efficiency Core 4:Te0H:M4
 CPU Efficiency Core 4:Te0I:M4
-// Te0U/V mirror cluster-1 per-core max keys (Te06, Te0A) across M4 base reports;
-// Te0W/X track Te0T (cluster-2 Core 2 max). They are cluster aggregates, not
-// physical "Core 5/6" probes (M4 base has no such cores).
+// Te0U-X are cluster maxes (M4 base has no E-Core 5/6).
 CPU Efficiency Cluster Aggregate 1:Te0U:M4
 CPU Efficiency Cluster Aggregate 1:Te0V:M4
 CPU Efficiency Cluster Aggregate 2:Te0W:M4
 CPU Efficiency Cluster Aggregate 2:Te0X:M4
-// E-cluster 2 per-core triplets: confirmed on M4 Pro 14-core (10P+4E); absent on M4 base where
-// the second cluster uses Te08/Te0G instead. Listed first so that Te08/Te0G (below) overwrite
-// on M4 base (where Tpx8-D return 0 and are skipped), and Tpx8-D are used on M4 Pro 14-core
-// (where Te08/Te0G are absent from the SMC key list). Idle reads zero on both M4 Pro snapshots
-// in reports/ and is filtered by isValidReading; load values are captured by mapping_test.go.
+// M4 Pro per-core; M4 base reuses Te08/Te0G slots.
 CPU Efficiency Core 3:Tpx8:M4
 CPU Efficiency Core 3:Tpx9:M4
 CPU Efficiency Core 3:TpxA:M4
 CPU Efficiency Core 4:TpxB:M4
 CPU Efficiency Core 4:TpxC:M4
 CPU Efficiency Core 4:TpxD:M4
-// E-cluster die-level sensors
+// E-cluster die-level sensors.
 CPU Efficiency Cluster Die 1:Tex0:M4
 CPU Efficiency Cluster Die 1:Tex1:M4
 CPU Efficiency Cluster Die 2:Tex2:M4
 CPU Efficiency Cluster Die 2:Tex3:M4
-// Each M4 core has a triplet of 3 SMC sensors (same convention as M1/M3).
-// On M4 Pro 14-core the Tp1*/Tp2* range gates heavily: idle reads return
-// sentinel values (-4/2.2/0/1.5 °C in our reports/) which isValidReading
-// rejects, while under load the same keys return real per-core temperatures
-// (see mapping_test.go fixture). M3 Max shows the same keys gated to the
-// 40.0 °C idle floor — confirming they are valid per-core sensors.
+// P-core triplets; idle gating produces sentinels.
 CPU Performance Core 1:Tp1i:M4
 CPU Performance Core 1:Tp1j:M4
 CPU Performance Core 1:Tp1k:M4
@@ -588,17 +616,7 @@ CPU Performance Core 9:Tp2C:M4
 CPU Performance Core 10:Tp2D:M4
 CPU Performance Core 10:Tp2E:M4
 CPU Performance Core 10:Tp2G:M4
-// M4 Pro per-core P-core layout: two key ranges observed for the same Core 1-10
-// description slots, only one of which is live on any given snapshot. Both ranges
-// are mapped; the sentinel filter (isValidReading) ensures only the live range
-// contributes under last-write-wins, so each variant resolves correctly.
-// - On real M4 Pro hardware (reports/report-m4-pro*.txt), Tp00-Tp0c carries the
-//   live per-core data and Tp1i-Tp2G return -4°C sentinels.
-// - On the m4Pro14CoreReport synthetic fixture in mapping_test.go, the layout
-//   is inverted: Tp1i-Tp2G are live and Tp00-Tp0c are sentinels.
-// Tp2I-Tp2X stay unmapped (no observed M4 variant has >10 P-cores). The
-// Tp0d-w range previously thought "removed" is now mapped as cluster-fabric
-// aggregates (5 triplets, 53-66 °C under load on M4 Pro report-m4-pro.txt).
+// M4 Pro: Tp00-Tp0c or Tp1i-Tp2G live, never both.
 CPU Performance Core 1:Tp00:M4
 CPU Performance Core 1:Tp01:M4
 CPU Performance Core 1:Tp02:M4
@@ -629,8 +647,7 @@ CPU Performance Core 9:Tp0Y:M4
 CPU Performance Core 10:Tp0a:M4
 CPU Performance Core 10:Tp0b:M4
 CPU Performance Core 10:Tp0c:M4
-// M4 Pro die-fabric/uncore probe triplets (5 sets; ~53-66 °C under load
-// on 10P+4E chips). Not physical cores — labelled as fabric aggregates.
+// Die-fabric probes (not cores).
 CPU Performance Fabric 1:Tp0d:M4
 CPU Performance Fabric 1:Tp0e:M4
 CPU Performance Fabric 1:Tp0f:M4
@@ -646,16 +663,14 @@ CPU Performance Fabric 4:Tp0t:M4
 CPU Performance Fabric 5:Tp0u:M4
 CPU Performance Fabric 5:Tp0v:M4
 CPU Performance Fabric 5:Tp0w:M4
-// P-cluster die-level sensors (Tp* prefix = Performance, NOT Efficiency).
-// Confirmed on M4 Pro 14-core (Tpx0-5 read 57-80 °C in report-m4-pro.txt).
-// Three doublets per chip: Tpx0/1, Tpx2/3, Tpx4/5 — one die-pair per cluster.
+// One Tpx doublet per P-cluster.
 CPU Performance Cluster 1 Die:Tpx0:M4
 CPU Performance Cluster 1 Die:Tpx1:M4
 CPU Performance Cluster 2 Die:Tpx2:M4
 CPU Performance Cluster 2 Die:Tpx3:M4
 CPU Performance Cluster 3 Die:Tpx4:M4
 CPU Performance Cluster 3 Die:Tpx5:M4
-// M4 P-core cluster companion sensors (shared key addresses with M3 clusters; both appear on M4 base)
+// Cluster companions (M3-shared addresses).
 CPU Performance Cluster 1:Tp0V:M4
 CPU Performance Cluster 1:Tp3O:M4
 CPU Performance Cluster 1:Tp3P:M4
@@ -663,11 +678,7 @@ CPU Performance Cluster 2:Tp3W:M4
 CPU Performance Cluster 2:Tp3X:M4
 CPU Performance Cluster 3:Tp3S:M4
 CPU Performance Cluster 3:Tp3T:M4
-// M4 base has only ONE P-cluster (4 P-cores at Tp00/04/08/0C) yet exposes three
-// extra probe-A/probe-B/max triplets in the Tp1*/Tp1A-S range whose values track
-// the cluster's per-core readings. Confirmed across all four M4 base snapshots
-// (m4, m4-2, m4-3, m4-4); absent on M4 Pro. Labelled as cluster-aggregate probes
-// rather than fictitious "Cluster 2/3/4" cores.
+// Tp1A-S are P-cluster aggregates (M4 base, 1 cluster).
 CPU Performance Cluster Aggregate 1:Tp1A:M4
 CPU Performance Cluster Aggregate 1:Tp1B:M4
 CPU Performance Cluster Aggregate 1:Tp1C:M4
@@ -693,7 +704,7 @@ GPU 8:Tg0V:M4
 GPU 8:Tg0k:M4
 GPU 9:Tg0m:M4
 GPU 10:Tg0n:M4
-// Additional M4 Pro GPU sensors (20-core GPU clusters; silently ignored on M4 base)
+// M4 Pro 20-core GPU clusters.
 GPU 11:Tg04:M4
 GPU 12:Tg05:M4
 GPU 13:Tg0R:M4
@@ -710,15 +721,69 @@ GPU 23:Tg1c:M4
 GPU 24:Tg1d:M4
 GPU 25:Tg1k:M4
 GPU 26:Tg1l:M4
-// M4 MacBook ambient sensor (absent on M4 desktop/Pro and M5; silently ignored elsewhere)
+// M4 Max GPU; probe+max doublets.
+GPU 27:Tg21:M4
+GPU 27:Tg22:M4
+GPU 28:Tg2H:M4
+GPU 28:Tg2I:M4
+GPU 29:Tg2P:M4
+GPU 29:Tg2Q:M4
+GPU 30:Tg2X:M4
+GPU 30:Tg2Y:M4
+GPU 31:Tg2f:M4
+GPU 31:Tg2g:M4
+GPU 32:Tg2n:M4
+GPU 32:Tg2o:M4
+GPU 33:Tg33:M4
+GPU 33:Tg34:M4
+GPU 34:Tg3J:M4
+GPU 34:Tg3K:M4
+GPU 35:Tg3Z:M4
+GPU 35:Tg3a:M4
+GPU 36:Tg3h:M4
+GPU 36:Tg3i:M4
+GPU 37:Tg3p:M4
+GPU 37:Tg3q:M4
+// M4 MacBook ambient sensor.
 Airflow Left Rear:TaLR:M4
-// M4 GPU fabric cluster sensors (seen on M4 Pro and M4 base; TfC2/TfC4 are M4-only)
+// TfC2/TfC4 are M4 base only.
 GPU Fabric 1:TfC0:M4
 GPU Fabric 2:TfC1:M4
 GPU Fabric 3:TfC2:M4
 GPU Fabric 4:TfC3:M4
 GPU Fabric 5:TfC4:M4
-// Uncore die sensors (seen on M4 Pro; silently ignored on M4 base)
+// M3 Max convention; min/alias slots unpopulated.
+GPU Fabric Block 0:Tf04:M4
+GPU Fabric Block 0 Max:Tf06:M4
+GPU Fabric Block 0 Probe 1:Tf08:M4
+GPU Fabric Block 0 Probe 2:Tf09:M4
+GPU Fabric Block 0 Probe 3:Tf0A:M4
+GPU Fabric Block 0 Probe 4:Tf0B:M4
+GPU Fabric Block 1:Tf14:M4
+GPU Fabric Block 1 Max:Tf16:M4
+GPU Fabric Block 1 Probe 1:Tf18:M4
+GPU Fabric Block 1 Probe 2:Tf19:M4
+GPU Fabric Block 1 Probe 3:Tf1A:M4
+GPU Fabric Block 1 Probe 4:Tf1B:M4
+GPU Fabric Block 2:Tf24:M4
+GPU Fabric Block 2 Max:Tf26:M4
+GPU Fabric Block 2 Probe 1:Tf28:M4
+GPU Fabric Block 2 Probe 2:Tf29:M4
+GPU Fabric Block 2 Probe 3:Tf2A:M4
+GPU Fabric Block 2 Probe 4:Tf2B:M4
+GPU Fabric Block 3:Tf34:M4
+GPU Fabric Block 3 Max:Tf36:M4
+GPU Fabric Block 3 Probe 1:Tf38:M4
+GPU Fabric Block 3 Probe 2:Tf39:M4
+GPU Fabric Block 3 Probe 3:Tf3A:M4
+GPU Fabric Block 3 Probe 4:Tf3B:M4
+GPU Fabric Block 4:Tf44:M4
+GPU Fabric Block 4 Max:Tf46:M4
+GPU Fabric Block 4 Probe 1:Tf48:M4
+GPU Fabric Block 4 Probe 2:Tf49:M4
+GPU Fabric Block 4 Probe 3:Tf4A:M4
+GPU Fabric Block 4 Probe 4:Tf4B:M4
+// Uncore die sensors (M4 Pro).
 Uncore Die 1:TUD0:M4
 Uncore Die 2:TUD1:M4
 Uncore Die 3:TUD2:M4
@@ -736,7 +801,7 @@ Uncore Die 13:TUDc:M4
 Uncore Die 14:TUDd:M4
 Uncore Die 15:TUDe:M4
 Uncore Die 16:TUDf:M4
-// M4 NVMe/SSD die temperature sensors (triplet convention; Ts0P/Ts1P are controller sensors)
+// SSD dies; Ts0P/Ts1P are controllers.
 SSD 1:Ts00:M4
 SSD 1:Ts01:M4
 SSD 1:Ts02:M4
@@ -764,16 +829,28 @@ SSD 8:Ts0U:M4
 SSD 9:Ts0V:M4
 SSD 9:Ts0W:M4
 SSD 9:Ts0X:M4
+// M4 Max SSD 10/11 triplets.
+SSD 10:Ts0d:M4
+SSD 10:Ts0e:M4
+SSD 10:Ts0f:M4
+SSD 11:Ts0g:M4
+SSD 11:Ts0h:M4
+SSD 11:Ts0i:M4
+// Lowercase p; distinct from TS0P/TS1P.
+SSD Proximity 1:TS0p:M4
+SSD Proximity 2:TS1p:M4
 SSD Controller:Ts0P:M4
-// M4 MacBook base uses TsOP (letter O, not digit 0) for the second SSD controller key
+// TsOP uses letter O, not digit 0.
 SSD Controller:TsOP:M4
 SSD Controller:Ts1P:M4
 SSD Aggregate:Tsx0:M4
 SSD Aggregate:Tsx1:M4
-// Memory sensors below absent on M4 Pro; present on M4 Max/Ultra (silently ignored on M4 Pro)
+// Memory sensors (M4 Max/Ultra).
 Memory 1:Tm0p:M4
 Memory 2:Tm1p:M4
 Memory 3:Tm2p:M4
+// M4 Pro/Max SoC cooling probe.
+SoC Cooling Probe:TSCP:M4
 // M5
 CPU Super Core 1:Tp00:M5
 CPU Super Core 2:Tp04:M5
@@ -793,26 +870,22 @@ CPU Performance Core 9:Tp0m:M5
 CPU Performance Core 10:Tp0p:M5
 CPU Performance Core 11:Tp0u:M5
 CPU Performance Core 12:Tp0y:M5
-CPU Super Core Cluster 1:Tp12:M5
-CPU Super Core Cluster 2:Tp16:M5
-// Tp1E sits at 44-46 °C on M5 Pro alongside Tp1I/Q/U/g; treat as a 5th
-// cluster-aggregate die rather than an E-cluster (M5 Pro/Max has no E-cores).
+// Tp12/Tp16 removed: absent in every dump.
+// 5th cluster (M5 Pro/Max has no E-cores).
 CPU Performance Cluster Aggregate:Tp1E:M5
-// M5 P-core cluster companion sensors
+// M5 P-core cluster companion sensors.
 CPU Performance Cluster 1:Tp1I:M5
 CPU Performance Cluster 2:Tp1Q:M5
 CPU Performance Cluster 3:Tp1U:M5
 CPU Performance Cluster 4:Tp1g:M5
-// Ta00-Ta0R are byte-identical aliases of a single die-level temperature signal
-// (47.31 °C on M5 Pro, 27.11 °C on M5 Max idle). Map under one description so
-// last-write-wins surfaces a single value.
+// Ta00-Ta0R are aliases; collapse via last-write-wins.
 CPU Die Thermal Headroom:Ta00:M5
 CPU Die Thermal Headroom:Ta04:M5
 CPU Die Thermal Headroom:Ta08:M5
 CPU Die Thermal Headroom:Ta0K:M5
 CPU Die Thermal Headroom:Ta0O:M5
 CPU Die Thermal Headroom:Ta0R:M5
-// M5 GPU cluster sensors (all confirmed in report-m5-pro.txt)
+// M5 GPU clusters.
 GPU 1:Tg08:M5
 GPU 2:Tg0C:M5
 GPU 3:Tg0O:M5
@@ -831,35 +904,32 @@ GPU 15:Tg1Q:M5
 GPU 16:Tg1U:M5
 GPU 17:Tg1Y:M5
 GPU 18:Tg1c:M5
-GPU 19:Tg1g:M5
-GPU 20:Tg1k:M5
-GPU 21:Tg1o:M5
-GPU 22:Tg1x:M5
-GPU 23:Tg29:M5
-GPU 24:Tg2D:M5
-GPU 25:Tg2P:M5
-GPU 26:Tg2T:M5
-GPU 27:Tg2X:M5
-GPU 28:Tg2b:M5
-GPU 29:Tg2f:M5
-GPU 30:Tg2j:M5
-GPU 31:Tg2n:M5
-GPU 32:Tg2r:M5
-GPU 33:Tg3B:M5
-GPU 34:Tg3F:M5
-GPU 35:Tg3R:M5
-GPU 36:Tg3V:M5
-GPU 37:Tg3Z:M5
-GPU 38:Tg3d:M5
-GPU 39:Tg3h:M5
-GPU 40:Tg3l:M5
-GPU 41:Tg3t:M5
-GPU 42:Tg3x:M5
-GPU 43:Tg43:M5
-// M5 Max GPU fabric blocks (Tf0?/Tf1? — absent on M5 base/Pro, silently ignored).
-// Per-block convention matches M3: Tf?4 = aggregate; Tf?6 = max (static threshold,
-// reads ~64 °C constant on M5 Max); Tf?8/9/A/B = four probes. Min (Tf?5) and
-// aggregate aliases (Tf?D/Tf?E) are not present on M5 Max.
+// Tg1g removed: absent in dumps; 20..43 → 19..42.
+GPU 19:Tg1k:M5
+GPU 20:Tg1o:M5
+GPU 21:Tg1x:M5
+GPU 22:Tg29:M5
+GPU 23:Tg2D:M5
+GPU 24:Tg2P:M5
+GPU 25:Tg2T:M5
+GPU 26:Tg2X:M5
+GPU 27:Tg2b:M5
+GPU 28:Tg2f:M5
+GPU 29:Tg2j:M5
+GPU 30:Tg2n:M5
+GPU 31:Tg2r:M5
+GPU 32:Tg3B:M5
+GPU 33:Tg3F:M5
+GPU 34:Tg3R:M5
+GPU 35:Tg3V:M5
+GPU 36:Tg3Z:M5
+GPU 37:Tg3d:M5
+GPU 38:Tg3h:M5
+GPU 39:Tg3l:M5
+GPU 40:Tg3t:M5
+GPU 41:Tg3x:M5
+GPU 42:Tg43:M5
+// Tf?6 is a static ~64°C threshold.
 GPU Fabric Block 0:Tf04:M5
 GPU Fabric Block 0 Max:Tf06:M5
 GPU Fabric Block 0 Probe 1:Tf08:M5
@@ -872,9 +942,7 @@ GPU Fabric Block 1 Probe 1:Tf18:M5
 GPU Fabric Block 1 Probe 2:Tf19:M5
 GPU Fabric Block 1 Probe 3:Tf1A:M5
 GPU Fabric Block 1 Probe 4:Tf1B:M5
-// M5 GPU Fabric sensors. M5 Pro populates TfC0/1/3/5/D/E/F (TfCB sentinel);
-// M5 Max populates the complementary TfC1/3/5/6/7/8/9/A (TfCC sentinel).
-// Both sets mapped; absent keys silently ignored per filterForPlatform.
+// M5 Pro and Max populate disjoint TfC* slots.
 GPU Fabric 1:TfC0:M5
 GPU Fabric 2:TfC1:M5
 GPU Fabric 3:TfC3:M5
@@ -887,13 +955,13 @@ GPU Fabric 9:TfC7:M5
 GPU Fabric 10:TfC8:M5
 GPU Fabric 11:TfC9:M5
 GPU Fabric 12:TfCA:M5
-// M5 Virtual Die hex-letter slots (TVDA/G/M/P/c — TVD% wildcard only covers 0-9)
+// TVD% wildcard misses these hex slots.
 Virtual Die A:TVDA:M5
 Virtual Die G:TVDG:M5
 Virtual Die M:TVDM:M5
 Virtual Die P:TVDP:M5
 Virtual Die c:TVDc:M5
-// M5 Unified Memory sensors
+// M5 unified memory sensors.
 Memory 1:Tm00:M5
 Memory 2:Tm04:M5
 Memory 3:Tm08:M5
@@ -934,7 +1002,7 @@ Memory 37:Tm2P:M5
 Memory 38:Tm2T:M5
 Memory 39:Tm2j:M5
 Memory 40:Tm2n:M5
-// M5 NVMe/SSD sensors (single representative per SSD slot; controller sensors)
+// M5 SSD slots and controllers.
 SSD 1:Ts00:M5
 SSD 2:Ts04:M5
 SSD 3:Ts08:M5
@@ -950,12 +1018,21 @@ SSD 12:Ts0d:M5
 SSD 13:Ts0g:M5
 SSD Controller:Ts0P:M5
 SSD Controller:Ts1P:M5
-// M5 package/northbridge sensors
+// M5 Max also populates TN04-TN07.
 Package 1:TN00:M5
 Package 2:TN01:M5
 Package 3:TN02:M5
 Package 4:TN03:M5
-// Uncore die sensors (TUD0-TUDf appear on both M4 Pro and M5 Pro)
+Package 5:TN04:M5
+Package 6:TN05:M5
+Package 7:TN06:M5
+Package 8:TN07:M5
+// TVN% mirrors TV0% (~0.05°C drift).
+Voltage Probe %:TV0%:M5
+Voltage Probe (Group 1) %:TV1%:M5
+Voltage Probe Mirror %:TVN%:M5
+Voltage Probe Mirror Max:TVNN:M5
+// Uncore die sensors (M5 Pro/Max).
 Uncore Die 1:TUD0:M5
 Uncore Die 2:TUD1:M5
 Uncore Die 3:TUD2:M5
@@ -973,19 +1050,14 @@ Uncore Die 13:TUDc:M5
 Uncore Die 14:TUDd:M5
 Uncore Die 15:TUDe:M5
 Uncore Die 16:TUDf:M5
-// A18 (MacBook Neo — Mac17,5, 2P + 4E layout)
-// P-cores follow the M1 convention (Tp0x triplets at offsets 0 and 4).
-// Each core has a triplet of 3 SMC sensors (probe A, probe B, per-core max);
-// the isValidReading floor of 10 °C drops any absent key silently.
+// A18 Pro (2P+4E); M1-style P-core triplets.
 CPU Performance Core 1:Tp00:A18
 CPU Performance Core 1:Tp01:A18
 CPU Performance Core 1:Tp02:A18
 CPU Performance Core 2:Tp04:A18
 CPU Performance Core 2:Tp05:A18
 CPU Performance Core 2:Tp06:A18
-// E-cores use a hybrid scheme: E-core 1/2 follow the M3/M4 Te-triplet
-// convention; E-core 3 is a Tp0* lowercase triplet; E-core 4 uses the
-// non-contiguous Tp0o/Tp0q/Tp0t triplet observed in report-a18.txt.
+// E-cores: Te-triplets (1/2), Tp0* triplets (3/4).
 CPU Efficiency Core 1:Te04:A18
 CPU Efficiency Core 1:Te05:A18
 CPU Efficiency Core 1:Te06:A18
@@ -998,10 +1070,7 @@ CPU Efficiency Core 3:Tp0n:A18
 CPU Efficiency Core 4:Tp0o:A18
 CPU Efficiency Core 4:Tp0q:A18
 CPU Efficiency Core 4:Tp0t:A18
-// CPU cluster / die aggregates. A18 Pro has only ONE physical P-cluster
-// (2P+4E layout). Tp0E exactly equals Tpx1 in the report (111.90625 °C, identical
-// bytes 00 d0 df 42), proving Tp08-0E are two probe-A/B/max triplets sampling
-// the same single P-cluster — not "Cluster 1" and "Cluster 2" cores.
+// Single P-cluster; Tp0E mirrors Tpx1.
 CPU Performance Cluster Aggregate 1:Tp08:A18
 CPU Performance Cluster Aggregate 1:Tp09:A18
 CPU Performance Cluster Aggregate 1:Tp0A:A18
@@ -1016,7 +1085,7 @@ CPU Efficiency Cluster 1 Die:Tex0:A18
 CPU Efficiency Cluster 1 Die:Tex1:A18
 CPU Efficiency Cluster 2 Die:Tex2:A18
 CPU Efficiency Cluster 2 Die:Tex3:A18
-// GPU — four doublets (probe + max) on the A18 Pro GPU
+// A18 GPU; four probe+max doublets.
 GPU 1:Tg04:A18
 GPU 1:Tg05:A18
 GPU 2:Tg0C:A18
@@ -1025,7 +1094,7 @@ GPU 3:Tg0K:A18
 GPU 3:Tg0L:A18
 GPU 4:Tg0d:A18
 GPU 4:Tg0e:A18
-// SSD — M4-style triplets; keys absent on the installed SKU are silently ignored
+// A18 SSD; M4-style triplets.
 SSD 1:Ts00:A18
 SSD 1:Ts01:A18
 SSD 1:Ts02:A18
@@ -1046,7 +1115,10 @@ SSD 6:Ts0L:A18
 SSD 6:Ts0M:A18
 SSD Aggregate:Tsx0:A18
 SSD Aggregate:Tsx1:A18
-// Board proximity sensors (lowercase p suffix = proximity convention)
+// ISP/queue-pipeline (provisional names).
+ISP Sensor 1:TQ0d:A18
+ISP Sensor 2:TQ0j:A18
+// Lowercase p proximity sensors.
 Backlight Proximity:TBLp:A18
 Flash/SSD Proximity:TH0p:A18
 SSD Proximity 1:TS0p:A18
