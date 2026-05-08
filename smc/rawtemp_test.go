@@ -85,6 +85,13 @@ func Test_RawKeyToFloat32(t *testing.T) {
 			key:    RawKey{Key: "IOFT", DataType: "ioft", DataSize: 4, Bytes: makeBytes(0x00, 0x00, 0x01, 0x00)},
 			wantOK: false,
 		},
+		{
+			// LittleEndian uint64 with high bytes set produces ≈10¹⁴ °C — observed
+			// on report-m4-4.txt for TR3d. finiteInRange must reject anything > rawTempMax.
+			name:   "ioft above rawTempMax rejected",
+			key:    RawKey{Key: "TR3d", DataType: "ioft", DataSize: 8, Bytes: makeBytes(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF)},
+			wantOK: false,
+		},
 
 		// ── fp*/sp* fixed-point (big-endian) via AppleFPConv ─────────────────
 		{
