@@ -1,3 +1,6 @@
+// Copyright (C) 2026  Dinko Korunic
+// SPDX-License-Identifier: GPL-3.0-only
+
 package gosmc
 
 // IOReturn values
