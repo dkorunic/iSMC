@@ -30,18 +30,9 @@ static int set_qos_class(int cls) {
 import "C"
 
 const (
-	// QoSUserInteractive maps to QOS_CLASS_USER_INTERACTIVE (0x21).
-	// On 3-tier chips (M5+) the OS scheduler preferentially routes these threads
-	// to Super cores (perflevel0) rather than regular Performance cores (perflevel1).
-	QoSUserInteractive = 0x21
-
-	// QoSUserInitiated maps to QOS_CLASS_USER_INITIATED (0x19).
-	// The OS scheduler prefers to run threads with this class on P-cores (performance cores).
-	QoSUserInitiated = 0x19
-
-	// QoSBackground maps to QOS_CLASS_BACKGROUND (0x09).
-	// The OS scheduler prefers to run threads with this class on E-cores (efficiency cores).
-	QoSBackground = 0x09
+	QoSUserInteractive = 0x21 // QOS_CLASS_USER_INTERACTIVE; biases toward Super (M5+) or P-cores.
+	QoSUserInitiated   = 0x19 // QOS_CLASS_USER_INITIATED; biases toward P-cores.
+	QoSBackground      = 0x09 // QOS_CLASS_BACKGROUND; biases toward E-cores.
 )
 
 // SetAffinityTag sets the macOS THREAD_AFFINITY_POLICY tag for the calling OS thread.

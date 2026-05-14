@@ -13,12 +13,7 @@ import (
 	"github.com/dkorunic/iSMC/gosmc"
 )
 
-// errNoValue is the sentinel returned by getKey* when a key is absent, rejected
-// by the SMC, or returns zero-length data. Callers on the generic-sensor scan
-// path (getGenericSensors, getFans) discard the error, so returning a pre-built
-// value-less sentinel avoids a fmt.Errorf allocation on every miss — and misses
-// are the common case when iterating the full AppleTemp/AppleCurrent/etc.
-// sensor lists, which each contain far more keys than any single Mac reports.
+// Pre-built sentinel avoids fmt.Errorf allocs on the hot miss path.
 var errNoValue = errors.New("smc: no value")
 
 // getKeyFloat32 returns float32 value for a given SMC key.
@@ -38,11 +33,10 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 	}
 
 	switch t {
-	// ui8/ui16/ui32 SMC types
-	// TODO: Proper "hex_" handling
+	// TODO: Proper "hex_" handling.
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
 		return smcBytesToFloat32(v.Bytes, v.DataSize), t, nil
-	// Reject NaN/Inf from unused flt sensor slots.
+	// Reject NaN/Inf from unused flt slots.
 	case gosmc.TypeFLT:
 		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
 		if !ok {
@@ -54,7 +48,6 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 		}
 
 		return val, t, nil
-	// ioft, fp*, sp* types
 	default:
 		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
 		if !ok {
@@ -74,7 +67,7 @@ func getKeyUint32(c uint, key string) (uint32, string, error) {
 
 	t := smcTypeToString(v.DataType)
 	switch t {
-	// TODO: Proper "hex_" handling
+	// TODO: Proper "hex_" handling.
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
 		return smcBytesToUint32(v.Bytes, v.DataSize), t, nil
 	default:

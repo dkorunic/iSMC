@@ -73,13 +73,8 @@ func influxStringConvert(s string) string {
 	return s
 }
 
-// influxEscape backslash-escapes the InfluxDB line-protocol special characters
-// (comma, equals sign, space) in s. It is safe for use on measurement names,
-// tag keys, and tag values. influxStringConvert already folds spaces to
-// underscores, so in practice this guards against commas or equals signs
-// sneaking into future sensor descriptions or HID product names — either of
-// which would otherwise produce malformed line protocol that the ingest
-// endpoint rejects.
+// influxEscape backslash-escapes Influx line-protocol specials (comma, equals, space).
+// Guards against future sensor descriptions sneaking in delimiters.
 func influxEscape(s string) string {
 	if !strings.ContainsAny(s, ",= ") {
 		return s
@@ -132,7 +127,7 @@ func (io InfluxOutput) print(name string, smcdata map[string]any) {
 		for _, k := range sortedKeys(smcdata) {
 			v := smcdata[k]
 			if sensorMap, ok := v.(map[string]any); ok {
-				// Only escape the user-controlled tag value, not the "=" separator.
+				// Escape only the user value, not the "=" separator.
 				var key string
 				if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
 					key = ",key=" + influxEscape(influxStringConvert(keyStr))

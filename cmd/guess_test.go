@@ -28,9 +28,9 @@ func TestSeriesKey(t *testing.T) {
 		{"Tp01", "Tp**"},
 		{"Tp09", "Tp**"},
 		{"Tf0c", "Tf*c"},
-		{"TcXX", "TcXX"}, // no digits — returned unchanged
-		{"Tp0A", "Tp**"}, // uppercase A is a hex digit → masked
-		{"Tp0C", "Tp**"}, // uppercase C is a hex digit → masked
+		{"TcXX", "TcXX"},
+		{"Tp0A", "Tp**"},
+		{"Tp0C", "Tp**"},
 	}
 
 	for _, tt := range tests {
@@ -58,9 +58,9 @@ func TestNumericValue(t *testing.T) {
 		{"Tp01", 1},
 		{"Tp09", 9},
 		{"Te12", 12},
-		{"TcXX", 0},  // no digits → 0
-		{"Tp0A", 10}, // uppercase hex digit → 10
-		{"Tp0C", 12}, // uppercase hex digit → 12
+		{"TcXX", 0},
+		{"Tp0A", 10},
+		{"Tp0C", 12},
 	}
 
 	for _, tt := range tests {
@@ -139,7 +139,6 @@ func TestGroupByStrideWithinSeries(t *testing.T) {
 		{
 			name:    "M1 triplets stride-4 gap",
 			sensors: []string{"Tp00", "Tp01", "Tp02", "Tp04", "Tp05", "Tp06", "Tp08", "Tp09", "Tp0A"},
-			// numeric values: 0,1,2,4,5,6,8,9,10 → diffs: 1,1,2,1,1,2,1,1 — non-uniform, split at >1
 			want: [][]string{
 				{"Tp00", "Tp01", "Tp02"},
 				{"Tp04", "Tp05", "Tp06"},
@@ -149,14 +148,11 @@ func TestGroupByStrideWithinSeries(t *testing.T) {
 		{
 			name:    "M5 uniform stride-4",
 			sensors: []string{"Tp00", "Tp04", "Tp08"},
-			// numeric values: 0,4,8 → diffs: 4,4 — uniform → each sensor is its own group
-			want: [][]string{{"Tp00"}, {"Tp04"}, {"Tp08"}},
+			want:    [][]string{{"Tp00"}, {"Tp04"}, {"Tp08"}},
 		},
 		{
 			name:    "M4 irregular large gap",
 			sensors: []string{"Tp00", "Tp01", "Tp02", "Tp04", "Tp05", "Tp06", "Tp08", "Tp09", "Tp21"},
-			// numeric values: 0,1,2,4,5,6,8,9,21 → diffs: 1,1,2,1,1,2,1,12 — non-uniform, minDiff=1
-			// splits at diffs > 1: after index 2 (diff=2), after index 5 (diff=2), after index 7 (diff=12)
 			want: [][]string{
 				{"Tp00", "Tp01", "Tp02"},
 				{"Tp04", "Tp05", "Tp06"},
@@ -204,28 +200,24 @@ func TestDeltaTemps(t *testing.T) {
 		want map[string]float32
 	}{
 		{
-			// delta=15.0 ≥ threshold=1.5 → included; TC1c delta=1.0 < threshold → excluded
 			name: "one above one below threshold",
 			base: map[string]float32{"TC0c": 30.0, "TC1c": 35.0},
 			hot:  map[string]float32{"TC0c": 45.0, "TC1c": 36.0},
 			want: map[string]float32{"TC0c": 15.0},
 		},
 		{
-			// delta == threshold → included (>= comparison)
 			name: "exactly at threshold",
 			base: map[string]float32{"TC0c": 30.0},
 			hot:  map[string]float32{"TC0c": 31.5},
 			want: map[string]float32{"TC0c": 1.5},
 		},
 		{
-			// key present only in base, not in hot → excluded
 			name: "key missing from hot",
 			base: map[string]float32{"TC0c": 30.0},
 			hot:  map[string]float32{},
 			want: map[string]float32{},
 		},
 		{
-			// key present only in hot, not in base → excluded (range is over base)
 			name: "key missing from base",
 			base: map[string]float32{},
 			hot:  map[string]float32{"TC0c": 45.0},
@@ -238,7 +230,6 @@ func TestDeltaTemps(t *testing.T) {
 			want: map[string]float32{},
 		},
 		{
-			// Multiple sensors all above threshold
 			name: "multiple sensors all above threshold",
 			base: map[string]float32{"TC0c": 30.0, "TC1c": 32.0, "TC2c": 28.0},
 			hot:  map[string]float32{"TC0c": 50.0, "TC1c": 45.0, "TC2c": 35.0},
@@ -282,15 +273,11 @@ func TestPhaseMidWord(t *testing.T) {
 		label string
 		want  string
 	}{
-		// Standard three-word phase labels: return the middle word (parts[1])
 		{"CPU Super Core", "Super"},
 		{"CPU Performance Core", "Performance"},
 		{"CPU Efficiency Core", "Efficiency"},
-		// Single word: len(parts) < 2 → return label unchanged
 		{"Single", "Single"},
-		// Empty string: strings.Fields("") == [] → len < 2 → return ""
 		{"", ""},
-		// Two words: parts[1] is the second word
 		{"Two Words", "Words"},
 	}
 
@@ -597,8 +584,7 @@ func TestAnnotateLine(t *testing.T) {
 			contains: "✓ matches src/temp.txt",
 		},
 		{
-			name: "M5 Tp00 mis-labelled as Performance shows mismatch",
-			// Guessed label is wrong: temp.txt says Super Core 1.
+			name:     "M5 Tp00 mis-labelled as Performance shows mismatch",
 			line:     "CPU Performance Core 1:Tp00:M5",
 			label:    "CPU Performance Core",
 			key:      "Tp00",
@@ -646,8 +632,8 @@ func TestAllDetectedKeys(t *testing.T) {
 			deltas: map[string]float32{"Tp00": 5.0, "Tp01": 4.5},
 		},
 		{
-			spec: phaseSpec{label: labelEfficiencyCore},
-			// Tp01 also appears here (cross-phase) — must dedup.
+			// Tp01 cross-phase; must dedup.
+			spec:   phaseSpec{label: labelEfficiencyCore},
 			deltas: map[string]float32{"Tp01": 2.0, "Te04": 7.0},
 		},
 	}

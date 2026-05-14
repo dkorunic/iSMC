@@ -25,17 +25,12 @@ const (
 	BattInf     = "BSIn"
 	KeyWildcard = "%"
 
-	// maxFans is the upper bound on the number of fans to read from SMC.
-	// A physical Mac never has more than ~8 fans; this guards against a corrupt/spoofed FNum key.
+	// Guards against a corrupt/spoofed FNum key; real Macs have ≤8 fans.
 	maxFans = 32
 
-	// TempUnit is the unit string used for temperature sensors.
 	TempUnit = "°C"
 
-	// minTempCelsius is the minimum plausible temperature (°C) for any SMC thermal
-	// sensor on a running Mac. Values below this are firmware sentinels from inactive
-	// or unimplemented sensor slots (observed: −4, 0, 2.2, 3.4, 5.2 °C) and must be
-	// rejected to prevent overwriting valid readings from a higher-priority scheme.
+	// Rejects firmware sentinels from inactive sensor slots (observed: −4..5.2 °C).
 	minTempCelsius = 10.0
 )
 
@@ -107,9 +102,9 @@ func GetBattery() map[string]any {
 
 // getBattery reads battery keys using the provided SMC connection.
 func getBattery(c uint) map[string]any {
-	n, ty1, _ := getKeyUint32(c, BattNum) // Get number of batteries
-	i, ty2, _ := getKeyUint32(c, BattInf) // Get battery info (needs bit decoding)
-	b, ty3, _ := getKeyBool(c, BattPwr)   // Get AC status
+	n, ty1, _ := getKeyUint32(c, BattNum)
+	i, ty2, _ := getKeyUint32(c, BattInf)
+	b, ty3, _ := getKeyBool(c, BattPwr)
 
 	return map[string]any{
 		"Battery Count": map[string]any{
@@ -158,7 +153,7 @@ func GetFans() map[string]any {
 func getFans(c uint) map[string]any {
 	fans := make(map[string]any)
 
-	val, smcType, _ := getKeyUint32(c, FanNum) // Get number of fans
+	val, smcType, _ := getKeyUint32(c, FanNum)
 	val = min(val, maxFans)
 
 	fans["Fan Count"] = map[string]any{

@@ -24,7 +24,6 @@ func Test_filterForPlatform(t *testing.T) {
 	input := []SensorStat{allSensor, emptySensor, appleSensor, intelSensor, m1Sensor}
 	result := filterForPlatform(input)
 
-	// "All" and "" sensors are always included regardless of platform.
 	assert.Contains(t, result, allSensor, "sensor with Platform=All must always be included")
 	assert.Contains(t, result, emptySensor, "sensor with Platform='' must always be included")
 }
@@ -133,12 +132,10 @@ func Test_filterByFamily_A18(t *testing.T) {
 		admitted[s.Desc] = true
 	}
 
-	// Must be admitted
 	for _, want := range []string{"All", "Empty", "Apple", "A18"} {
 		assert.True(t, admitted[want], "family=A18 must admit Platform=%q", want)
 	}
 
-	// Must be rejected
 	for _, reject := range []string{"M1", "M4", "M5", "Intel"} {
 		assert.False(t, admitted[reject], "family=A18 must reject Platform=%q", reject)
 	}
@@ -153,23 +150,21 @@ func Test_filterByFamily_A18(t *testing.T) {
 func Test_filterByFamily_A18_GeneratedTable(t *testing.T) {
 	result := filterByFamily(AppleTemp, "A18")
 
-	// Build a lookup of admitted keys by Platform tag.
 	byPlatform := make(map[string]int)
-	keys := make(map[string]string) // key -> platform
+	keys := make(map[string]string)
 
 	for _, s := range result {
 		byPlatform[s.Platform]++
 		keys[s.Key] = s.Platform
 	}
 
-	// Must include at least the canonical A18 P-core/E-core keys.
 	for _, mustHave := range []string{
-		"Tp00", "Tp01", "Tp02", // P-core 1 triplet
-		"Tp04", "Tp05", "Tp06", // P-core 2 triplet
-		"Te04", "Te05", "Te06", // E-core 1 triplet
-		"Te0R", "Te0S", "Te0T", // E-core 2 triplet
-		"Tp0l", "Tp0m", "Tp0n", // E-core 3 triplet
-		"Tp0o", "Tp0q", "Tp0t", // E-core 4 triplet
+		"Tp00", "Tp01", "Tp02",
+		"Tp04", "Tp05", "Tp06",
+		"Te04", "Te05", "Te06",
+		"Te0R", "Te0S", "Te0T",
+		"Tp0l", "Tp0m", "Tp0n",
+		"Tp0o", "Tp0q", "Tp0t",
 	} {
 		if plat, ok := keys[mustHave]; !ok {
 			t.Errorf("A18 key %q not admitted through filterByFamily", mustHave)
@@ -178,7 +173,6 @@ func Test_filterByFamily_A18_GeneratedTable(t *testing.T) {
 		}
 	}
 
-	// Must NOT include any M-family- or Intel-only rows.
 	for _, s := range result {
 		switch s.Platform {
 		case "M1", "M2", "M3", "M4", "M5", "Intel":
@@ -187,9 +181,7 @@ func Test_filterByFamily_A18_GeneratedTable(t *testing.T) {
 		}
 	}
 
-	// Sanity: A18 contributes 71 A18-exclusive rows after consolidating Apple-wide
-	// keys into wildcards (TVA%, TVS%, TPD%, TRD%) and promoting TVMR/TVmS to Apple.
-	// (69 → 71 with the addition of TQ0d/TQ0j ISP-sensor rows.)
+	// 71 A18-exclusive rows expected (post-wildcard consolidation).
 	assert.Equal(t, 71, byPlatform["A18"],
 		"expected 71 A18-tagged rows in AppleTemp; got %d", byPlatform["A18"])
 }
@@ -197,8 +189,6 @@ func Test_filterByFamily_A18_GeneratedTable(t *testing.T) {
 // Test_filterForPlatform_exactFamilyMatch verifies that platform-specific sensors are
 // only included when the family string matches exactly (TC-11 supporting test).
 func Test_filterForPlatform_exactFamilyMatch(t *testing.T) {
-	// "M1"-tagged sensor should only appear if the machine is an M1.
-	// On all other hardware (M2, M3, Intel, etc.) it must be excluded.
 	m1Sensor := SensorStat{Key: "TM1S", Desc: "M1-only sensor", Platform: "M1"}
 	m2Sensor := SensorStat{Key: "TM2S", Desc: "M2-only sensor", Platform: "M2"}
 	input := []SensorStat{m1Sensor, m2Sensor}
@@ -207,7 +197,6 @@ func Test_filterForPlatform_exactFamilyMatch(t *testing.T) {
 
 	family := platform.GetFamily()
 	if family == "" || family == "Unknown" {
-		// Can't make assertions without a known family; skip
 		t.Skip("platform family unknown, skipping exact-match test")
 	}
 
@@ -293,8 +282,7 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 	}{
 		{
 			name: "M5 base Tp00 maps to Super Core 1",
-			// AppleTemp has explicit M5 rows for Tp00/Tp04/Tp08/Tp0C as Super Core 1..4.
-			key: "Tp00", family: "M5",
+			key:  "Tp00", family: "M5",
 			wantDesc: "CPU Super Core 1", wantOK: true,
 		},
 		{
@@ -320,8 +308,7 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 		},
 		{
 			name: "M1-only key rejected on M3",
-			// Tp08 maps to "CPU Efficiency Core 1" only on M1 in AppleTemp.
-			key: "Tp08", family: "M3",
+			key:  "Tp08", family: "M3",
 			wantOK: false,
 		},
 	}
@@ -351,14 +338,13 @@ func Test_MappedTempKeys_M5(t *testing.T) {
 
 	got := MappedTempKeys("M5")
 
-	// Spot-check M5 super cores (explicit AppleTemp rows).
 	for _, k := range []string{"Tp00", "Tp04", "Tp08", "Tp0C"} {
 		if _, ok := got[k]; !ok {
 			t.Errorf("MappedTempKeys(M5) missing %q", k)
 		}
 	}
 
-	// Wildcard expansion: TC%c → TC0c..TC9c, all should be present.
+	// Wildcard TC%c expands to TC0c..TC9c.
 	for i := range 10 {
 		want := "TC" + string(rune('0'+i)) + "c"
 		if _, ok := got[want]; !ok {
@@ -366,7 +352,6 @@ func Test_MappedTempKeys_M5(t *testing.T) {
 		}
 	}
 
-	// Apple universal rows must come through (e.g. SSD Proximity 1).
 	if desc, ok := got["TS0P"]; !ok || desc != "SSD Proximity 1" {
 		t.Errorf("MappedTempKeys(M5)[TS0P] = (%q, %v), want (\"SSD Proximity 1\", true)",
 			desc, ok)
@@ -386,7 +371,6 @@ func Test_MappedTempKeys_familyIsolation(t *testing.T) {
 		t.Errorf("MappedTempKeys(M1)[Tp08] = (%q, %v), want (\"CPU Efficiency Core 1\", true)", d, ok)
 	}
 
-	// Tp1E is M3-specific (Performance Core 7); should not appear on M1.
 	if _, ok := m1["Tp1E"]; ok {
 		t.Errorf("MappedTempKeys(M1) leaked M3-only key Tp1E")
 	}

@@ -26,25 +26,14 @@ const (
 	guessCoolDuration   = 12 * time.Second
 	guessSampleCount    = 3
 	guessSampleInterval = 500 * time.Millisecond
-	// guessTempMin is set to a realistic lower bound for a running Mac. Hardware
-	// reports (e.g. M1 Ultra) show a hard gap between ~12 °C (highest
-	// sub-ambient/disconnected probe) and ~26 °C (lowest genuine ambient inlet).
-	// 25 °C sits safely inside that gap: all real die/cluster sensors idle at ≥30 °C
-	// while unconnected ambient probes (0–12 °C) and virtual thermal-zone sensors
-	// (exactly 0 °C) are excluded.
+	// 25 °C sits in the gap between disconnected probes (≤12) and real idle sensors (≥26).
 	guessTempMin = float32(25.0)
 	guessTempMax = float32(150.0)
 
-	// guessOutputThreshold is the minimum delta (°C) for a sensor to appear in
-	// the final output. Sensors below this value are silently dropped.
-	// Set to ≈10 σ above measurement noise (sp78 resolution ≈0.25 °C).
+	// ≈10 σ above sp78 noise floor (~0.25 °C).
 	guessOutputThreshold = float32(1.5)
 
-	// guessClusterRatio is the maximum relative gap between the P-phase and
-	// E-phase deltas for a sensor still to be classified as a cluster/package
-	// sensor rather than assigned to a specific phase.
-	// If min(pDelta,eDelta)/max(pDelta,eDelta) >= (1−guessClusterRatio) the
-	// sensor is treated as cluster-level (both phases equally hot).
+	// Sensor is cluster-level if min/max phase delta ≥ (1 − this).
 	guessClusterRatio = float32(0.20)
 )
 
@@ -319,8 +308,7 @@ func groupByStrideWithinSeries(sensors []string) [][]string {
 	return append(groups, current)
 }
 
-// Phase label prefixes. Kept as constants so guess.go and tests stay in sync with
-// the descriptions emitted in src/temp.txt (e.g. "CPU Super Core 1:Tp00:M5").
+// Phase label prefixes; must match descriptions emitted in src/temp.txt.
 const (
 	labelSuperCore       = "CPU Super Core"
 	labelPerformanceCore = "CPU Performance Core"
@@ -330,9 +318,9 @@ const (
 // phaseSpec describes one stress phase: its label prefix, QoS class, and expected
 // physical core count from platform topology data.
 type phaseSpec struct {
-	label string // e.g. "CPU Super Core", "CPU Performance Core", "CPU Efficiency Core"
-	qos   int    // QoS class constant from stress package
-	cores int    // physicalCPU for this tier (0 if unknown)
+	label string
+	qos   int
+	cores int // 0 if unknown.
 }
 
 // phaseResult pairs a phase specification with the sensor deltas it produced.
@@ -437,7 +425,7 @@ func spinCore(affinityTag int, qosClass int, done <-chan struct{}) {
 	stress.SetQoS(qosClass)
 	stress.SetAffinityTag(affinityTag)
 
-	// Four independent FMA+sqrt chains saturate all four FP ports.
+	// Four FMA+sqrt chains saturate all FP ports.
 	a, b, c, d := 1.0001, 1.0003, 1.0007, 1.0013
 
 	for {
@@ -756,7 +744,7 @@ func warnAbsentTypes(l platform.SKULayout, results []phaseResult) {
 			continue
 		}
 
-		// Sensors heated for a core type the SKU lacks — kernel routed elsewhere.
+		// Sensors heated for a core type the SKU lacks; kernel routed elsewhere.
 		fmt.Printf("// WARNING: phase %q produced sensors but SKU pair signature %s "+
 			"has no cores of this type — relabel before pasting into src/temp.txt.\n",
 			r.spec.label, l.PairSignature)
@@ -833,7 +821,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 
 	sort.Strings(clusterKeys)
 
-	// ── Header ──────────────────────────────────────────────────────────────────
+	// Header.
 	fmt.Println()
 	fmt.Printf("// %s (%d logical CPUs) – guessed sensor mappings\n", family, numCPU)
 
@@ -862,7 +850,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	fmt.Println("// WARNING: automated correlation is approximate; always verify on real hardware.")
 	fmt.Printf("// %s\n", strings.Repeat("─", 72))
 
-	// ── Per-phase sensor sections ────────────────────────────────────────────────
+	// Per-phase sensor sections.
 	for i, r := range results {
 		printPhase(family, i, r, phaseKeys[i], layout, layoutOK)
 	}
@@ -871,7 +859,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 		warnAbsentTypes(layout, results)
 	}
 
-	// ── Cluster / package sensors ────────────────────────────────────────────────
+	// Cluster / package sensors.
 	if len(clusterKeys) > 0 {
 		fmt.Println()
 		fmt.Printf("// %s\n", strings.Repeat("─", 72))

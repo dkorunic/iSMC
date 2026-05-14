@@ -27,97 +27,89 @@ func Test_RawKeyToFloat32(t *testing.T) {
 		wantVal float32
 		wantOK  bool
 	}{
-		// ── TypeFLT (IEEE 754 little-endian) ─────────────────────────────────
+		// TypeFLT (IEEE 754 little-endian).
 		{
-			// 0x41C80000 = 25.0 in big-endian; LE bytes: 0x00,0x00,0xC8,0x41
+			// 0x41C80000 LE = 25.0.
 			name:    "flt 25.0",
 			key:     RawKey{Key: "TC0H", DataType: gosmc.TypeFLT, DataSize: 4, Bytes: makeBytes(0x00, 0x00, 0xC8, 0x41)},
 			wantVal: 25.0,
 			wantOK:  true,
 		},
 		{
-			// size < 4 → fltToFloat32 returns error
 			name:   "flt too small",
 			key:    RawKey{Key: "TC0H", DataType: gosmc.TypeFLT, DataSize: 1, Bytes: makeBytes(0x00)},
 			wantOK: false,
 		},
 		{
-			// 0x7FC00000 = quiet NaN; LE bytes: 0x00,0x00,0xC0,0x7F → must be rejected
+			// 0x7FC00000 LE = quiet NaN.
 			name:   "flt NaN rejected",
 			key:    RawKey{Key: "TC0H", DataType: gosmc.TypeFLT, DataSize: 4, Bytes: makeBytes(0x00, 0x00, 0xC0, 0x7F)},
 			wantOK: false,
 		},
 		{
-			// 0x7F800000 = +Inf; LE bytes: 0x00,0x00,0x80,0x7F → must be rejected
+			// 0x7F800000 LE = +Inf.
 			name:   "flt +Inf rejected",
 			key:    RawKey{Key: "TC0H", DataType: gosmc.TypeFLT, DataSize: 4, Bytes: makeBytes(0x00, 0x00, 0x80, 0x7F)},
 			wantOK: false,
 		},
 		{
-			// 0xFF800000 = -Inf; LE bytes: 0x00,0x00,0x80,0xFF → must be rejected
+			// 0xFF800000 LE = -Inf.
 			name:   "flt -Inf rejected",
 			key:    RawKey{Key: "TC0H", DataType: gosmc.TypeFLT, DataSize: 4, Bytes: makeBytes(0x00, 0x00, 0x80, 0xFF)},
 			wantOK: false,
 		},
 
-		// ── ioft (48.16 unsigned fixed-point, little-endian) ─────────────────
+		// ioft (48.16 unsigned fixed-point, little-endian).
 		{
-			// LittleEndian uint64: 0x0000000000010000=65536 → 65536/65536=1.0
+			// LE u64 0x10000 = 65536; /65536 = 1.0.
 			name:    "ioft 1.0",
 			key:     RawKey{Key: "IOFT", DataType: "ioft", DataSize: 8, Bytes: makeBytes(0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00)},
 			wantVal: 1.0,
 			wantOK:  true,
 		},
 		{
-			// size < 8 → ioftToFloat32 returns error
 			name:   "ioft too small",
 			key:    RawKey{Key: "IOFT", DataType: "ioft", DataSize: 4, Bytes: makeBytes(0x00, 0x00, 0x01, 0x00)},
 			wantOK: false,
 		},
 		{
-			// LittleEndian uint64 with high bytes set produces ≈10¹⁴ °C — observed
-			// on report-m4-4.txt for TR3d. finiteInRange must reject anything > rawTempMax.
+			// ≈10¹⁴ °C; observed on report-m4-4.txt TR3d.
 			name:   "ioft above rawTempMax rejected",
 			key:    RawKey{Key: "TR3d", DataType: "ioft", DataSize: 8, Bytes: makeBytes(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF)},
 			wantOK: false,
 		},
 
-		// ── fp*/sp* fixed-point (big-endian) via AppleFPConv ─────────────────
+		// fp*/sp* fixed-point (big-endian).
 		{
-			// sp78: BigEndian 0x1900=6400 → int16(6400)/256=25.0
+			// BE 0x1900 = 6400 / 256 = 25.0.
 			name:    "sp78 25.0",
 			key:     RawKey{Key: "TC0H", DataType: gosmc.TypeSP78, DataSize: 2, Bytes: makeBytes(0x19, 0x00)},
 			wantVal: 25.0,
 			wantOK:  true,
 		},
 		{
-			// fp88: BigEndian 0x0100=256 → 256/256=1.0
+			// BE 0x0100 = 256 / 256 = 1.0.
 			name:    "fp88 1.0",
 			key:     RawKey{Key: "TC0H", DataType: gosmc.TypeFP88, DataSize: 2, Bytes: makeBytes(0x01, 0x00)},
 			wantVal: 1.0,
 			wantOK:  true,
 		},
 
-		// ── Unknown / unsupported type ────────────────────────────────────────
 		{
-			// "xxxx" is not in AppleFPConv → fpToFloat32 returns error → false
 			name:   "unknown type",
 			key:    RawKey{Key: "TC0H", DataType: "xxxx", DataSize: 2, Bytes: makeBytes(0x00, 0x00)},
 			wantOK: false,
 		},
 
-		// ── Ta0P sp78 workaround ──────────────────────────────────────────────
+		// Ta0P: mislabelled flt, decoded as sp78.
 		{
-			// Ta0P is reported as "flt" by firmware but actually encodes sp78.
-			// With DataSize=2, DataType=TypeFLT and key="Ta0P", must decode as sp78.
-			// BigEndian 0x1900=6400 → int16(6400)/256=25.0
+			// BE 0x1900 / 256 = 25.0.
 			name:    "Ta0P sp78 workaround",
 			key:     RawKey{Key: "Ta0P", DataType: gosmc.TypeFLT, DataSize: 2, Bytes: makeBytes(0x19, 0x00)},
 			wantVal: 25.0,
 			wantOK:  true,
 		},
 		{
-			// Ta0P workaround path but size < 2 → fpToFloat32 returns error
 			name:   "Ta0P too small for sp78",
 			key:    RawKey{Key: "Ta0P", DataType: gosmc.TypeFLT, DataSize: 1, Bytes: makeBytes(0x19)},
 			wantOK: false,

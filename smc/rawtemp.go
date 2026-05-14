@@ -11,12 +11,7 @@ import (
 	"github.com/dkorunic/iSMC/gosmc"
 )
 
-// rawTempMin and rawTempMax bound the range of plausible temperature readings
-// for any SMC thermal sensor. Values outside this window indicate firmware bugs
-// (observed: M5 Pro TTPD reports ≈ −3.07 × 10⁸ °C from a flt32 decode of bytes
-// 20 49 92 cd) rather than physical conditions, and would mislead any consumer
-// of RawKeyToFloat32. The window is wide enough to admit sub-ambient probes
-// (~0 °C) and thermal-runaway transients (~150 °C) without rejecting them.
+// Plausible temperature window; rejects firmware-bug outliers like M5 Pro TTPD's −3e8 °C.
 const (
 	rawTempMin = float32(-100.0)
 	rawTempMax = float32(200.0)
@@ -32,7 +27,7 @@ const (
 // Returns (value, true) on success and (0, false) for unsupported types, insufficient
 // data, non-finite results, or values outside the plausible temperature window.
 func RawKeyToFloat32(k RawKey) (float32, bool) {
-	// Ta0P: mislabelled flt, decode as sp78. Mirrors getKeyFloat32.
+	// Ta0P: mislabelled flt, decode as sp78.
 	if k.DataType == gosmc.TypeFLT && k.Key == "Ta0P" && k.DataSize >= 2 {
 		v, err := fpToFloat32("sp78", k.Bytes, k.DataSize)
 		if err != nil {
@@ -60,7 +55,6 @@ func RawKeyToFloat32(k RawKey) (float32, bool) {
 		return finiteInRange(v)
 
 	default:
-		// Covers all fp*/sp* fixed-point types via AppleFPConv.
 		v, err := fpToFloat32(k.DataType, k.Bytes, k.DataSize)
 		if err != nil {
 			return 0, false

@@ -16,9 +16,7 @@ import (
 	"github.com/fvbommel/sortorder"
 )
 
-// monkey patching for testing.
-// WARNING: these package-level vars are written by tests without synchronisation.
-// Do not call t.Parallel() in output tests — doing so would introduce a data race.
+// Monkey-patching hooks for tests. Tests mutate these; never call t.Parallel() in output tests.
 var (
 	GetAll         = getAll
 	GetTemperature = getTemperature
@@ -162,9 +160,7 @@ func getHardware() map[string]any {
 	return result
 }
 
-// deepCopy copies all entries from src into dest, recursively cloning nested maps so that
-// mutations to dest do not affect src. Unlike a JSON round-trip, this preserves Go types:
-// uint32, bool, float32 etc. are not narrowed to float64.
+// deepCopy recursively clones nested maps; preserves Go types (no float64 narrowing).
 func deepCopy(dest, src map[string]any) {
 	for k, v := range src {
 		if vm, ok := v.(map[string]any); ok {
@@ -177,9 +173,7 @@ func deepCopy(dest, src map[string]any) {
 	}
 }
 
-// isFloatType reports whether typ is a continuous-valued SMC/HID type whose string
-// representation is "quantity unit" and should be split by format().
-// "ioft" is included here even though it was absent from the original hard-coded list.
+// isFloatType reports whether typ has a "quantity unit" string form that format() should split.
 func isFloatType(typ string) bool {
 	switch typ {
 	case "flt", "ioft", hid.SensorType:
@@ -191,8 +185,8 @@ func isFloatType(typ string) bool {
 	return ok
 }
 
-// TODO replace with a variant from an utility package
-// merge returns a new map containing all entries from a and b, with b values taking precedence on conflicts.
+// merge returns a new map containing entries from a and b; b wins on conflicts.
+// TODO: replace with a utility-package variant.
 func merge(a, b map[string]any) map[string]any {
 	out := make(map[string]any)
 	deepCopy(out, a)

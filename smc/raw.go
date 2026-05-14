@@ -15,8 +15,7 @@ import (
 const (
 	keyCount = "#KEY"
 
-	// maxKeys is the upper bound on the number of SMC keys to enumerate.
-	// Current Apple Silicon Macs report ~1800 keys; this guards against a corrupt/spoofed #KEY value.
+	// Guards against a corrupt/spoofed #KEY; real Macs report ~1800.
 	maxKeys = 4096
 )
 
@@ -37,7 +36,6 @@ func GetRaw() []RawKey {
 	}
 	defer gosmc.SMCClose(conn)
 
-	// Read total key count from the special #KEY entry.
 	countVal, res := gosmc.SMCReadKey(conn, keyCount)
 	if res != gosmc.IOReturnSuccess || countVal.DataSize == 0 {
 		return nil
@@ -57,7 +55,7 @@ func GetRaw() []RawKey {
 			continue
 		}
 
-		// Convert the uint32 key code to its 4-character ASCII name (big-endian).
+		// Decode the uint32 key code as 4-char big-endian ASCII.
 		k := output.Key
 		keyStr := string([]byte{
 			byte(k >> 24),

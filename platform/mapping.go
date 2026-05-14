@@ -12,30 +12,17 @@ type Product struct {
 	Year   int
 }
 
-// Pair signatures describe which two core types coexist on an Apple Silicon SKU.
-// Driven by the validate-temp-mappings family roster: M1–M4 and A18 use P+E; M5
-// base uses S+E; M5 Pro/Max use S+P. The same Tp* SMC prefix maps to different
-// physical core types depending on this signature, so any consumer that names
-// per-core sensors must consult it (cmd/guess.go does so when labelling phases).
+// Pair signatures: which two core types coexist on the SKU. Tp* prefix maps to
+// different physical cores depending on signature, so per-core consumers must consult it.
 const (
-	PairSignaturePE = "P+E" // Performance + Efficiency (M1–M4, A18, all variants)
-	PairSignatureSE = "S+E" // Super + Efficiency (M5 base only)
-	PairSignatureSP = "S+P" // Super + Performance (M5 Pro / M5 Max)
+	PairSignaturePE = "P+E" // M1–M4, A18.
+	PairSignatureSE = "S+E" // M5 base.
+	PairSignatureSP = "S+P" // M5 Pro / M5 Max.
 )
 
-// SKULayout describes the per-SKU physical core composition, GPU core counts, die
-// count, and pair signature for an Apple Silicon variant. Sourced from the
-// validate-temp-mappings family roster (.claude/skills/validate-temp-mappings).
-//
-// Multiple field configurations exist for many SKUs (e.g. M1 Pro: 6P+2E or 8P+2E,
-// M3 Max: 10P+4E or 12P+4E). The {Min,Max} pairs span every observed variant, so
-// a runtime-detected count is consistent with the SKU iff it falls inside the
-// inclusive range. A zero value for a core type means that type is absent on the
-// SKU (e.g. M5 Pro has no E-cores → ECoresMin = ECoresMax = 0).
-//
-// PairSignature uses one of the PairSignature* constants. Dies is 1 for monolithic
-// chips and 2 for UltraFusion SKUs (M1/M2/M3 Ultra) — die count drives the
-// "look for parallel die-2 sensor sets" expectation in validators.
+// SKULayout describes per-SKU core/GPU composition for an Apple Silicon variant.
+// {Min,Max} ranges span every observed variant; zero means the type is absent.
+// Dies = 2 for UltraFusion (M1/M2/M3 Ultra).
 type SKULayout struct {
 	PairSignature            string
 	PCoresMin, PCoresMax     int
@@ -45,14 +32,8 @@ type SKULayout struct {
 	Dies                     int
 }
 
-// skuLayouts maps an Apple Silicon SKU (the Product.CPU string) to its known core
-// composition. This is the on-device counterpart of the validate-temp-mappings
-// family roster and is the single source of truth used by cmd/guess.go for phase
-// labelling and detected-count validation.
-//
-// When a new chip is announced: add an entry here, add the corresponding model
-// IDs to the products map above, and (only if the family tag introduces a new
-// pair signature) add a temp.txt sub-family split per the skill's procedure.
+// skuLayouts maps Product.CPU to known core composition. Authoritative source
+// for cmd/guess.go phase labelling and count validation.
 var skuLayouts = map[string]SKULayout{
 	// M1 family — P+E
 	"M1":       {PCoresMin: 4, PCoresMax: 4, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 7, GPUCoresMax: 8, PairSignature: PairSignaturePE, Dies: 1},
@@ -77,8 +58,7 @@ var skuLayouts = map[string]SKULayout{
 	"M4 Pro": {PCoresMin: 8, PCoresMax: 10, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 16, GPUCoresMax: 20, PairSignature: PairSignaturePE, Dies: 1},
 	"M4 Max": {PCoresMin: 10, PCoresMax: 12, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 32, GPUCoresMax: 40, PairSignature: PairSignaturePE, Dies: 1},
 
-	// M5 family — base = S+E, Pro/Max = S+P. Two distinct pair signatures share
-	// the "M5" family tag; do not collapse without also splitting temp.txt.
+	// M5: base = S+E, Pro/Max = S+P. Don't collapse without splitting temp.txt.
 	"M5":     {SCoresMin: 3, SCoresMax: 4, ECoresMin: 6, ECoresMax: 6, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignatureSE, Dies: 1},
 	"M5 Pro": {SCoresMin: 5, SCoresMax: 6, PCoresMin: 10, PCoresMax: 12, GPUCoresMin: 16, GPUCoresMax: 20, PairSignature: PairSignatureSP, Dies: 1},
 	"M5 Max": {SCoresMin: 6, SCoresMax: 6, PCoresMin: 12, PCoresMax: 12, GPUCoresMin: 32, GPUCoresMax: 40, PairSignature: PairSignatureSP, Dies: 1},

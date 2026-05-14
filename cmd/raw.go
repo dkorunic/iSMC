@@ -13,15 +13,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// hexDigits is the lowercase hex alphabet, indexed directly by nibble value.
-// Used by formatBytesHex to avoid a per-byte fmt.Sprintf call.
+// Hex alphabet indexed by nibble; avoids per-byte fmt.Sprintf.
 const hexDigits = "0123456789abcdef"
 
 // formatBytesHex renders size bytes from b as space-separated lowercase
-// two-digit hex pairs (e.g. "01 0a ff"), using a single pre-sized
-// strings.Builder instead of one fmt.Sprintf per byte. For a full SMC key
-// enumeration (~1800 keys × up to 32 bytes) this avoids tens of thousands of
-// allocations compared to the previous []string + strings.Join approach.
+// two-digit hex pairs (e.g. "01 0a ff").
 func formatBytesHex(b [32]byte, size uint32) string {
 	if size == 0 {
 		return ""
@@ -33,7 +29,7 @@ func formatBytesHex(b [32]byte, size uint32) string {
 
 	var sb strings.Builder
 
-	sb.Grow(int(size)*3 - 1) // "xx" per byte + " " separator between bytes
+	sb.Grow(int(size)*3 - 1)
 
 	for i := uint32(0); i < size; i++ {
 		if i > 0 {

@@ -129,9 +129,7 @@ static NSString *dumpNamesValues(NSArray *kvsN, NSArray *kvsV) {
     return valueString;
 }
 
-// kSP78RawThreshold is the boundary above which a tdev sensor reading is
-// unambiguously a raw sp78 value (°C × 256) rather than a converted °C value.
-// The maximum plausible converted Apple Silicon temperature is ~130°C (junction limit).
+// Above 130 °C (junction limit) the tdev reading must be raw sp78, not converted °C.
 #define kSP78RawThreshold 130.0
 
 // dumpThermalNamesValues formats thermal sensor names and values, applying sp78 conversion

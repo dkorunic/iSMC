@@ -79,8 +79,8 @@ func smcTypeToString(x gosmc.UInt32Char) string {
 	return strings.TrimRight(x.ToString(), "\x00 ")
 }
 
-// smcBytesToUint32 converts ui8/ui16/ui32 SMC types to uint32.
-// size is clamped to 4 to prevent shift overflow for unexpected key sizes.
+// smcBytesToUint32 converts ui8/ui16/ui32 SMC types to uint32. Clamped to 4 bytes
+// to prevent shift overflow on unexpected key sizes.
 func smcBytesToUint32(x gosmc.SMCBytes, size uint32) uint32 {
 	if size > 4 {
 		size = 4
@@ -121,7 +121,6 @@ func decodeToFloat32(dataType string, bytes gosmc.SMCBytes, size uint32) (float3
 		v, err := ioftToFloat32(bytes, size)
 		return v, err == nil
 	default:
-		// fp* and sp* fixed-point types
 		v, err := fpToFloat32(dataType, bytes, size)
 		return v, err == nil
 	}
@@ -164,7 +163,6 @@ func DecodeValue(dataType string, bytes gosmc.SMCBytes, size uint32) string {
 		return fmt.Sprintf("%.1f%%", pct)
 
 	default:
-		// flt, ioft, fp*, sp* types
 		v, ok := decodeToFloat32(dataType, bytes, size)
 		if !ok {
 			return ""

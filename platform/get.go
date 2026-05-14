@@ -27,9 +27,9 @@ import (
 // PerfLevel describes one CPU performance tier as reported by the macOS sysctl
 // hw.perflevel{N}.* hierarchy.
 type PerfLevel struct {
-	Name        string // hw.perflevelN.name, e.g. "Performance" / "Efficiency"
-	PhysicalCPU int    // hw.perflevelN.physicalcpu
-	LogicalCPU  int    // hw.perflevelN.logicalcpu
+	Name        string
+	PhysicalCPU int
+	LogicalCPU  int
 }
 
 var (
