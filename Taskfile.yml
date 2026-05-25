@@ -50,7 +50,7 @@ tasks:
     cmds:
       - task: generate
       - task: fmt
-      - go build -trimpath -pgo=auto -ldflags="-s -w -X github.com/dkorunic/iSMC/cmd.GitTag={{.GIT_LAST_TAG}} -X github.com/dkorunic/iSMC/cmd.GitCommit={{.GIT_HEAD_COMMIT}} -X github.com/dkorunic/iSMC/cmd.GitDirty={{.GIT_MODIFIED}} -X github.com/dkorunic/iSMC/cmd.BuildTime={{.BUILD_DATE}}" -o {{.TARGET}}
+      - go build -trimpath -pgo=auto -ldflags="-s -w -X github.com/dkorunic/iSMC/internal/cmd.GitTag={{.GIT_LAST_TAG}} -X github.com/dkorunic/iSMC/internal/cmd.GitCommit={{.GIT_HEAD_COMMIT}} -X github.com/dkorunic/iSMC/internal/cmd.GitDirty={{.GIT_MODIFIED}} -X github.com/dkorunic/iSMC/internal/cmd.BuildTime={{.BUILD_DATE}}" -o {{.TARGET}}
 
   build-debug:
     env:

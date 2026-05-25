@@ -26,10 +26,26 @@ To run tests:
 ```sh
 CGO_ENABLED=1 go test ./...
 # Run a single test package:
-CGO_ENABLED=1 go test ./output/...
+CGO_ENABLED=1 go test ./internal/output/...
 ```
 
 ## Architecture
+
+### Package Layout
+
+Public (importable from outside the module):
+- `gosmc/` — separate Go module (`github.com/dkorunic/iSMC/gosmc`), low-level IOKit CGo bindings
+- `smc/` — named SMC-key sensor reader (Intel/PPC), built on `gosmc`
+- `hid/` — Apple Silicon (M-series) HID sensor reader
+
+Internal (compiler-enforced, importable only within this module):
+- `internal/cmd/` — Cobra subcommands; also holds the `GitTag`/`GitCommit`/`GitDirty`/`BuildTime` vars set via `-ldflags -X` at build time
+- `internal/output/` — `Output` interface + table/ascii/json/influx backends
+- `internal/platform/` — CPU family / SKU lookup; consumed by `smc` and `internal/output`
+- `internal/reports/` — diagnostic report bundler
+- `internal/stress/` — affinity/QoS helpers for the `stress` subcommand
+
+Note: `smc` (public) imports `internal/platform`. Go allows this because the import sits within the same module, but anything `smc` re-exports from `platform` effectively becomes part of `smc`'s public API surface — keep that interaction narrow.
 
 ### Hardware Abstraction
 
@@ -44,9 +60,9 @@ The tool supports two distinct hardware paths that are merged at the output laye
 ### Data Flow
 
 ```
-cmd/ (Cobra subcommands)
-  → output.Factory(OutputFlag)  [selects output format]
-    → output.Output interface methods (All, Temperature, Fans, etc.)
+internal/cmd/ (Cobra subcommands)
+  → internal/output.Factory(OutputFlag)  [selects output format]
+    → internal/output.Output interface methods (All, Temperature, Fans, etc.)
       → merge(smc.Get*(), hid.Get*())
         → gosmc.SMCOpen/ReadKey  (Intel)
         → CGo HID calls          (Apple Silicon)
@@ -56,13 +72,13 @@ All sensor data is returned as `map[string]any` where each entry contains `"key"
 
 ### Output System
 
-`output/` implements the `Output` interface with four backends selected via `-o` flag:
+`internal/output/` implements the `Output` interface with four backends selected via `-o` flag:
 - `table` — pretty table (default, uses `go-pretty`)
 - `ascii` — plain ASCII table
 - `json` — JSON
 - `influx` — InfluxDB line protocol
 
-`output/outputfactory.go` is the factory. The `GetAll`, `GetTemperature`, etc. vars in `output/output.go` are function variables to enable monkey-patching in tests.
+`internal/output/outputfactory.go` is the factory. The `GetAll`, `GetTemperature`, etc. vars in `internal/output/output.go` are function variables to enable monkey-patching in tests.
 
 ### Module Structure
 
@@ -71,6 +87,8 @@ This repo contains **two Go modules**:
 - Nested: `github.com/dkorunic/iSMC/gosmc` (`gosmc/go.mod`)
 
 When updating dependencies in `gosmc/`, cd into that directory first.
+
+Version-injection `-ldflags -X` paths in `Taskfile.yml` and `.goreleaser.yml` target `github.com/dkorunic/iSMC/internal/cmd.{GitTag,GitCommit,GitDirty,BuildTime}` — if `internal/cmd` is ever renamed or moved, those flags must be updated in lockstep (a path mismatch is silent: the binary builds but reports empty version strings).
 
 ## Code Style & Linting
 

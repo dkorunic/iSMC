@@ -1,4 +1,4 @@
-// Copyright (C) 2019  Dinko Korunic
+// SPDX-FileCopyrightText: Copyright (C) 2019  Dinko Korunic
 // SPDX-License-Identifier: GPL-3.0-only
 
 //go:build darwin
@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	"github.com/dkorunic/iSMC/gosmc"
-	"github.com/dkorunic/iSMC/platform"
+	"github.com/dkorunic/iSMC/internal/platform"
 )
 
 const (
