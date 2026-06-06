@@ -6,10 +6,11 @@
 package cmd
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -168,18 +169,18 @@ func numericValue(key string) int {
 	hasHexDigit := false
 	indexStarted := false
 
+loop:
 	for _, c := range []byte(key) {
-		if c >= '0' && c <= '9' {
+		switch {
+		case c >= '0' && c <= '9':
 			indexStarted = true
 
 			digits = append(digits, c)
-		} else if indexStarted {
-			if c >= 'A' && c <= 'F' {
-				digits = append(digits, c)
-				hasHexDigit = true
-			} else {
-				break
-			}
+		case indexStarted && c >= 'A' && c <= 'F':
+			digits = append(digits, c)
+			hasHexDigit = true
+		case indexStarted:
+			break loop
 		}
 	}
 
@@ -210,8 +211,8 @@ func groupBySeries(keys []string) map[string][]string {
 	}
 
 	for sk := range groups {
-		sort.Slice(groups[sk], func(a, b int) bool {
-			return numericValue(groups[sk][a]) < numericValue(groups[sk][b])
+		slices.SortFunc(groups[sk], func(a, b string) int {
+			return cmp.Compare(numericValue(a), numericValue(b))
 		})
 	}
 
@@ -226,7 +227,7 @@ func sortedSeriesKeys(groups map[string][]string) []string {
 		keys = append(keys, k)
 	}
 
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	return keys
 }
@@ -819,7 +820,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 		phaseKeys[dominantIdx] = append(phaseKeys[dominantIdx], key)
 	}
 
-	sort.Strings(clusterKeys)
+	slices.Sort(clusterKeys)
 
 	// Header.
 	fmt.Println()
@@ -944,7 +945,7 @@ func printTempTxtCrosscheck(family string, detected map[string]struct{}) {
 		}
 	}
 
-	sort.Strings(silent)
+	slices.Sort(silent)
 
 	fmt.Println()
 	fmt.Printf("// %s\n", strings.Repeat("─", 72))
@@ -998,7 +999,7 @@ func printReportsCrosscheck(family string, detected map[string]struct{}) {
 		}
 	}
 
-	sort.Strings(silent)
+	slices.Sort(silent)
 
 	novel := make([]string, 0)
 
@@ -1008,7 +1009,7 @@ func printReportsCrosscheck(family string, detected map[string]struct{}) {
 		}
 	}
 
-	sort.Strings(novel)
+	slices.Sort(novel)
 
 	fmt.Println()
 	fmt.Printf("// %s\n", strings.Repeat("─", 72))

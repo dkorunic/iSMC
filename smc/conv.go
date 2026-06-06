@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/dkorunic/iSMC/gosmc"
@@ -135,25 +136,25 @@ func DecodeValue(dataType string, bytes gosmc.SMCBytes, size uint32) string {
 
 	switch dataType {
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
-		return fmt.Sprintf("%d", smcBytesToUint32(bytes, size))
+		return strconv.FormatUint(uint64(smcBytesToUint32(bytes, size)), 10)
 
 	case gosmc.TypeSI8:
-		return fmt.Sprintf("%d", int8(bytes[0]))
+		return strconv.FormatInt(int64(int8(bytes[0])), 10)
 
 	case gosmc.TypeSI16:
 		if size < 2 {
 			return ""
 		}
-		return fmt.Sprintf("%d", int16(binary.BigEndian.Uint16(bytes[:2])))
+		return strconv.FormatInt(int64(int16(binary.BigEndian.Uint16(bytes[:2]))), 10)
 
 	case gosmc.TypeSI32:
 		if size < 4 {
 			return ""
 		}
-		return fmt.Sprintf("%d", int32(binary.BigEndian.Uint32(bytes[:4])))
+		return strconv.FormatInt(int64(int32(binary.BigEndian.Uint32(bytes[:4]))), 10)
 
 	case gosmc.TypeFLAG:
-		return fmt.Sprintf("%v", smcBytesToUint32(bytes, size) == 1)
+		return strconv.FormatBool(smcBytesToUint32(bytes, size) == 1)
 
 	case "pwm":
 		if size < 2 {

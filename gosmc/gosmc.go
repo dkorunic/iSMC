@@ -15,6 +15,17 @@ import (
 	"unsafe"
 )
 
+// Compile-time assertions guarding the unsafe reinterprets below: the Go types
+// must match their C counterparts byte-for-byte, or the casts read out of bounds.
+// Each pair fails to compile if the sizes diverge (e.g. a future SMC_MAX_DATA_SIZE
+// change in smc.h), because a negative constant cannot convert to uint.
+const (
+	_ = uint(unsafe.Sizeof(UInt32Char{}) - unsafe.Sizeof(C.UInt32Char_t{}))
+	_ = uint(unsafe.Sizeof(C.UInt32Char_t{}) - unsafe.Sizeof(UInt32Char{}))
+	_ = uint(unsafe.Sizeof(SMCBytes{}) - unsafe.Sizeof(C.SMCBytes_t{}))
+	_ = uint(unsafe.Sizeof(C.SMCBytes_t{}) - unsafe.Sizeof(SMCBytes{}))
+)
+
 // DataVers is IOKit DataVers struct
 type DataVers struct {
 	Major    uint8

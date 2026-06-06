@@ -15,7 +15,7 @@ var hwCmd = &cobra.Command{
 	Use:     "hw",
 	Aliases: []string{"hardware", "info"},
 	Short:   "Display hardware information",
-	Run: func(_ *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		output.Factory(OutputFlag).Hardware()
 	},
 }

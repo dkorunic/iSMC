@@ -6,67 +6,11 @@
 package output
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func Test_deepCopy(t *testing.T) {
-	type args struct {
-		dest map[string]any
-		src  map[string]any
-	}
-
-	tests := []struct {
-		name     string
-		args     args
-		expected string
-	}{
-		{
-			"Verify dest",
-			args{
-				dest: map[string]any{
-					"key-1": "value-1",
-				},
-				src: map[string]any{
-					"key-2": map[string]any{
-						"key-2-1": "value-2-1",
-					},
-					"key-3": map[string]any{
-						"key-3-1": map[string]any{
-							"key-3-1-1": "value-3-1-1",
-						},
-					},
-				},
-			},
-			`{"key-1":"value-1","key-2":{"key-2-1":"value-2-1"},"key-3":{"key-3-1":{"key-3-1-1":"value-3-1-1"}}}`,
-		},
-		{
-			"Verify empty dest",
-			args{
-				dest: map[string]any{},
-				src: map[string]any{
-					"key-1": "value-1",
-					"key-2": map[string]any{
-						"key-2-1": "value-2-1",
-					},
-				},
-			},
-			`{"key-1":"value-1","key-2":{"key-2-1":"value-2-1"}}`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deepCopy(tt.args.dest, tt.args.src)
-
-			actual := toJSON(tt.args.dest)
-			assert.JSONEq(t, tt.expected, actual)
-		})
-	}
-}
 
 func Test_merge(t *testing.T) {
 	type args struct {
@@ -126,33 +70,6 @@ func Test_merge(t *testing.T) {
 	}
 }
 
-// Test_deepCopy_isolation verifies that deepCopy produces a true deep clone: mutating
-// a nested map in dest must not affect the original src (TC-14). A shallow copy
-// (for k, v := range src { dest[k] = v }) would fail this because both dest and src
-// would share the same nested map pointer.
-func Test_deepCopy_isolation(t *testing.T) {
-	src := map[string]any{
-		"sensor": map[string]any{
-			"key":   "TC0H",
-			"value": "25.0 °C",
-		},
-	}
-
-	dest := make(map[string]any)
-	deepCopy(dest, src)
-
-	// Mutate the nested map in dest
-	if nested, ok := dest["sensor"].(map[string]any); ok {
-		nested["value"] = "999.0 °C"
-	}
-
-	// src must be unaffected — a shallow copy would expose the same nested map
-	if nestedSrc, ok := src["sensor"].(map[string]any); ok {
-		assert.Equal(t, "25.0 °C", nestedSrc["value"],
-			"deepCopy must produce a deep clone; mutating dest must not affect src")
-	}
-}
-
 // Test_merge_bOverridesA verifies that merge gives precedence to b when both maps
 // contain the same flat key (TC-13 supporting test).
 func Test_merge_bOverridesA(t *testing.T) {
@@ -193,13 +110,6 @@ func Test_merge_nestedBOverridesA(t *testing.T) {
 
 	_, gpuOk := temps["GPU Temp"]
 	assert.True(t, gpuOk, "GPU Temp from a must NOT be lost when b only partially covers Temperature")
-}
-
-// toJSON marshals src to a JSON string for use in test assertions.
-func toJSON(src map[string]any) string {
-	jsonStr, _ := json.Marshal(src)
-
-	return string(jsonStr)
 }
 
 // getMapForSensor returns a minimal sensor map keyed by sensorName for use in table-driven tests.

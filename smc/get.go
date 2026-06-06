@@ -72,7 +72,7 @@ func getKeyUint32(c uint, key string) (uint32, string, error) {
 		return smcBytesToUint32(v.Bytes, v.DataSize), t, nil
 	default:
 		return 0, "", fmt.Errorf("unable to convert to uint32 type %q, bytes %v", t,
-			v.Bytes[:v.DataSize])
+			v.Bytes[:min(int(v.DataSize), len(v.Bytes))])
 	}
 }
 
@@ -89,6 +89,6 @@ func getKeyBool(c uint, key string) (bool, string, error) {
 		return smcBytesToUint32(v.Bytes, v.DataSize) == uint32(1), t, nil
 	default:
 		return false, "", fmt.Errorf("unable to convert to bool type %q, bytes %v", t,
-			v.Bytes[:v.DataSize])
+			v.Bytes[:min(int(v.DataSize), len(v.Bytes))])
 	}
 }

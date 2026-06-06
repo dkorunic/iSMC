@@ -23,7 +23,7 @@ var (
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number of iSMC",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Printf("iSMC %v %v%v, built on %v, with %v\n", GitTag, GitCommit, GitDirty,
 			BuildTime, runtime.Version())
 	},

@@ -160,19 +160,6 @@ func getHardware() map[string]any {
 	return result
 }
 
-// deepCopy recursively clones nested maps; preserves Go types (no float64 narrowing).
-func deepCopy(dest, src map[string]any) {
-	for k, v := range src {
-		if vm, ok := v.(map[string]any); ok {
-			inner := make(map[string]any, len(vm))
-			deepCopy(inner, vm)
-			dest[k] = inner
-		} else {
-			dest[k] = v
-		}
-	}
-}
-
 // isFloatType reports whether typ has a "quantity unit" string form that format() should split.
 func isFloatType(typ string) bool {
 	switch typ {
@@ -185,25 +172,23 @@ func isFloatType(typ string) bool {
 	return ok
 }
 
-// merge returns a new map containing entries from a and b; b wins on conflicts.
-// TODO: replace with a utility-package variant.
+// merge overlays entries from b onto a (b wins on conflicts) and returns a.
+// a is mutated in place and must be owned exclusively by the caller; the sensor
+// getters always pass freshly built maps, so no defensive clone is needed.
 func merge(a, b map[string]any) map[string]any {
-	out := make(map[string]any)
-	deepCopy(out, a)
-
 	for k, bVal := range b {
 		if bMap, ok := bVal.(map[string]any); ok {
-			if outVal, ok := out[k]; ok {
-				if outMap, ok := outVal.(map[string]any); ok {
-					out[k] = merge(outMap, bMap)
+			if aVal, ok := a[k]; ok {
+				if aMap, ok := aVal.(map[string]any); ok {
+					a[k] = merge(aMap, bMap)
 
 					continue
 				}
 			}
 		}
 
-		out[k] = bVal
+		a[k] = bVal
 	}
 
-	return out
+	return a
 }

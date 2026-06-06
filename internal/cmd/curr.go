@@ -15,7 +15,7 @@ var currCmd = &cobra.Command{
 	Use:     "curr",
 	Aliases: []string{"current", "cur"},
 	Short:   "Display current sensors",
-	Run: func(_ *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		output.Factory(OutputFlag).Current()
 	},
 }

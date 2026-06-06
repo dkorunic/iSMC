@@ -22,11 +22,10 @@ type TableOutput struct {
 // NewTableOutput returns a TableOutput that writes to stdout. When isASCII is true
 // the output uses plain ASCII borders; otherwise a coloured style is applied.
 func NewTableOutput(isASCII bool) Output {
-	o := TableOutput{}
-	o.isASCII = isASCII
-	o.writer = io.Writer(os.Stdout)
-
-	return o
+	return TableOutput{
+		isASCII: isASCII,
+		writer:  os.Stdout,
+	}
 }
 
 func (to TableOutput) All() {
@@ -71,32 +70,34 @@ func (to TableOutput) Voltage() {
 // print renders smcdata as a formatted table with the given title, sorted by natural key order.
 // It is a no-op when smcdata is empty.
 func (to TableOutput) print(name string, smcdata map[string]any) {
-	if len(smcdata) != 0 {
-		t := table.NewWriter()
-		t.SetOutputMirror(to.writer)
-
-		if !to.isASCII {
-			t.SetStyle(table.StyleColoredBright)
-		}
-
-		t.SetTitle(name)
-
-		t.Style().Title.Align = text.AlignCenter
-		t.AppendHeader(table.Row{"Description", "Key", "Value", "Type"})
-
-		for _, k := range sortedKeys(smcdata) {
-			v := smcdata[k]
-			if value, ok := v.(map[string]any); ok {
-				t.AppendRow([]any{
-					k,
-					value["key"],
-					fmt.Sprintf("%8v", value["value"]),
-					value["type"],
-				})
-			}
-		}
-
-		t.Render()
-		fmt.Fprintln(to.writer)
+	if len(smcdata) == 0 {
+		return
 	}
+
+	t := table.NewWriter()
+	t.SetOutputMirror(to.writer)
+
+	if !to.isASCII {
+		t.SetStyle(table.StyleColoredBright)
+	}
+
+	t.SetTitle(name)
+
+	t.Style().Title.Align = text.AlignCenter
+	t.AppendHeader(table.Row{"Description", "Key", "Value", "Type"})
+
+	for _, k := range sortedKeys(smcdata) {
+		v := smcdata[k]
+		if value, ok := v.(map[string]any); ok {
+			t.AppendRow([]any{
+				k,
+				value["key"],
+				fmt.Sprintf("%8v", value["value"]),
+				value["type"],
+			})
+		}
+	}
+
+	t.Render()
+	fmt.Fprintln(to.writer)
 }

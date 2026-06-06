@@ -21,13 +21,10 @@ type JSONOutput struct {
 
 // NewJSONOutput returns a JSONOutput that writes to stdout.
 func NewJSONOutput() Output {
-	o := JSONOutput{}
-	o.writer = io.Writer(os.Stdout)
-
-	return o
+	return JSONOutput{writer: os.Stdout}
 }
 
-type newstruct struct {
+type sensorEntry struct {
 	Key      string `json:"key"`
 	Type     string `json:"type"`
 	Value    any    `json:"value"`
@@ -58,7 +55,7 @@ func format(d any) (any, error) {
 		smcKey, _ := sensorMap["key"].(string)
 		typ, _ := sensorMap["type"].(string)
 
-		buf := newstruct{
+		buf := sensorEntry{
 			Key:   smcKey,
 			Type:  typ,
 			Value: valStr,

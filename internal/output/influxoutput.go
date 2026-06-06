@@ -19,49 +19,46 @@ type InfluxOutput struct {
 
 // NewInfluxOutput returns an InfluxOutput that writes to stdout.
 func NewInfluxOutput() Output {
-	o := InfluxOutput{}
-	o.writer = io.Writer(os.Stdout)
-
-	return o
+	return InfluxOutput{writer: os.Stdout}
 }
 
-func (io InfluxOutput) All() {
+func (o InfluxOutput) All() {
 	all := GetAll()
 
 	for _, key := range sortedKeys(all) {
 		value := all[key]
 		if smcdata, ok := value.(map[string]any); ok {
-			io.print(key, smcdata)
+			o.print(key, smcdata)
 		}
 	}
 }
 
-func (io InfluxOutput) Battery() {
-	io.print("Battery", GetBattery())
+func (o InfluxOutput) Battery() {
+	o.print("Battery", GetBattery())
 }
 
-func (io InfluxOutput) Current() {
-	io.print("Current", GetCurrent())
+func (o InfluxOutput) Current() {
+	o.print("Current", GetCurrent())
 }
 
-func (io InfluxOutput) Fans() {
-	io.print("Fans", GetFans())
+func (o InfluxOutput) Fans() {
+	o.print("Fans", GetFans())
 }
 
-func (io InfluxOutput) Hardware() {
-	io.print("Hardware", GetHardware())
+func (o InfluxOutput) Hardware() {
+	o.print("Hardware", GetHardware())
 }
 
-func (io InfluxOutput) Power() {
-	io.print("Power", GetPower())
+func (o InfluxOutput) Power() {
+	o.print("Power", GetPower())
 }
 
-func (io InfluxOutput) Temperature() {
-	io.print("Temperature", GetTemperature())
+func (o InfluxOutput) Temperature() {
+	o.print("Temperature", GetTemperature())
 }
 
-func (io InfluxOutput) Voltage() {
-	io.print("Voltage", GetVoltage())
+func (o InfluxOutput) Voltage() {
+	o.print("Voltage", GetVoltage())
 }
 
 // influxStringConvert returns s converted to lowercase with spaces replaced by underscores,
@@ -73,10 +70,11 @@ func influxStringConvert(s string) string {
 	return s
 }
 
-// influxEscape backslash-escapes Influx line-protocol specials (comma, equals, space).
-// Guards against future sensor descriptions sneaking in delimiters.
+// influxEscape backslash-escapes Influx line-protocol specials (comma, equals, space)
+// and drops newlines, which terminate records and have no valid in-field escape.
+// Guards against sensor descriptions sneaking in delimiters or extra records.
 func influxEscape(s string) string {
-	if !strings.ContainsAny(s, ",= ") {
+	if !strings.ContainsAny(s, ",= \n\r") {
 		return s
 	}
 
@@ -86,6 +84,10 @@ func influxEscape(s string) string {
 
 	for i := 0; i < len(s); i++ {
 		c := s[i]
+		if c == '\n' || c == '\r' {
+			continue
+		}
+
 		if c == ',' || c == '=' || c == ' ' {
 			b.WriteByte('\\')
 		}
@@ -120,30 +122,32 @@ func influxGetUnit(s string) string {
 
 // print writes smcdata to stdout in InfluxDB line protocol format, tagged with the sensor type name.
 // It is a no-op when smcdata is empty.
-func (io InfluxOutput) print(name string, smcdata map[string]any) {
-	if len(smcdata) != 0 {
-		ct := time.Now().UnixNano()
+func (o InfluxOutput) print(name string, smcdata map[string]any) {
+	if len(smcdata) == 0 {
+		return
+	}
 
-		for _, k := range sortedKeys(smcdata) {
-			v := smcdata[k]
-			if sensorMap, ok := v.(map[string]any); ok {
-				// Escape only the user value, not the "=" separator.
-				var key string
-				if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
-					key = ",key=" + influxEscape(influxStringConvert(keyStr))
-				}
+	ct := time.Now().UnixNano()
 
-				value := fmt.Sprintf("value=%v", sensorMap["value"])
-				unit := influxGetUnit(value)
-
-				fmt.Fprintf(io.writer, "%v,sensortype=%s,unit=%s%s %s %d\n",
-					influxEscape(influxStringConvert(k)),
-					influxEscape(influxStringConvert(name)),
-					influxEscape(unit),
-					key,
-					influxGetValue(value),
-					ct)
+	for _, k := range sortedKeys(smcdata) {
+		v := smcdata[k]
+		if sensorMap, ok := v.(map[string]any); ok {
+			// Escape only the user value, not the "=" separator.
+			var key string
+			if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
+				key = ",key=" + influxEscape(influxStringConvert(keyStr))
 			}
+
+			value := fmt.Sprintf("value=%v", sensorMap["value"])
+			unit := influxGetUnit(value)
+
+			fmt.Fprintf(o.writer, "%v,sensortype=%s,unit=%s%s %s %d\n",
+				influxEscape(influxStringConvert(k)),
+				influxEscape(influxStringConvert(name)),
+				influxEscape(unit),
+				key,
+				influxGetValue(value),
+				ct)
 		}
 	}
 }
