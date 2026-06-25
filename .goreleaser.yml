@@ -1,3 +1,4 @@
+version: 2
 before:
   hooks:
     - go mod tidy
@@ -27,7 +28,7 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     files:
       - README.md
       - LICENSE
@@ -37,9 +38,10 @@ archives:
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 brews:
   - name: ismc
+    directory: Formula
     repository:
       owner: dkorunic
       name: homebrew-tap
@@ -50,3 +52,19 @@ brews:
       system "#{bin}/iSMC", "help"
     install: |
       bin.install "iSMC"
+homebrew_casks:
+  - name: ismc
+    binaries: [iSMC]
+    repository:
+      owner: dkorunic
+      name: homebrew-tap
+    homepage: https://github.com/dkorunic/iSMC
+    description: Apple SMC CLI tool that can decode and display temperature, fans, battery, power, voltage and current information
+    license: GPL-3.0
+    # Remove the macOS quarantine attribute so the CLI runs without Gatekeeper prompts
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/iSMC"]
+          end
