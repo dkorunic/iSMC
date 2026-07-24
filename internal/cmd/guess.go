@@ -639,7 +639,7 @@ func spinCore(qosClass int, done <-chan struct{}) {
 // runStressPhase launches threads spinCore goroutines simultaneously under the
 // given QoS class, stresses for guessStressDuration, samples temperatures at
 // peak load, then returns the delta map relative to baseline.
-func runStressPhase(threads int, qosClass int, baseline map[string]float32) map[string]float32 {
+func runStressPhase(threads, qosClass int, baseline map[string]float32) map[string]float32 {
 	done := make(chan struct{})
 
 	for range threads {
