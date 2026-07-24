@@ -13,76 +13,16 @@ import (
 	"github.com/dkorunic/iSMC/internal/stress"
 )
 
-func TestSeriesKey(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		key  string
-		want string
-	}{
-		{"TC0c", "TC*c"},
-		{"TC3c", "TC*c"},
-		{"TC9c", "TC*c"},
-		{"Te0T", "Te*T"},
-		{"Te1T", "Te*T"},
-		{"Tp01", "Tp**"},
-		{"Tp09", "Tp**"},
-		{"Tf0c", "Tf*c"},
-		{"TcXX", "TcXX"},
-		{"Tp0A", "Tp**"},
-		{"Tp0C", "Tp**"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.key, func(t *testing.T) {
-			t.Parallel()
-
-			got := seriesKey(tt.key)
-			if got != tt.want {
-				t.Errorf("seriesKey(%q) = %q, want %q", tt.key, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestNumericValue(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		key  string
-		want int
-	}{
-		{"TC0c", 0},
-		{"TC3c", 3},
-		{"TC9c", 9},
-		{"Tp01", 1},
-		{"Tp09", 9},
-		{"Te12", 12},
-		{"TcXX", 0},
-		{"Tp0A", 10},
-		{"Tp0C", 12},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.key, func(t *testing.T) {
-			t.Parallel()
-
-			got := numericValue(tt.key)
-			if got != tt.want {
-				t.Errorf("numericValue(%q) = %d, want %d", tt.key, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestGroupBySeries(t *testing.T) {
 	t.Parallel()
 
+	// TC*c keeps the classic shape (uppercase family letter); Te0T/Te1T decode
+	// as base-62-indexed Apple per-core keys and share the Te** series.
 	keys := []string{"TC2c", "TC0c", "Te1T", "TC1c", "Te0T"}
-	got := groupBySeries(keys)
+	got := groupBySeries(keys, true)
 
 	if len(got) != 2 {
-		t.Fatalf("groupBySeries: got %d series, want 2", len(got))
+		t.Fatalf("groupBySeries: got %d series, want 2; %v", len(got), got)
 	}
 
 	tcSeries, ok := got["TC*c"]
@@ -101,92 +41,20 @@ func TestGroupBySeries(t *testing.T) {
 		}
 	}
 
-	teSeries, ok := got["Te*T"]
+	teSeries, ok := got["Te**"]
 	if !ok {
-		t.Fatal("groupBySeries: missing series Te*T")
+		t.Fatal("groupBySeries: missing series Te**")
 	}
 
 	wantTe := []string{"Te0T", "Te1T"}
 	if len(teSeries) != len(wantTe) {
-		t.Fatalf("Te*T len: got %d, want %d; keys: %v", len(teSeries), len(wantTe), teSeries)
+		t.Fatalf("Te** len: got %d, want %d; keys: %v", len(teSeries), len(wantTe), teSeries)
 	}
 
 	for i, k := range wantTe {
 		if teSeries[i] != k {
-			t.Errorf("Te*T[%d] = %q, want %q", i, teSeries[i], k)
+			t.Errorf("Te**[%d] = %q, want %q", i, teSeries[i], k)
 		}
-	}
-}
-
-func TestGroupByStrideWithinSeries(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		sensors []string
-		want    [][]string
-	}{
-		{
-			name:    "single sensor",
-			sensors: []string{"Tp00"},
-			want:    [][]string{{"Tp00"}},
-		},
-		{
-			name:    "two sensors uniform stride",
-			sensors: []string{"Tp00", "Tp04"},
-			want:    [][]string{{"Tp00"}, {"Tp04"}},
-		},
-		{
-			name:    "M1 triplets stride-4 gap",
-			sensors: []string{"Tp00", "Tp01", "Tp02", "Tp04", "Tp05", "Tp06", "Tp08", "Tp09", "Tp0A"},
-			want: [][]string{
-				{"Tp00", "Tp01", "Tp02"},
-				{"Tp04", "Tp05", "Tp06"},
-				{"Tp08", "Tp09", "Tp0A"},
-			},
-		},
-		{
-			name:    "M5 uniform stride-4",
-			sensors: []string{"Tp00", "Tp04", "Tp08"},
-			want:    [][]string{{"Tp00"}, {"Tp04"}, {"Tp08"}},
-		},
-		{
-			name:    "M4 irregular large gap",
-			sensors: []string{"Tp00", "Tp01", "Tp02", "Tp04", "Tp05", "Tp06", "Tp08", "Tp09", "Tp21"},
-			want: [][]string{
-				{"Tp00", "Tp01", "Tp02"},
-				{"Tp04", "Tp05", "Tp06"},
-				{"Tp08", "Tp09"},
-				{"Tp21"},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := groupByStrideWithinSeries(tt.sensors)
-			if len(got) != len(tt.want) {
-				t.Fatalf("groupByStrideWithinSeries(%v): got %d groups, want %d; got=%v",
-					tt.sensors, len(got), len(tt.want), got)
-			}
-
-			for i, wantGroup := range tt.want {
-				if len(got[i]) != len(wantGroup) {
-					t.Errorf("group[%d]: got %v (len %d), want %v (len %d)",
-						i, got[i], len(got[i]), wantGroup, len(wantGroup))
-
-					continue
-				}
-
-				for j, wantKey := range wantGroup {
-					if got[i][j] != wantKey {
-						t.Errorf("group[%d][%d] = %q, want %q", i, j, got[i][j], wantKey)
-					}
-				}
-			}
-		})
 	}
 }
 
@@ -202,14 +70,14 @@ func TestDeltaTemps(t *testing.T) {
 		{
 			name: "one above one below threshold",
 			base: map[string]float32{"TC0c": 30.0, "TC1c": 35.0},
-			hot:  map[string]float32{"TC0c": 45.0, "TC1c": 36.0},
+			hot:  map[string]float32{"TC0c": 45.0, "TC1c": 35.5},
 			want: map[string]float32{"TC0c": 15.0},
 		},
 		{
 			name: "exactly at threshold",
 			base: map[string]float32{"TC0c": 30.0},
-			hot:  map[string]float32{"TC0c": 31.5},
-			want: map[string]float32{"TC0c": 1.5},
+			hot:  map[string]float32{"TC0c": 31.0},
+			want: map[string]float32{"TC0c": 1.0},
 		},
 		{
 			name: "key missing from hot",

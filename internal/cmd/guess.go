@@ -24,15 +24,26 @@ import (
 
 const (
 	guessStressDuration = 8 * time.Second
-	guessCoolDuration   = 12 * time.Second
 	guessSampleCount    = 3
 	guessSampleInterval = 500 * time.Millisecond
+
+	// Thermal steady-state detection: consecutive snapshots must differ by
+	// less than the epsilon on average. Sensor noise (sp78, ~0.25 °C/key)
+	// averages well below this; a cooling chip drifts well above it.
+	guessSettleEpsilon     = float32(0.25)
+	guessSettlePollPause   = 2 * time.Second
+	guessSettleInitialWait = 20 * time.Second
+	guessSettleCooldownMax = 90 * time.Second
 	// 25 °C sits in the gap between disconnected probes (≤12) and real idle sensors (≥26).
 	guessTempMin = float32(25.0)
 	guessTempMax = float32(150.0)
 
-	// ≈10 σ above sp78 noise floor (~0.25 °C).
-	guessOutputThreshold = float32(1.5)
+	// ≈5 σ above the noise of a delta between two 3-sample averages (sp78
+	// per-read noise ~0.25 °C). Kept low so the small self-heating deltas of
+	// E-cores under a background-QoS sweep are retained; classification
+	// quality is enforced by median-normalized group scoring, not by this
+	// floor.
+	guessOutputThreshold = float32(1.0)
 
 	// Sensor is cluster-level if min/max phase delta ≥ (1 − this).
 	guessClusterRatio = float32(0.20)
@@ -41,10 +52,11 @@ const (
 var guessCmd = &cobra.Command{
 	Use:   "guess",
 	Short: "Map SMC temperature sensors to CPU cores by thermal correlation",
-	Long: `guess stresses all logical CPU cores simultaneously — in two or three phases
-depending on the chip's pair signature — and correlates the resulting temperature
-rise in T-prefixed SMC sensors to produce a sensor mapping list in the format used
-by src/temp.txt.
+	Long: `guess stresses one CPU tier per phase — two or three phases depending on the
+chip's pair signature — and correlates the resulting temperature rise in
+T-prefixed SMC sensors to produce a sensor mapping list in the format used by
+src/temp.txt. Each phase spins exactly the target tier's logical-CPU count so
+the scheduler keeps the load on that tier instead of spilling onto the other.
 
 Phase labels and QoS hints are driven by the SKU's pair signature (from the
 validate-temp-mappings family roster):
@@ -57,15 +69,24 @@ QOS_CLASS_USER_INTERACTIVE biases the kernel toward Super cores, USER_INITIATED
 toward Performance cores, and BACKGROUND toward Efficiency cores.
 
 Within each phase, per-core labels are derived from SMC key naming patterns:
-keys sharing the same non-numeric structure (e.g. TC*c) form a series, then
-stride/gap analysis within each series groups sensors that belong to the same
-physical core into a single sub-group. The detected per-type counts are
-cross-checked against the SKU's expected layout (e.g. M5 Pro: 5–6 Super + 10–12
-Performance), and deviations are flagged inline so the operator knows which lines
-need manual review before pasting into src/temp.txt.
+keys sharing the same structure form a series (indices decode positionally over
+the 0-9A-Za-z alphabet), gap analysis within each series groups sensors that
+belong to the same physical core, and only per-core families (Tp*/Te* on Apple
+Silicon) are labelled as cores — other responding sensors are listed for
+reference. The detected per-type counts are cross-checked against the SKU's
+expected layout (e.g. M5 Pro: 5–6 Super + 10–12 Performance), and deviations
+are flagged inline so the operator knows which lines need manual review before
+pasting into src/temp.txt.
 
-The process takes roughly 34 seconds on 2-phase chips, or ~55 seconds on 3-phase
-chips. Run on an otherwise-idle machine for best results.`,
+Baselines wait for thermal steady state, so total runtime varies (roughly one
+to three minutes). Run on an otherwise-idle machine for best results.
+
+Known limitation: on desktop-class machines with large coolers (Mac Studio,
+Mac Pro), E-core self-heating under a background-QoS sweep is below the SMC
+noise floor, so E-cores cannot be told apart from P-cores thermally and are
+listed in the Performance phase with a count warning. Cross-check those lines
+against src/temp.txt (the ⚠ annotations) before pasting. Laptops, with tighter
+thermal budgets, separate the tiers much more reliably.`,
 	Run: runGuess,
 }
 
@@ -118,6 +139,51 @@ func avgRawTemps(n int, interval time.Duration) map[string]float32 {
 	return result
 }
 
+// meanAbsDelta returns the mean absolute per-key difference between two
+// temperature snapshots over their common keys, or 0 when no keys are shared.
+func meanAbsDelta(a, b map[string]float32) float32 {
+	var sum float64
+
+	n := 0
+
+	for k, av := range a {
+		if bv, ok := b[k]; ok {
+			sum += math.Abs(float64(av - bv))
+			n++
+		}
+	}
+
+	if n == 0 {
+		return 0
+	}
+
+	return float32(sum / float64(n))
+}
+
+// settledTemps samples averaged temperatures repeatedly until consecutive
+// snapshots differ by less than guessSettleEpsilon on average (thermal steady
+// state) or maxWait elapses, then returns the last snapshot. A fixed cooldown
+// is not enough: cooling time depends on hardware and prior load, and a
+// baseline sampled from a still-cooling chip biases the next phase's deltas —
+// warm starts previously collapsed whole phases to zero detections.
+func settledTemps(maxWait time.Duration) map[string]float32 {
+	prev := avgRawTemps(2, guessSampleInterval)
+	deadline := time.Now().Add(maxWait)
+
+	for time.Now().Before(deadline) {
+		time.Sleep(guessSettlePollPause)
+
+		cur := avgRawTemps(2, guessSampleInterval)
+		if meanAbsDelta(prev, cur) < guessSettleEpsilon {
+			return cur
+		}
+
+		prev = cur
+	}
+
+	return prev
+}
+
 // deltaTemps returns sensors in hot that exceed the corresponding baseline value
 // by at least guessOutputThreshold.
 func deltaTemps(base, hot map[string]float32) map[string]float32 {
@@ -134,85 +200,75 @@ func deltaTemps(base, hot map[string]float32) map[string]float32 {
 	return d
 }
 
-// seriesKey returns the SMC key with every decimal digit and hex digit (A-F)
-// in the numeric index replaced by '*'. Keys sharing a series key differ only
-// in their numeric index and belong to the same per-core sensor series
-// (e.g. "TC0c", "TC3c" → "TC*c", "Tp0A", "Tp0C" → "Tp**").
-func seriesKey(key string) string {
-	b := []byte(key)
-	indexStarted := false
-
-	for i, c := range b {
-		switch {
-		case c >= '0' && c <= '9':
-			indexStarted = true
-			b[i] = '*'
-		case indexStarted && c >= 'A' && c <= 'F':
-			b[i] = '*'
-		case indexStarted && (c < 'A' || c > 'F'):
-			indexStarted = false
-		}
+// charValue returns the positional value of an SMC index character in the
+// alphabet 0-9 < A-Z < a-z used by SMC key numbering, or -1 for characters
+// outside the alphabet.
+func charValue(c byte) int {
+	switch {
+	case c >= '0' && c <= '9':
+		return int(c - '0')
+	case c >= 'A' && c <= 'Z':
+		return int(c-'A') + 10
+	case c >= 'a' && c <= 'z':
+		return int(c-'a') + 36
+	default:
+		return -1
 	}
-
-	return string(b)
 }
 
-// numericValue extracts the numeric index from an SMC key. The index starts at
-// the first digit and includes all subsequent digits and uppercase hex digits (A-F).
-// Lowercase letters are treated as series-key components and excluded. If any
-// uppercase hex digits (A-F) are found in the index, parses as hexadecimal;
-// otherwise parses as decimal. Returns 0 for keys with no digits.
-// "TC3c" → 3, "Tp09" → 9, "Te12" → 12, "Tp0A" → 10, "TcXX" → 0.
-func numericValue(key string) int {
+// indexBase is the radix of the positional SMC index alphabet (0-9A-Za-z).
+const indexBase = 62
+
+// splitKey splits an SMC key into its series identity (structural characters,
+// index positions replaced by '*') and its numeric index.
+//
+// Apple Silicon per-core families use a lowercase family letter followed by a
+// 2-character positional base-62 index: "Tp0y" → 60, "Tp0z" → 61, "Tp10" → 62
+// are adjacent, and "Tp29" → 133 neighbours "Tp2A" → 134. Classic keys
+// (uppercase families on any platform, and every key on Intel, where the
+// "Tc0a" shape means index digit + probe letter) use a digits-only decimal
+// index with all letters kept as series structure.
+func splitKey(key string, appleSilicon bool) (string, int) {
+	if appleSilicon && len(key) == 4 && key[0] == 'T' &&
+		key[1] >= 'a' && key[1] <= 'z' &&
+		charValue(key[2]) >= 0 && charValue(key[3]) >= 0 {
+		return key[:2] + "**", charValue(key[2])*indexBase + charValue(key[3])
+	}
+
+	b := []byte(key)
+
 	var digits []byte
 
-	hasHexDigit := false
-	indexStarted := false
-
-loop:
-	for _, c := range []byte(key) {
-		switch {
-		case c >= '0' && c <= '9':
-			indexStarted = true
-
+	for i, c := range b {
+		if c >= '0' && c <= '9' {
 			digits = append(digits, c)
-		case indexStarted && c >= 'A' && c <= 'F':
-			digits = append(digits, c)
-			hasHexDigit = true
-		case indexStarted:
-			break loop
+			b[i] = '*'
 		}
 	}
 
-	if len(digits) == 0 {
-		return 0
-	}
-
-	if hasHexDigit {
-		v, _ := strconv.ParseInt(string(digits), 16, 64)
-
-		return int(v)
-	}
-
+	// Empty digits leaves v at 0, matching keys with no index (e.g. TCDX).
 	v, _ := strconv.Atoi(string(digits))
 
-	return v
+	return string(b), v
 }
 
-// groupBySeries groups SMC sensor keys by series key (non-numeric pattern).
-// Within each group the keys are sorted ascending by numericValue so that
-// sorted position 0 maps to Core 1, position 1 maps to Core 2, etc.
-func groupBySeries(keys []string) map[string][]string {
+// groupBySeries groups SMC sensor keys by series identity. Within each group
+// the keys are sorted ascending by index so that sorted position 0 maps to
+// Core 1, position 1 maps to Core 2, etc.
+func groupBySeries(keys []string, appleSilicon bool) map[string][]string {
 	groups := make(map[string][]string)
 
 	for _, k := range keys {
-		sk := seriesKey(k)
+		sk, _ := splitKey(k, appleSilicon)
 		groups[sk] = append(groups[sk], k)
 	}
 
 	for sk := range groups {
 		slices.SortFunc(groups[sk], func(a, b string) int {
-			return cmp.Compare(numericValue(a), numericValue(b))
+			_, av := splitKey(a, appleSilicon)
+			_, bv := splitKey(b, appleSilicon)
+
+			return cmp.Compare(av, bv)
 		})
 	}
 
@@ -232,81 +288,184 @@ func sortedSeriesKeys(groups map[string][]string) []string {
 	return keys
 }
 
-// groupByStrideWithinSeries splits a series' sorted sensor list into sub-groups
-// based on gaps between consecutive numericValues.
+// groupCores splits a series' sensor list into per-core groups.
 //
-// Rules:
-//   - If all consecutive differences are equal (uniform stride): each sensor is
-//     its own group. This covers M5-style single-sensor-per-core series:
-//     Tp00/04/08 (stride 4) → [[Tp00],[Tp04],[Tp08]] → 3 cores.
-//   - Otherwise (non-uniform gaps): split whenever the gap exceeds minDiff.
-//     This covers M1/M3 triplets: diffs [1,1,2,1,1,2,...] → minDiff=1,
-//     split at every 2 → [[Tp00,Tp01,Tp02],[Tp04,Tp05,Tp06],...] → N cores × 3.
-//   - A single-element slice is returned as one group.
-func groupByStrideWithinSeries(sensors []string) [][]string {
-	if len(sensors) <= 1 {
-		result := make([][]string, len(sensors))
+// The list is first split into contiguous runs wherever the index gap between
+// consecutive keys exceeds 1 (probes of one core are index-adjacent; distinct
+// cores are separated by at least one unpopulated slot on every observed
+// platform except M4 base, handled below). Each run then becomes core groups:
+//
+//   - Single-key convention (M5 family, pair signatures S+E / S+P): every key
+//     is one core; runs are split into singletons.
+//   - Triplet convention (M1–M4, A18): a run is one core's probe group, except
+//     contiguous runs holding several triplets back-to-back (M4 base packs
+//     Tp0U..Tp0f with no gaps) which are chunked into threes.
+func groupCores(sensors []string, appleSilicon, singleKeyConvention bool) [][]string {
+	sorted := slices.SortedFunc(slices.Values(sensors), func(a, b string) int {
+		_, av := splitKey(a, appleSilicon)
+		_, bv := splitKey(b, appleSilicon)
 
-		for i, s := range sensors {
-			result[i] = []string{s}
+		return cmp.Compare(av, bv)
+	})
+
+	var runs [][]string
+
+	runStart := 0
+	prev := 0
+
+	for i, s := range sorted {
+		_, idx := splitKey(s, appleSilicon)
+		if i > 0 && idx-prev > 1 {
+			runs = append(runs, sorted[runStart:i])
+			runStart = i
 		}
 
-		return result
+		prev = idx
 	}
 
-	diffs := make([]int, len(sensors)-1)
-
-	for i := 1; i < len(sensors); i++ {
-		d := numericValue(sensors[i]) - numericValue(sensors[i-1])
-		if d < 0 {
-			d = -d
-		}
-
-		diffs[i-1] = d
-	}
-
-	uniform := true
-
-	for _, d := range diffs[1:] {
-		if d != diffs[0] {
-			uniform = false
-
-			break
-		}
-	}
-
-	if uniform {
-		groups := make([][]string, len(sensors))
-
-		for i, s := range sensors {
-			groups[i] = []string{s}
-		}
-
-		return groups
-	}
-
-	minDiff := diffs[0]
-
-	for _, d := range diffs[1:] {
-		if d < minDiff {
-			minDiff = d
-		}
+	if runStart < len(sorted) {
+		runs = append(runs, sorted[runStart:])
 	}
 
 	var groups [][]string
 
-	current := []string{sensors[0]}
-
-	for i, d := range diffs {
-		if d > minDiff {
-			groups = append(groups, current)
-			current = []string{sensors[i+1]}
-		} else {
-			current = append(current, sensors[i+1])
+	for _, run := range runs {
+		switch {
+		case singleKeyConvention:
+			for _, s := range run {
+				groups = append(groups, []string{s})
+			}
+		case len(run) > 3 && len(run)%3 == 0:
+			for i := 0; i < len(run); i += 3 {
+				groups = append(groups, run[i:i+3])
+			}
+		default:
+			groups = append(groups, run)
 		}
 	}
 
-	return append(groups, current)
+	return groups
+}
+
+// coreEligibleSeries reports whether sensors in the given series may be
+// labelled as CPU cores. On Apple Silicon the Tp (Super/Performance) family
+// always qualifies; Te qualifies only when tePerCore is set (M3/M4/A18 expose
+// per-core E sensors there, while on M1/M2 the Te* keys are die and cluster
+// aggregates). On Intel the classic TC*C/TC*c per-core keys and the T2's
+// Tc-quad probes qualify. Everything else (SSD, GPU, heatsink, aggregates,
+// proximity, virtual sensors) responds to CPU stress through package heating
+// but is not a core sensor.
+func coreEligibleSeries(series string, appleSilicon, tePerCore bool) bool {
+	if appleSilicon {
+		return series == "Tp**" || (tePerCore && series == "Te**")
+	}
+
+	switch series {
+	case "Tc*a", "Tc*b", "Tc*x", "Tc*z", "TC*C", "TC*c":
+		return true
+	default:
+		return false
+	}
+}
+
+// groupPhaseDelta returns the summed deltas of a group's keys in one phase's
+// delta map; keys below the output threshold are absent and contribute 0.
+func groupPhaseDelta(group []string, deltas map[string]float32) float32 {
+	var sum float32
+
+	for _, k := range group {
+		sum += deltas[k]
+	}
+
+	return sum
+}
+
+// medianPositive returns the median of the positive values in vals, or 0 when
+// none are positive.
+func medianPositive(vals []float32) float32 {
+	positive := make([]float32, 0, len(vals))
+
+	for _, v := range vals {
+		if v > 0 {
+			positive = append(positive, v)
+		}
+	}
+
+	if len(positive) == 0 {
+		return 0
+	}
+
+	slices.Sort(positive)
+
+	mid := len(positive) / 2
+	if len(positive)%2 == 1 {
+		return positive[mid]
+	}
+
+	return (positive[mid-1] + positive[mid]) / 2
+}
+
+// classifyCoreGroups assigns each per-core group to the phase whose
+// median-normalized response is strongest, or to the cluster bucket when the
+// top two normalized scores are within guessClusterRatio of each other.
+//
+// Raw deltas cannot be compared across phases: a P-tier sweep heats the whole
+// die, so an E-core sensor's absolute delta under P-stress often exceeds its
+// self-heating delta under E-stress. Dividing each group's per-phase delta by
+// that phase's median positive group delta measures how strongly the group
+// responded relative to its peers, which survives the coupling.
+func classifyCoreGroups(groups [][]string, results []phaseResult) ([][][]string, [][]string) {
+	sums := make([][]float32, len(results))
+
+	for i, r := range results {
+		sums[i] = make([]float32, len(groups))
+
+		for g, group := range groups {
+			sums[i][g] = groupPhaseDelta(group, r.deltas)
+		}
+	}
+
+	medians := make([]float32, len(results))
+	for i := range results {
+		medians[i] = medianPositive(sums[i])
+	}
+
+	perPhase := make([][][]string, len(results))
+
+	var clusters [][]string
+
+	for g, group := range groups {
+		best, second := -1, float32(0)
+
+		var bestScore float32
+
+		for i := range results {
+			if medians[i] <= 0 || sums[i][g] <= 0 {
+				continue
+			}
+
+			score := sums[i][g] / medians[i]
+			if score > bestScore {
+				second = bestScore
+				bestScore = score
+				best = i
+			} else if score > second {
+				second = score
+			}
+		}
+
+		switch {
+		case best < 0:
+			// No phase produced a response; drop silently (cannot happen for
+			// groups built from detected keys, kept for safety).
+		case second > 0 && second/bestScore >= 1-guessClusterRatio:
+			clusters = append(clusters, group)
+		default:
+			perPhase[best] = append(perPhase[best], group)
+		}
+	}
+
+	return perPhase, clusters
 }
 
 // Phase label prefixes; must match descriptions emitted in src/temp.txt.
@@ -316,12 +475,15 @@ const (
 	labelEfficiencyCore  = "CPU Efficiency Core"
 )
 
-// phaseSpec describes one stress phase: its label prefix, QoS class, and expected
-// physical core count from platform topology data.
+// phaseSpec describes one stress phase: its label prefix, QoS class, expected
+// physical core count, and the number of spinner threads to launch (the target
+// tier's logical CPU count, so the scheduler keeps the load on that tier
+// instead of spilling onto the other one).
 type phaseSpec struct {
-	label string
-	qos   int
-	cores int // 0 if unknown.
+	label   string
+	qos     int
+	cores   int // 0 if unknown.
+	threads int // 0 → fall back to all logical CPUs.
 }
 
 // phaseResult pairs a phase specification with the sensor deltas it produced.
@@ -378,9 +540,18 @@ func qosName(qos int) string {
 func buildPhases(perfLevels []platform.PerfLevel, layout platform.SKULayout) []phaseSpec {
 	if len(perfLevels) == 3 {
 		return []phaseSpec{
-			{label: labelSuperCore, qos: stress.QoSUserInteractive, cores: perfLevels[0].PhysicalCPU},
-			{label: labelPerformanceCore, qos: stress.QoSUserInitiated, cores: perfLevels[1].PhysicalCPU},
-			{label: labelEfficiencyCore, qos: stress.QoSBackground, cores: perfLevels[2].PhysicalCPU},
+			{
+				label: labelSuperCore, qos: stress.QoSUserInteractive,
+				cores: perfLevels[0].PhysicalCPU, threads: perfLevels[0].LogicalCPU,
+			},
+			{
+				label: labelPerformanceCore, qos: stress.QoSUserInitiated,
+				cores: perfLevels[1].PhysicalCPU, threads: perfLevels[1].LogicalCPU,
+			},
+			{
+				label: labelEfficiencyCore, qos: stress.QoSBackground,
+				cores: perfLevels[2].PhysicalCPU, threads: perfLevels[2].LogicalCPU,
+			},
 		}
 	}
 
@@ -397,9 +568,13 @@ func buildPhases(perfLevels []platform.PerfLevel, layout platform.SKULayout) []p
 	}
 
 	topCores, bottomCores := 0, 0
+	topThreads, bottomThreads := 0, 0
+
 	if len(perfLevels) == 2 {
 		topCores = perfLevels[0].PhysicalCPU
 		bottomCores = perfLevels[1].PhysicalCPU
+		topThreads = perfLevels[0].LogicalCPU
+		bottomThreads = perfLevels[1].LogicalCPU
 	}
 
 	bottomQoS := stress.QoSBackground
@@ -409,22 +584,21 @@ func buildPhases(perfLevels []platform.PerfLevel, layout platform.SKULayout) []p
 	}
 
 	return []phaseSpec{
-		{label: topLabel, qos: topQoS, cores: topCores},
-		{label: bottomLabel, qos: bottomQoS, cores: bottomCores},
+		{label: topLabel, qos: topQoS, cores: topCores, threads: topThreads},
+		{label: bottomLabel, qos: bottomQoS, cores: bottomCores, threads: bottomThreads},
 	}
 }
 
 // spinCore locks the goroutine to an OS thread, sets the QoS class to bias the OS
-// scheduler toward the desired core type, sets a macOS thread-affinity tag to prefer
-// a specific hardware thread within that type, then burns CPU until done is closed.
-func spinCore(affinityTag int, qosClass int, done <-chan struct{}) {
+// scheduler toward the desired core type, then burns CPU until done is closed.
+// THREAD_AFFINITY_POLICY is not implemented on Apple Silicon, so QoS class plus
+// per-tier thread counts are the only placement controls available.
+func spinCore(qosClass int, done <-chan struct{}) {
 	runtime.LockOSThread()
 
 	defer runtime.UnlockOSThread()
 
-	// QoS before affinity so placement sees the class.
 	stress.SetQoS(qosClass)
-	stress.SetAffinityTag(affinityTag)
 
 	// Four FMA+sqrt chains saturate all FP ports.
 	a, b, c, d := 1.0001, 1.0003, 1.0007, 1.0013
@@ -462,14 +636,14 @@ func spinCore(affinityTag int, qosClass int, done <-chan struct{}) {
 	}
 }
 
-// runAllCoresPhase launches numCPU spinCore goroutines simultaneously under the
+// runStressPhase launches threads spinCore goroutines simultaneously under the
 // given QoS class, stresses for guessStressDuration, samples temperatures at
 // peak load, then returns the delta map relative to baseline.
-func runAllCoresPhase(numCPU int, qosClass int, baseline map[string]float32) map[string]float32 {
+func runStressPhase(threads int, qosClass int, baseline map[string]float32) map[string]float32 {
 	done := make(chan struct{})
 
-	for i := range numCPU {
-		go spinCore(i+1, qosClass, done)
+	for range threads {
+		go spinCore(qosClass, done)
 	}
 
 	time.Sleep(guessStressDuration)
@@ -518,8 +692,8 @@ func runGuess(_ *cobra.Command, _ []string) {
 	}
 
 	fmt.Printf("CPUs     : %d logical\n", numCPU)
-	fmt.Printf("Per-phase: %v stress  (×%d phases, all %d cores simultaneously)\n\n",
-		guessStressDuration, len(phases), numCPU)
+	fmt.Printf("Per-phase: %v stress  (×%d phases, one spinner per target-tier CPU)\n\n",
+		guessStressDuration, len(phases))
 
 	if len(perfLevels) > 0 {
 		fmt.Printf("Topology : %d perf level(s)\n", len(perfLevels))
@@ -531,27 +705,32 @@ func runGuess(_ *cobra.Command, _ []string) {
 		fmt.Println()
 	}
 
-	fmt.Print("Sampling baseline... ")
+	fmt.Print("Sampling baseline (waiting for thermal steady state)... ")
 
-	baseline := avgRawTemps(guessSampleCount, guessSampleInterval)
+	baseline := settledTemps(guessSettleInitialWait)
 
 	fmt.Printf("%d sensors visible.\n\n", len(baseline))
 
 	results := make([]phaseResult, 0, len(phases))
 
 	for i, phase := range phases {
+		threads := phase.threads
+		if threads <= 0 {
+			threads = numCPU
+		}
+
 		fmt.Printf("── Phase %d: %s sweep (%s QoS) ──\n",
 			i+1, phaseMidWord(phase.label), qosName(phase.qos))
-		fmt.Printf("  Stressing all %d cores...", numCPU)
+		fmt.Printf("  Stressing %d thread(s)...", threads)
 
-		deltas := runAllCoresPhase(numCPU, phase.qos, baseline)
+		deltas := runStressPhase(threads, phase.qos, baseline)
 		results = append(results, phaseResult{spec: phase, deltas: deltas})
 
 		if i < len(phases)-1 {
-			fmt.Printf("\n  Inter-phase cooldown (%v)...\n\n", guessCoolDuration)
-			time.Sleep(guessCoolDuration)
+			fmt.Printf("\n  Inter-phase cooldown (up to %v, until temperatures settle)...\n\n",
+				guessSettleCooldownMax)
 
-			baseline = avgRawTemps(guessSampleCount, guessSampleInterval)
+			baseline = settledTemps(guessSettleCooldownMax)
 		}
 	}
 
@@ -611,68 +790,86 @@ func expectedCores(l platform.SKULayout, phaseLabel string) (int, int) {
 	}
 }
 
-// printPhase emits the comment header, per-series mapping rows, and SKU-aware
+// printPhase emits the comment header, per-core mapping rows, and SKU-aware
 // validation footer for one phase of guess output. Extracted from printMapping to
 // keep that function's cyclomatic complexity below the project lint threshold.
-func printPhase(family string, i int, r phaseResult, keys []string,
-	layout platform.SKULayout, layoutOK bool,
+//
+// groups holds the per-core groups classifyCoreGroups assigned to this phase;
+// every other responding sensor is listed in a reference-only section so
+// package-heated SSD/GPU/heatsink/aggregate sensors no longer masquerade as
+// cores.
+func printPhase(family string, i int, r phaseResult, groups [][]string,
+	layout platform.SKULayout, layoutOK, appleSilicon, tePerCore bool,
 ) {
-	groups := groupBySeries(keys)
-	seriesKeys := sortedSeriesKeys(groups)
-
-	if len(seriesKeys) == 0 {
-		fmt.Printf("// WARNING: Phase %d (%s) produced no sensor responses above threshold.\n",
+	if len(groups) == 0 {
+		fmt.Printf("// WARNING: Phase %d (%s) produced no per-core sensor responses above threshold.\n",
 			i+1, phaseMidWord(r.spec.label))
 		fmt.Println("// Run on an idle machine or increase stress duration.")
 
+		if expMin, expMax := expectedCores(layout, r.spec.label); layoutOK && expMax > 0 {
+			fmt.Printf("// SKU expects %s for this phase; verify the chip's actual layout.\n",
+				formatRange(expMin, expMax))
+		}
+	} else {
+		printCoreGroups(family, i, r.spec.label, groups)
+
 		if layoutOK {
-			if expMin, expMax := expectedCores(layout, r.spec.label); expMax > 0 {
-				fmt.Printf("// SKU expects %s for this phase; verify the chip's actual layout.\n",
-					formatRange(expMin, expMax))
-			}
+			printDetectionVerdict(layout, r.spec.label, len(groups))
+		}
+	}
+
+	otherKeys := make([]string, 0, len(r.deltas))
+
+	for k := range r.deltas {
+		if sk, _ := splitKey(k, appleSilicon); !coreEligibleSeries(sk, appleSilicon, tePerCore) {
+			otherKeys = append(otherKeys, k)
+		}
+	}
+
+	printNonCoreResponders(family, r, otherKeys)
+}
+
+// printCoreGroups emits the temp.txt-style mapping lines for one phase's
+// assigned core groups, numbering cores sequentially and annotating each line
+// against the canonical src/temp.txt description.
+func printCoreGroups(family string, i int, label string, groups [][]string) {
+	fmt.Printf("// Phase %d (%s): %d core group(s)\n", i+1, phaseMidWord(label), len(groups))
+
+	for coreIdx, g := range groups {
+		if len(g) > 3 {
+			fmt.Printf("// NOTE: %d-sensor group; manual review recommended (check src/temp.txt)\n",
+				len(g))
 		}
 
-		return
-	}
-
-	coreIdx := 1
-
-	for _, sk := range seriesKeys {
-		coreIdx = printSeries(family, r.spec.label, sk, groups[sk], coreIdx)
-	}
-
-	detected := coreIdx - 1
-	if layoutOK {
-		printDetectionVerdict(layout, r.spec.label, detected)
+		for _, k := range g {
+			line := fmt.Sprintf("%s %d:%s:%s", label, coreIdx+1, k, family)
+			fmt.Println(annotateLine(line, label, k, family, coreIdx+1))
+		}
 	}
 }
 
-// printSeries emits one series block (header comment + per-core sensor lines) and
-// returns the next coreIdx. Pulled out of printPhase to flatten nesting. Each
-// line is annotated with the canonical description from src/temp.txt (via
-// smc.LookupTempDesc) so the operator can see at a glance whether the guessed
-// label matches the existing mapping or proposes a new/conflicting one.
-func printSeries(family, label, sk string, sensors []string, coreIdx int) int {
-	subGroups := groupByStrideWithinSeries(sensors)
-
-	fmt.Printf("// Series %-6s → %d sensor(s) in %d group(s) → %s %d..%d\n",
-		sk, len(sensors), len(subGroups), label, coreIdx, coreIdx+len(subGroups)-1)
-
-	if len(subGroups) == 1 && len(subGroups[0]) > 3 {
-		fmt.Printf("// NOTE: %d-sensor group; manual review recommended (check src/temp.txt)\n",
-			len(subGroups[0]))
+// printNonCoreResponders lists sensors that responded to a phase's stress but
+// belong to non-core series (SSD, GPU, heatsink, die aggregates, proximity,
+// virtual). They heat through the package; labelling them as CPU cores was the
+// main source of phantom cores in earlier guess output.
+func printNonCoreResponders(family string, r phaseResult, keys []string) {
+	if len(keys) == 0 {
+		return
 	}
 
-	for _, sg := range subGroups {
-		for _, k := range sg {
-			line := fmt.Sprintf("%s %d:%s:%s", label, coreIdx, k, family)
-			fmt.Println(annotateLine(line, label, k, family, coreIdx))
+	slices.Sort(keys)
+
+	fmt.Printf("// Non-core responders in the %s phase (reference only, do not paste):\n",
+		phaseMidWord(r.spec.label))
+
+	for _, k := range keys {
+		desc := "(unmapped)"
+		if existing, ok := smc.LookupTempDesc(k, family); ok {
+			desc = fmt.Sprintf("%q", existing)
 		}
 
-		coreIdx++
+		fmt.Printf("//   %-6s +%.1f°C  %s\n", k, r.deltas[k], desc)
 	}
-
-	return coreIdx
 }
 
 // annotateLine appends a comment to a temp.txt-style mapping line indicating
@@ -730,13 +927,13 @@ func printDetectionVerdict(layout platform.SKULayout, label string, detected int
 	}
 }
 
-// warnAbsentTypes emits a warning whenever the resolved per-phase results contain
-// core groupings for a type the SKU is not supposed to have (e.g. P-cores reported
-// on an M5 base, which is S+E only). Mirrors the validate-temp-mappings skill's
+// warnAbsentTypes emits a warning whenever core groups were assigned to a phase
+// whose core type the SKU is not supposed to have (e.g. P-cores reported on an
+// M5 base, which is S+E only). Mirrors the validate-temp-mappings skill's
 // Phase 4a pair-signature validation.
-func warnAbsentTypes(l platform.SKULayout, results []phaseResult) {
-	for _, r := range results {
-		if len(r.deltas) == 0 {
+func warnAbsentTypes(l platform.SKULayout, results []phaseResult, perPhase [][][]string) {
+	for i, r := range results {
+		if len(perPhase[i]) == 0 {
 			continue
 		}
 
@@ -745,16 +942,18 @@ func warnAbsentTypes(l platform.SKULayout, results []phaseResult) {
 			continue
 		}
 
-		// Sensors heated for a core type the SKU lacks; kernel routed elsewhere.
-		fmt.Printf("// WARNING: phase %q produced sensors but SKU pair signature %s "+
+		// Core groups resolved for a core type the SKU lacks; kernel routed elsewhere.
+		fmt.Printf("// WARNING: phase %q produced core groups but SKU pair signature %s "+
 			"has no cores of this type — relabel before pasting into src/temp.txt.\n",
 			r.spec.label, l.PairSignature)
 	}
 }
 
 // printMapping analyses N-phase delta results and emits a src/temp.txt-style mapping.
-// Sensors are classified by dominant phase, then grouped by SMC key series and
-// further split by stride/gap analysis to assign correct per-core indices.
+// Core-eligible sensors are grouped by series and per-core index structure over
+// the union of all phases, then each group is assigned to the phase with the
+// strongest median-normalized response (see classifyCoreGroups). Non-core
+// sensors are listed per phase for reference only.
 //
 // When layoutOK is true, the SKU's per-type expected counts (S/P/E) are checked
 // against the detected per-phase core groups; deviations are emitted as inline
@@ -763,6 +962,12 @@ func warnAbsentTypes(l platform.SKULayout, results []phaseResult) {
 func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	layout platform.SKULayout, layoutOK bool, product platform.Product, results []phaseResult,
 ) {
+	appleSilicon := family != "Intel"
+	tePerCore := family != "M1" && family != "M2"
+	singleKey := layoutOK &&
+		(layout.PairSignature == platform.PairSignatureSE ||
+			layout.PairSignature == platform.PairSignatureSP)
+
 	allKeys := make(map[string]struct{})
 
 	for _, r := range results {
@@ -771,53 +976,27 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 		}
 	}
 
-	phaseKeys := make([][]string, len(results))
+	coreKeys := make([]string, 0, len(allKeys))
 
-	var clusterKeys []string
-
-	for key := range allKeys {
-		dominantIdx := -1
-		dominantDelta := float32(0)
-
-		for i, r := range results {
-			d := r.deltas[key]
-			if d >= guessOutputThreshold && d > dominantDelta {
-				dominantDelta = d
-				dominantIdx = i
-			}
+	for k := range allKeys {
+		if sk, _ := splitKey(k, appleSilicon); coreEligibleSeries(sk, appleSilicon, tePerCore) {
+			coreKeys = append(coreKeys, k)
 		}
+	}
 
-		if dominantIdx < 0 {
-			continue
-		}
+	seriesGroups := groupBySeries(coreKeys, appleSilicon)
+	groups := make([][]string, 0, len(coreKeys))
 
-		secondDelta := float32(0)
+	for _, sk := range sortedSeriesKeys(seriesGroups) {
+		groups = append(groups, groupCores(seriesGroups[sk], appleSilicon, singleKey)...)
+	}
 
-		for i, r := range results {
-			if i == dominantIdx {
-				continue
-			}
+	perPhase, clusterGroups := classifyCoreGroups(groups, results)
 
-			d := r.deltas[key]
-			if d >= guessOutputThreshold && d > secondDelta {
-				secondDelta = d
-			}
-		}
+	clusterKeys := make([]string, 0, len(clusterGroups))
 
-		if secondDelta > 0 {
-			lo, hi := secondDelta, dominantDelta
-			if lo > hi {
-				lo, hi = hi, lo
-			}
-
-			if lo/hi >= (1 - guessClusterRatio) {
-				clusterKeys = append(clusterKeys, key)
-
-				continue
-			}
-		}
-
-		phaseKeys[dominantIdx] = append(phaseKeys[dominantIdx], key)
+	for _, g := range clusterGroups {
+		clusterKeys = append(clusterKeys, g...)
 	}
 
 	slices.Sort(clusterKeys)
@@ -853,11 +1032,11 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 
 	// Per-phase sensor sections.
 	for i, r := range results {
-		printPhase(family, i, r, phaseKeys[i], layout, layoutOK)
+		printPhase(family, i, r, perPhase[i], layout, layoutOK, appleSilicon, tePerCore)
 	}
 
 	if layoutOK {
-		warnAbsentTypes(layout, results)
+		warnAbsentTypes(layout, results, perPhase)
 	}
 
 	// Cluster / package sensors.
