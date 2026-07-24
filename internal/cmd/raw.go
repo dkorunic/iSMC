@@ -31,7 +31,7 @@ func formatBytesHex(b [32]byte, size uint32) string {
 
 	sb.Grow(int(size)*3 - 1)
 
-	for i := uint32(0); i < size; i++ {
+	for i := range size {
 		if i > 0 {
 			sb.WriteByte(' ')
 		}

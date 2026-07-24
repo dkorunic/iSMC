@@ -15,10 +15,10 @@ import (
 )
 
 func Test_filterForPlatform(t *testing.T) {
-	allSensor := SensorStat{Key: "TALL", Desc: "All sensor", Platform: "All"}
+	allSensor := SensorStat{Key: "TALL", Desc: "All sensor", Platform: platformAll}
 	emptySensor := SensorStat{Key: "TEMP", Desc: "Empty platform sensor", Platform: ""}
-	appleSensor := SensorStat{Key: "TAPL", Desc: "Apple Silicon sensor", Platform: "Apple"}
-	intelSensor := SensorStat{Key: "TINT", Desc: "Intel-only sensor", Platform: "Intel"}
+	appleSensor := SensorStat{Key: "TAPL", Desc: "Apple Silicon sensor", Platform: familyApple}
+	intelSensor := SensorStat{Key: "TINT", Desc: "Intel-only sensor", Platform: familyIntel}
 	m1Sensor := SensorStat{Key: "TM1S", Desc: "M1-only sensor", Platform: "M1"}
 
 	input := []SensorStat{allSensor, emptySensor, appleSensor, intelSensor, m1Sensor}
@@ -35,8 +35,8 @@ func Test_filterForPlatform_empty(t *testing.T) {
 
 func Test_filterForPlatform_allOnly(t *testing.T) {
 	sensors := []SensorStat{
-		{Key: "T1", Desc: "Sensor 1", Platform: "All"},
-		{Key: "T2", Desc: "Sensor 2", Platform: "All"},
+		{Key: "T1", Desc: "Sensor 1", Platform: platformAll},
+		{Key: "T2", Desc: "Sensor 2", Platform: platformAll},
 	}
 
 	result := filterForPlatform(sensors)
@@ -44,30 +44,30 @@ func Test_filterForPlatform_allOnly(t *testing.T) {
 }
 
 // Test_filterForPlatform_appleSiliconInclusion verifies TC-11: that sensors tagged
-// Platform="Apple" are included on Apple Silicon hardware. The bug under test replaces
+// Platform=familyApple are included on Apple Silicon hardware. The bug under test replaces
 // strings.HasPrefix with strings.HasSuffix, which would never match "M1", "M2", "A18"
 // etc. (those strings end in digits, not "M" or "A").
 //
 // This test is conditional: it only asserts Apple-specific inclusion when the actual
 // hardware reports an M- or A-family chip.
 func Test_filterForPlatform_appleSiliconInclusion(t *testing.T) {
-	appleSensor := SensorStat{Key: "TAPL", Desc: "Apple Silicon sensor", Platform: "Apple"}
-	intelSensor := SensorStat{Key: "TINT", Desc: "Intel-only sensor", Platform: "Intel"}
+	appleSensor := SensorStat{Key: "TAPL", Desc: "Apple Silicon sensor", Platform: familyApple}
+	intelSensor := SensorStat{Key: "TINT", Desc: "Intel-only sensor", Platform: familyIntel}
 	input := []SensorStat{appleSensor, intelSensor}
 
 	result := filterForPlatform(input)
 
 	family := platform.GetFamily()
-	if family == "" || family == "Unknown" {
+	if family == "" || family == familyUnknown {
 		switch runtime.GOARCH {
 		case "arm64":
-			family = "Apple"
+			family = familyApple
 		case "amd64", "386":
-			family = "Intel"
+			family = familyIntel
 		}
 	}
 
-	isAppleSilicon := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == "Apple"
+	isAppleSilicon := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == familyApple
 	if isAppleSilicon {
 		assert.Contains(t, result, appleSensor, "Apple sensor must be included on Apple Silicon (family=%q)", family)
 		assert.NotContains(t, result, intelSensor, "Intel sensor must NOT be included on Apple Silicon (family=%q)", family)
@@ -84,16 +84,16 @@ func Test_filterForPlatform_appleSiliconInclusion(t *testing.T) {
 func filterByFamily(smcSlice []SensorStat, family string) []SensorStat {
 	filteredSensors := make([]SensorStat, 0, len(smcSlice))
 
-	familyApple := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == "Apple"
+	familyIsApple := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == familyApple
 
 	for _, v := range smcSlice {
-		if v.Platform == "Apple" && familyApple {
+		if v.Platform == familyApple && familyIsApple {
 			filteredSensors = append(filteredSensors, v)
 
 			continue
 		}
 
-		if v.Platform == "" || v.Platform == "All" {
+		if v.Platform == "" || v.Platform == platformAll {
 			filteredSensors = append(filteredSensors, v)
 
 			continue
@@ -115,14 +115,14 @@ func filterByFamily(smcSlice []SensorStat, family string) []SensorStat {
 // regardless of the host hardware.
 func Test_filterByFamily_A18(t *testing.T) {
 	input := []SensorStat{
-		{Key: "TALL", Desc: "All", Platform: "All"},
+		{Key: "TALL", Desc: platformAll, Platform: platformAll},
 		{Key: "TEMP", Desc: "Empty", Platform: ""},
-		{Key: "TAPL", Desc: "Apple", Platform: "Apple"},
+		{Key: "TAPL", Desc: familyApple, Platform: familyApple},
 		{Key: "TA18", Desc: "A18", Platform: "A18"},
 		{Key: "TM1S", Desc: "M1", Platform: "M1"},
 		{Key: "TM4S", Desc: "M4", Platform: "M4"},
 		{Key: "TM5S", Desc: "M5", Platform: "M5"},
-		{Key: "TINT", Desc: "Intel", Platform: "Intel"},
+		{Key: "TINT", Desc: familyIntel, Platform: familyIntel},
 	}
 
 	result := filterByFamily(input, "A18")
@@ -132,11 +132,11 @@ func Test_filterByFamily_A18(t *testing.T) {
 		admitted[s.Desc] = true
 	}
 
-	for _, want := range []string{"All", "Empty", "Apple", "A18"} {
+	for _, want := range []string{platformAll, "Empty", familyApple, "A18"} {
 		assert.True(t, admitted[want], "family=A18 must admit Platform=%q", want)
 	}
 
-	for _, reject := range []string{"M1", "M4", "M5", "Intel"} {
+	for _, reject := range []string{"M1", "M4", "M5", familyIntel} {
 		assert.False(t, admitted[reject], "family=A18 must reject Platform=%q", reject)
 	}
 
@@ -175,7 +175,7 @@ func Test_filterByFamily_A18_GeneratedTable(t *testing.T) {
 
 	for _, s := range result {
 		switch s.Platform {
-		case "M1", "M2", "M3", "M4", "M5", "Intel":
+		case "M1", "M2", "M3", "M4", "M5", familyIntel:
 			t.Errorf("family=A18 leaked Platform=%q row (key=%q desc=%q)",
 				s.Platform, s.Key, s.Desc)
 		}
@@ -196,7 +196,7 @@ func Test_filterForPlatform_exactFamilyMatch(t *testing.T) {
 	result := filterForPlatform(input)
 
 	family := platform.GetFamily()
-	if family == "" || family == "Unknown" {
+	if family == "" || family == familyUnknown {
 		t.Skip("platform family unknown, skipping exact-match test")
 	}
 
@@ -214,7 +214,7 @@ func Test_filterForPlatform_exactFamilyMatch(t *testing.T) {
 }
 
 // Test_filterByFamily_NoPCIeLeakOnAppleSilicon guards against a regression where
-// the Intel-era PCIe slot wildcards (Te%F/P/S/T) are re-tagged Platform="All"
+// the Intel-era PCIe slot wildcards (Te%F/P/S/T) are re-tagged Platform=platformAll
 // and start leaking phantom "PCIe Slot N Side/Bottom" labels onto Apple Silicon
 // families. On Apple Silicon (M*/A*) Te0S and Te0T are reassigned as E-core 2
 // triplet probes, so any PCIe label referencing those keys is wrong.
@@ -222,7 +222,7 @@ func Test_filterForPlatform_exactFamilyMatch(t *testing.T) {
 // If this test fails, check src/temp.txt lines for "PCIe Slot %" and confirm
 // they are Platform: Intel, not All.
 func Test_filterByFamily_NoPCIeLeakOnAppleSilicon(t *testing.T) {
-	for _, family := range []string{"M1", "M2", "M3", "M4", "M5", "A18", "Apple"} {
+	for _, family := range []string{"M1", "M2", "M3", "M4", "M5", "A18", familyApple} {
 		result := filterByFamily(AppleTemp, family)
 		for _, s := range result {
 			if strings.HasPrefix(s.Desc, "PCIe Slot ") {
@@ -243,14 +243,14 @@ func Test_platformMatches(t *testing.T) {
 		wantMatching bool
 	}{
 		{"empty row matches all", "", "M5", true},
-		{"All row matches all", "All", "Intel", true},
-		{"Apple row matches M-family", "Apple", "M1", true},
-		{"Apple row matches A-family", "Apple", "A18", true},
-		{"Apple row matches generic Apple", "Apple", "Apple", true},
-		{"Apple row rejects Intel", "Apple", "Intel", false},
+		{"All row matches all", platformAll, familyIntel, true},
+		{"Apple row matches M-family", familyApple, "M1", true},
+		{"Apple row matches A-family", familyApple, "A18", true},
+		{"Apple row matches generic Apple", familyApple, familyApple, true},
+		{"Apple row rejects Intel", familyApple, familyIntel, false},
 		{"Exact M5 match", "M5", "M5", true},
 		{"M3 row rejects M5 family", "M3", "M5", false},
-		{"Intel row rejects Apple Silicon", "Intel", "M1", false},
+		{"Intel row rejects Apple Silicon", familyIntel, "M1", false},
 	}
 
 	for _, tt := range tests {
@@ -292,7 +292,7 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 		},
 		{
 			name: "Wildcard TC%c expands for digit indices",
-			key:  "TC0c", family: "Intel",
+			key:  "TC0c", family: familyIntel,
 			wantDesc: "CPU Core 1", wantOK: true,
 		},
 		{

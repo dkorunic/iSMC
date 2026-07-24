@@ -7,12 +7,23 @@ package smc
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
 	"github.com/dkorunic/iSMC/gosmc"
+)
+
+// smcTypeHex is the SMC "hex_" data type, currently decoded as an unsigned integer.
+const smcTypeHex = "hex_"
+
+// Sentinel errors for byte-to-float SMC conversions, wrapped with dynamic
+// context at each call site.
+var (
+	errShortBytes        = errors.New("byte slice too small for SMC type")
+	errUnsupportedFPType = errors.New("unsupported fp SMC type for float32")
 )
 
 // FPConv type used for AppleFPConv map.
@@ -52,24 +63,25 @@ var AppleFPConv = map[string]FPConv{
 func fpToFloat32(t string, x gosmc.SMCBytes, size uint32) (float32, error) {
 	if v, ok := AppleFPConv[t]; ok {
 		if size < 2 {
-			return 0.0, fmt.Errorf("fpToFloat32: size %d too small for type %q", size, t)
+			return 0.0, fmt.Errorf("%w: fp type %q needs 2 bytes, got %d", errShortBytes, t, size)
 		}
 
 		res := binary.BigEndian.Uint16(x[:2])
 		if v.Signed {
+			//nolint:gosec // G115: same-width reinterpretation of a signed fixed-point value; no truncation
 			return float32(int16(res)) / v.Div, nil
 		}
 
 		return float32(res) / v.Div, nil
 	}
 
-	return 0.0, fmt.Errorf("unable to convert to float32 type %q, bytes %v", t, x)
+	return 0.0, fmt.Errorf("%w: type %q, bytes %v", errUnsupportedFPType, t, x)
 }
 
 // fltToFloat32 converts flt SMC type to float32.
 func fltToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
 	if size < 4 {
-		return 0.0, fmt.Errorf("fltToFloat32: size %d too small for flt type", size)
+		return 0.0, fmt.Errorf("%w: flt needs 4 bytes, got %d", errShortBytes, size)
 	}
 
 	return math.Float32frombits(binary.LittleEndian.Uint32(x[:4])), nil
@@ -103,7 +115,7 @@ func smcBytesToFloat32(x gosmc.SMCBytes, size uint32) float32 {
 // ioftToFloat32 converts ioft SMC type (48.16 unsigned fixed-point in LittleEndian) to float32.
 func ioftToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
 	if size < 8 {
-		return 0.0, fmt.Errorf("ioftToFloat32: size %d too small for ioft type", size)
+		return 0.0, fmt.Errorf("%w: ioft needs 8 bytes, got %d", errShortBytes, size)
 	}
 
 	res := binary.LittleEndian.Uint64(x[:8])
@@ -117,12 +129,15 @@ func decodeToFloat32(dataType string, bytes gosmc.SMCBytes, size uint32) (float3
 	switch dataType {
 	case gosmc.TypeFLT:
 		v, err := fltToFloat32(bytes, size)
+
 		return v, err == nil
 	case "ioft":
 		v, err := ioftToFloat32(bytes, size)
+
 		return v, err == nil
 	default:
 		v, err := fpToFloat32(dataType, bytes, size)
+
 		return v, err == nil
 	}
 }
@@ -135,22 +150,27 @@ func DecodeValue(dataType string, bytes gosmc.SMCBytes, size uint32) string {
 	}
 
 	switch dataType {
-	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
+	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, smcTypeHex:
 		return strconv.FormatUint(uint64(smcBytesToUint32(bytes, size)), 10)
 
 	case gosmc.TypeSI8:
+		//nolint:gosec // G115: same-width reinterpretation of a signed byte; no truncation
 		return strconv.FormatInt(int64(int8(bytes[0])), 10)
 
 	case gosmc.TypeSI16:
 		if size < 2 {
 			return ""
 		}
+
+		//nolint:gosec // G115: same-width reinterpretation of a signed 16-bit value; no truncation
 		return strconv.FormatInt(int64(int16(binary.BigEndian.Uint16(bytes[:2]))), 10)
 
 	case gosmc.TypeSI32:
 		if size < 4 {
 			return ""
 		}
+
+		//nolint:gosec // G115: same-width reinterpretation of a signed 32-bit value; no truncation
 		return strconv.FormatInt(int64(int32(binary.BigEndian.Uint32(bytes[:4]))), 10)
 
 	case gosmc.TypeFLAG:
@@ -160,7 +180,9 @@ func DecodeValue(dataType string, bytes gosmc.SMCBytes, size uint32) string {
 		if size < 2 {
 			return ""
 		}
+
 		pct := float32(binary.BigEndian.Uint16(bytes[:2])) * 100.0 / 65536.0
+
 		return fmt.Sprintf("%.1f%%", pct)
 
 	default:
@@ -168,6 +190,7 @@ func DecodeValue(dataType string, bytes gosmc.SMCBytes, size uint32) string {
 		if !ok {
 			return ""
 		}
+
 		return fmt.Sprintf("%g", v)
 	}
 }

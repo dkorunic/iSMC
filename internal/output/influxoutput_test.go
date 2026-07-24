@@ -47,42 +47,58 @@ func Test_influxStringConvert(t *testing.T) {
 	}
 }
 
-func Test_influxGetValue(t *testing.T) {
+func Test_influxFieldValue(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected string
+		name      string
+		input     any
+		wantField string
+		wantUnit  string
 	}{
-		{"value with unit", "25.5 °C", "25.5"},
-		{"value only", "42", "42"},
-		{"value=prefix form", "value=25.5 °C", "value=25.5"},
+		{"temperature with degree unit", "25.5 °C", "25.5", "c"},
+		{"ampere unit", "1.2 A", "1.2", "a"},
+		{"volt unit", "5.0 V", "5.0", "v"},
+		{"rpm with width-padded leading space", "  800 rpm", "800", "rpm"},
+		{"numeric no unit", "42", "42", "none"},
+		{"bare integer value", uint32(4), "4", "none"},
+		{"boolean stays unquoted", false, "false", "none"},
+		{"free-text cpu quoted, not split into unit", "M1 Ultra", `"M1 Ultra"`, "none"},
+		{"free-text with comma quoted so it cannot corrupt the line", "Mac13,2", `"Mac13,2"`, "none"},
+		{"free-text with spaces and parens quoted whole", "Mac Studio (M1 Ultra)", `"Mac Studio (M1 Ultra)"`, "none"},
+		{"embedded quote escaped", `a"b`, `"a\"b"`, "none"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, influxGetValue(tt.input))
+			field, unit := influxFieldValue(tt.input)
+			assert.Equal(t, tt.wantField, field, "field")
+			assert.Equal(t, tt.wantUnit, unit, "unit")
 		})
 	}
 }
 
-func Test_influxGetUnit(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"temperature unit", "value=25.5 °C", "c"},
-		{"ampere unit", "value=1.2 A", "a"},
-		{"volt unit", "value=5.0 V", "v"},
-		{"no unit", "value=42", "none"},
-		{"degree stripped", "value=30.0 °C", "c"},
+// TestInfluxOutput_stringField verifies that free-text hardware values (which
+// contain spaces and commas) are emitted as quoted string fields rather than
+// unquoted tokens that truncate or split the line-protocol record.
+func TestInfluxOutput_stringField(t *testing.T) {
+	var out bytes.Buffer
+
+	GetHardware = func() map[string]any {
+		return map[string]any{
+			"Model": map[string]any{
+				"key":   "hw.model",
+				"value": "Mac Studio (M1 Ultra)",
+				"type":  "hid",
+			},
+		}
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, influxGetUnit(tt.input))
-		})
-	}
+	o := InfluxOutput{writer: io.Writer(&out)}
+	o.Hardware()
+
+	line := stripTimestamp(out.String())
+	assert.Equal(t,
+		`model,sensortype=hardware,unit=none,key=hw.model value="Mac Studio (M1 Ultra)"`,
+		line)
 }
 
 func TestInfluxOutput_methods(t *testing.T) {

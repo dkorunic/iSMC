@@ -10,6 +10,7 @@ import (
 
 	"github.com/dkorunic/iSMC/gosmc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // makeBytes creates a gosmc.SMCBytes with the provided bytes at the start.
@@ -50,9 +51,9 @@ func Test_fpToFloat32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := fpToFloat32(tt.smcType, tt.bytes, tt.size)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.InDelta(t, tt.expected, result, 0.001)
 			}
 		})
@@ -77,9 +78,9 @@ func Test_fltToFloat32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := fltToFloat32(tt.bytes, tt.size)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.InDelta(t, tt.expected, result, 0.001)
 			}
 		})
@@ -174,7 +175,7 @@ func Test_AppleFPConvTable(t *testing.T) {
 		t.Run(tt.smcType, func(t *testing.T) {
 			v, ok := AppleFPConv[tt.smcType]
 			assert.True(t, ok, "type %q must be present in AppleFPConv", tt.smcType)
-			assert.Equal(t, tt.wantDiv, v.Div, "type %q divisor must be %g", tt.smcType, tt.wantDiv)
+			assert.InEpsilon(t, tt.wantDiv, v.Div, 1e-9, "type %q divisor must be %g", tt.smcType, tt.wantDiv)
 			assert.Equal(t, tt.wantSigned, v.Signed, "type %q signed flag must be %v", tt.smcType, tt.wantSigned)
 		})
 	}
@@ -186,7 +187,7 @@ func Test_AppleFPConvTable(t *testing.T) {
 //   - little-endian: 0x0001 = 1;   1/256   = 0.0039 (wrong)
 func Test_fpToFloat32_bigEndianAsymmetric(t *testing.T) {
 	result, err := fpToFloat32("fp88", makeBytes(0x01, 0x00), 2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.InDelta(t, 1.0, result, 0.001, "fp88 0x01 0x00 must be 1.0 under big-endian interpretation")
 }
 
@@ -195,7 +196,7 @@ func Test_fpToFloat32_bigEndianAsymmetric(t *testing.T) {
 // big-endian would produce a very different (garbage) float.
 func Test_fltToFloat32_littleEndianAsymmetric(t *testing.T) {
 	result, err := fltToFloat32(makeBytes(0x00, 0x00, 0x80, 0x3F), 4)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.InDelta(t, 1.0, result, 0.001, "flt 0x00 0x00 0x80 0x3F must be 1.0 under little-endian interpretation")
 }
 
@@ -236,6 +237,7 @@ func Test_decodeToFloat32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, ok := decodeToFloat32(tt.dataType, tt.bytes, tt.size)
 			assert.Equal(t, tt.wantOK, ok)
+
 			if tt.wantOK {
 				assert.InDelta(t, tt.wantVal, got, 0.001)
 			}
@@ -300,7 +302,7 @@ func Test_DecodeValue(t *testing.T) {
 //   - wrong divisor  32768: 131072/32768 = 4.0
 func Test_ioftToFloat32_divisor(t *testing.T) {
 	result, err := ioftToFloat32(makeBytes(0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00), 8)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.InDelta(t, 2.0, result, 0.001, "ioftToFloat32 must divide by 65536 (2^16)")
 }
 
@@ -322,9 +324,9 @@ func Test_ioftToFloat32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := ioftToFloat32(tt.bytes, tt.size)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.InDelta(t, tt.expected, result, 0.001)
 			}
 		})

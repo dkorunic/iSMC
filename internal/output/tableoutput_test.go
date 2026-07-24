@@ -25,12 +25,12 @@ var asciiTpl = `+-------------------------------------+
 
 `
 
-//lint:ignore ST1018 stick to unicode characters for test output
+//nolint:staticcheck // ST1018: golden template deliberately embeds terminal control sequences
 var tableTpl = `[96;100;1m%s[0m
 [106;30m DESCRIPTION [0m[106;30m KEY [0m[106;30m VALUE    [0m[106;30m TYPE [0m
 [107;30m sensor      [0m[107;30m key [0m[107;30m    value [0m[107;30m type [0m
 
-` //nolint:stylecheck
+`
 
 func TestTableOutput_ASCII(t *testing.T) {
 	tests := []struct {
@@ -228,7 +228,7 @@ func getASCIITpl(title ...string) string {
 
 		centeredTitle := fmt.Sprintf("%*s", -width, fmt.Sprintf("%*s", (width+len(t)+even)/2, t))
 
-		out.WriteString(fmt.Sprintf(asciiTpl, centeredTitle))
+		fmt.Fprintf(&out, asciiTpl, centeredTitle)
 	}
 
 	return out.String()
@@ -244,7 +244,7 @@ func getTableTpl(title ...string) string {
 		width := 35
 		centeredTitle := fmt.Sprintf("%*s", -width+1, fmt.Sprintf("%*s", (width+len(t))/2, t))
 
-		out.WriteString(fmt.Sprintf(tableTpl, centeredTitle))
+		fmt.Fprintf(&out, tableTpl, centeredTitle)
 	}
 
 	return out.String()

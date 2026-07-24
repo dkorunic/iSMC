@@ -120,6 +120,7 @@ func Test_RawKeyToFloat32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gotVal, gotOK := RawKeyToFloat32(tt.key)
 			assert.Equal(t, tt.wantOK, gotOK, "RawKeyToFloat32(%+v).ok", tt.key)
+
 			if tt.wantOK {
 				assert.InDelta(t, tt.wantVal, gotVal, 0.001,
 					"RawKeyToFloat32(%+v) value", tt.key)

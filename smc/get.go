@@ -16,6 +16,15 @@ import (
 // Pre-built sentinel avoids fmt.Errorf allocs on the hot miss path.
 var errNoValue = errors.New("smc: no value")
 
+// Sentinel errors for SMC type-decode failures, wrapped with dynamic context
+// (SMC type, key, raw bytes) at each call site.
+var (
+	errDecodeFloat32 = errors.New("unable to decode SMC type to float32")
+	errNonFiniteFlt  = errors.New("SMC key has non-finite flt value")
+	errDecodeUint32  = errors.New("unable to convert SMC type to uint32")
+	errDecodeBool    = errors.New("unable to convert SMC type to bool")
+)
+
 // getKeyFloat32 returns float32 value for a given SMC key.
 func getKeyFloat32(c uint, key string) (float32, string, error) {
 	v, res := gosmc.SMCReadKey(c, key)
@@ -33,25 +42,25 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 	}
 
 	switch t {
-	// TODO: Proper "hex_" handling.
-	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
+	// hex_ is decoded as an unsigned integer for now.
+	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, smcTypeHex:
 		return smcBytesToFloat32(v.Bytes, v.DataSize), t, nil
 	// Reject NaN/Inf from unused flt slots.
 	case gosmc.TypeFLT:
 		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
 		if !ok {
-			return 0.0, "", fmt.Errorf("unable to decode SMC type %q to float32", t)
+			return 0.0, "", fmt.Errorf("%w: type %q", errDecodeFloat32, t)
 		}
 
 		if math.IsNaN(float64(val)) || math.IsInf(float64(val), 0) {
-			return 0.0, "", fmt.Errorf("SMC key %q has non-finite flt value", key)
+			return 0.0, "", fmt.Errorf("%w: key %q", errNonFiniteFlt, key)
 		}
 
 		return val, t, nil
 	default:
 		val, ok := decodeToFloat32(t, v.Bytes, v.DataSize)
 		if !ok {
-			return 0.0, "", fmt.Errorf("unable to decode SMC type %q to float32", t)
+			return 0.0, "", fmt.Errorf("%w: type %q", errDecodeFloat32, t)
 		}
 
 		return val, t, nil
@@ -67,11 +76,11 @@ func getKeyUint32(c uint, key string) (uint32, string, error) {
 
 	t := smcTypeToString(v.DataType)
 	switch t {
-	// TODO: Proper "hex_" handling.
-	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, "hex_":
+	// hex_ is decoded as an unsigned integer for now.
+	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, smcTypeHex:
 		return smcBytesToUint32(v.Bytes, v.DataSize), t, nil
 	default:
-		return 0, "", fmt.Errorf("unable to convert to uint32 type %q, bytes %v", t,
+		return 0, "", fmt.Errorf("%w: type %q, bytes %v", errDecodeUint32, t,
 			v.Bytes[:min(int(v.DataSize), len(v.Bytes))])
 	}
 }
@@ -88,7 +97,7 @@ func getKeyBool(c uint, key string) (bool, string, error) {
 	case gosmc.TypeFLAG:
 		return smcBytesToUint32(v.Bytes, v.DataSize) == uint32(1), t, nil
 	default:
-		return false, "", fmt.Errorf("unable to convert to bool type %q, bytes %v", t,
+		return false, "", fmt.Errorf("%w: type %q, bytes %v", errDecodeBool, t,
 			v.Bytes[:min(int(v.DataSize), len(v.Bytes))])
 	}
 }

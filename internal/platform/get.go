@@ -51,6 +51,9 @@ func getModel() string {
 		}
 
 		buf := C.malloc(size)
+		if buf == nil {
+			return
+		}
 		defer C.free(buf)
 
 		if ret := C.sysctlbyname(name, buf, &size, nil, 0); ret < 0 {
@@ -112,15 +115,15 @@ func LookupSKULayout(cpu string) (SKULayout, bool) {
 
 // GetTotalCPU returns the total physical and logical CPU counts via the
 // hw.physicalcpu and hw.logicalcpu sysctls.
-func GetTotalCPU() (physical, logical int) {
+func GetTotalCPU() (int, int) {
 	pcpuKey := C.CString("hw.physicalcpu")
 	defer C.free(unsafe.Pointer(pcpuKey))
 
 	lcpuKey := C.CString("hw.logicalcpu")
 	defer C.free(unsafe.Pointer(lcpuKey))
 
-	physical = int(C.sysctl_int32(pcpuKey))
-	logical = int(C.sysctl_int32(lcpuKey))
+	physical := int(C.sysctl_int32(pcpuKey))
+	logical := int(C.sysctl_int32(lcpuKey))
 
 	return physical, logical
 }
@@ -150,6 +153,11 @@ func GetPerfLevels() []PerfLevel {
 		}
 
 		buf := C.malloc(size)
+		if buf == nil {
+			C.free(unsafe.Pointer(nameKey))
+
+			continue
+		}
 
 		if ret := C.sysctlbyname(nameKey, buf, &size, nil, 0); ret < 0 {
 			C.free(buf)

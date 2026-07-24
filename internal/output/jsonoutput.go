@@ -15,6 +15,9 @@ import (
 	"strings"
 )
 
+// errNotAMap is returned by format when the sensor payload is not a map.
+var errNotAMap = errors.New("not a map")
+
 type JSONOutput struct {
 	writer io.Writer
 }
@@ -38,7 +41,7 @@ type sensorEntry struct {
 func format(d any) (any, error) {
 	v, ok := d.(map[string]any)
 	if !ok {
-		return v, errors.New("not a map")
+		return v, errNotAMap
 	}
 
 	for key, entry := range v {

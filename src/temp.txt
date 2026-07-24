@@ -32,21 +32,18 @@ Disk % (B):TH%B:All
 Disk % (C):TH%C:All
 Thunderbolt Left:TTLD:All
 Thunderbolt Right:TTRD:All
-Northbridge Diode %:TN%D:All
-Northbridge Heatsink %:TN%H:All
-Northbridge Proximity %:TN%P:All
 Battery %:TB%T:All
 Battery Sensor %:TB%S:All
 Thermal Diode %:TD%P:All
 Drive Bay Front %:TH%F:All
 Drive Bay SATA %:TH%V:All
 Drive Bay Proximity %:TH%P:All
-Ambient Diode %v:TA%D:All
-Ambient Enclosure %v:TA%E:All
-Ambient Front %v:TA%P:All
-Ambient Sensor %v:TA%S:All
-Ambient Top %v:TA%T:All
-Ambient Air %v:TA%V:All
+Ambient Diode %:TA%D:All
+Ambient Enclosure %:TA%E:All
+Ambient Front %:TA%P:All
+Ambient Sensor %:TA%S:All
+Ambient Top %:TA%T:All
+Ambient Air %:TA%V:All
 Northbridge Diode %:TN%D:All
 Northbridge Heatsink %:TN%H:All
 Northbridge Proximity %:TN%P:All
@@ -69,7 +66,6 @@ Heatpipe %:Th%H:Intel
 GPU Intel Graphics:TCGC:Intel
 System Agent:TCSA:Intel
 System Cluster:TCSC:Intel
-Powerboard %:Tp%P:Intel
 GPU %:TG%G:Intel
 Thermal Group Target:THTG:Intel
 PCH SD:TPSD:Intel

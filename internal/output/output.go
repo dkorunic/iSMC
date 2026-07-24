@@ -94,8 +94,7 @@ func sortedKeys(m map[string]any) []string {
 	return keys
 }
 
-// getHardware returns hardware information gathered from platform detection and sysctls,
-// including model name, CPU family, CPU model, year, and per-cluster core counts.
+// getHardware returns hardware information from platform detection and sysctls.
 func getHardware() map[string]any {
 	result := make(map[string]any)
 
@@ -150,7 +149,7 @@ func getHardware() map[string]any {
 	}
 
 	for i, level := range platform.GetPerfLevels() {
-		result[fmt.Sprintf("%s CPU Cores", level.Name)] = map[string]any{
+		result[level.Name+" CPU Cores"] = map[string]any{
 			"key":   fmt.Sprintf("hw.perflevel%d.physicalcpu", i),
 			"value": strconv.Itoa(level.PhysicalCPU),
 			"type":  "sysctl",

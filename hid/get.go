@@ -253,7 +253,10 @@ typedef struct {
 // their formatted output strings. Each field is always a valid strdup'd string
 // (never NULL) that the caller must free.
 HIDSensorData getAllHIDSensors(void) {
-    HIDSensorData result = { strdup(""), strdup(""), strdup("") };
+    HIDSensorData result;
+    result.currents = strdup("");
+    result.voltages = strdup("");
+    result.thermals = strdup("");
 
     @autoreleasepool {
         IOHIDEventSystemClientRef system = IOHIDEventSystemClientCreate(kCFAllocatorDefault);
@@ -351,7 +354,7 @@ func hidGet(cStr *C.char, unit string) map[string]any {
 		return map[string]any{}
 	}
 
-	defer C.free(unsafe.Pointer(cStr)) //nolint:wsl,nlreturn
+	defer C.free(unsafe.Pointer(cStr))
 
 	return getGeneric(unit, cStr)
 }

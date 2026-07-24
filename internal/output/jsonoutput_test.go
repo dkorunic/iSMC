@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Test_format_sp78 verifies TC-19: sensors of type "sp78" must be enriched with
@@ -27,17 +28,19 @@ func Test_format_sp78(t *testing.T) {
 	}
 
 	result, err := format(input)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resultMap, ok := result.(map[string]any)
 	assert.True(t, ok)
 
 	// JSON-round-trip the entry to get a plain map for field inspection
-	raw, _ := json.Marshal(resultMap["CPU Temp"])
-	var entry map[string]any
-	assert.NoError(t, json.Unmarshal(raw, &entry))
+	raw, err := json.Marshal(resultMap["CPU Temp"])
+	require.NoError(t, err)
 
-	assert.Equal(t, 25.5, entry["quantity"],
+	var entry map[string]any
+	require.NoError(t, json.Unmarshal(raw, &entry))
+
+	assert.InEpsilon(t, 25.5, entry["quantity"], 1e-9,
 		"sp78 sensor must have a numeric 'quantity' field after format()")
 	assert.Equal(t, "°C", entry["unit"],
 		"sp78 sensor must have a 'unit' field after format()")

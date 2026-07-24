@@ -123,11 +123,15 @@ func SMCClose(connection uint) int {
 
 // SMCReadKey wrapper for Apple IOKit SMCReadKey
 func SMCReadKey(connection uint, key string) (*SMCVal, int) {
-	k := C.CString(key)
-	defer C.free(unsafe.Pointer(k))
+	// Stack [5]C.char (4 key bytes + NUL): avoids a heap alloc per read and keeps
+	// the C layer's 5-byte key copy in bounds even for keys shorter than 4 chars.
+	var kb [5]C.char
+	for i := 0; i < 4 && i < len(key); i++ {
+		kb[i] = C.char(key[i])
+	}
 
 	v := C.SMCVal_t{}
-	result := C.SMCReadKey(C.uint(connection), k, &v)
+	result := C.SMCReadKey(C.uint(connection), &kb[0], &v)
 
 	return &SMCVal{
 		Key:      uint32CharFromC(v.key),

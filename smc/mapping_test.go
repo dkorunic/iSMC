@@ -8,6 +8,7 @@ package smc
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -119,9 +120,11 @@ func Test_M4Pro14CoreMapping(t *testing.T) {
 		switch {
 		case strings.HasPrefix(desc, "CPU Performance Core "):
 			pCores++
+
 			pCoreNames = append(pCoreNames, desc)
 		case strings.HasPrefix(desc, "CPU Efficiency Core "):
 			eCores++
+
 			eCoreNames = append(eCoreNames, desc)
 		}
 	}
@@ -298,8 +301,8 @@ func resolveForFamily(sensors []SensorStat, family string, snapshot map[string]f
 		}
 
 		for i := range 10 {
-			iKey := strings.Replace(s.Key, "%", fmt.Sprintf("%d", i), 1)
-			iDesc := strings.Replace(s.Desc, "%", fmt.Sprintf("%d", i+1), 1)
+			iKey := strings.Replace(s.Key, "%", strconv.Itoa(i), 1)
+			iDesc := strings.Replace(s.Desc, "%", strconv.Itoa(i+1), 1)
 
 			if v, ok := snapshot[iKey]; ok && isValidReading(v, TempUnit) {
 				out[iDesc] = struct {
@@ -386,9 +389,11 @@ func Test_A18ProMapping(t *testing.T) {
 		switch {
 		case strings.HasPrefix(desc, "CPU Performance Core "):
 			pCores++
+
 			pCoreNames = append(pCoreNames, desc)
 		case strings.HasPrefix(desc, "CPU Efficiency Core "):
 			eCores++
+
 			eCoreNames = append(eCoreNames, desc)
 		}
 	}
@@ -401,6 +406,7 @@ func Test_A18ProMapping(t *testing.T) {
 	// Cluster aggregates must resolve under non-core labels (single P-cluster on A18 Pro).
 	_, ca1 := resolved["CPU Performance Cluster Aggregate 1"]
 	_, ca2 := resolved["CPU Performance Cluster Aggregate 2"]
+
 	assert.True(t, ca1, "CPU Performance Cluster Aggregate 1 must resolve from Tp08/09/0A")
 	assert.True(t, ca2, "CPU Performance Cluster Aggregate 2 must resolve from Tp0C/0D/0E")
 
@@ -474,6 +480,7 @@ func Test_M2ProMapping(t *testing.T) {
 		switch {
 		case strings.HasPrefix(desc, "CPU Performance Core "):
 			pCores++
+
 			pCoreNames = append(pCoreNames, desc)
 		case strings.HasPrefix(desc, "CPU Efficiency Core "):
 			eCores++
@@ -493,6 +500,7 @@ func Test_M2ProMapping(t *testing.T) {
 
 	_, pAgg := resolved["CPU Performance Cluster Aggregate 1"]
 	_, eAgg := resolved["CPU Efficiency Cluster Aggregate 1"]
+
 	assert.True(t, pAgg, "CPU Performance Cluster Aggregate 1 must resolve from Tp0a/0b/0c")
 	assert.True(t, eAgg, "CPU Efficiency Cluster Aggregate 1 must resolve from Te04/05/06")
 

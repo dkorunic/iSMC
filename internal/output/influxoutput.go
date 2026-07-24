@@ -9,9 +9,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
+
+// influxNoUnit is the unit tag emitted for dimensionless or free-text fields.
+const influxNoUnit = "none"
 
 type InfluxOutput struct {
 	writer io.Writer
@@ -61,8 +65,8 @@ func (o InfluxOutput) Voltage() {
 	o.print("Voltage", GetVoltage())
 }
 
-// influxStringConvert returns s converted to lowercase with spaces replaced by underscores,
-// suitable for use as an InfluxDB measurement or tag value.
+// influxStringConvert lowercases s and replaces spaces with underscores for use as
+// a measurement or tag value.
 func influxStringConvert(s string) string {
 	s = strings.ReplaceAll(s, " ", "_")
 	s = strings.ToLower(s)
@@ -70,9 +74,8 @@ func influxStringConvert(s string) string {
 	return s
 }
 
-// influxEscape backslash-escapes Influx line-protocol specials (comma, equals, space)
-// and drops newlines, which terminate records and have no valid in-field escape.
-// Guards against sensor descriptions sneaking in delimiters or extra records.
+// influxEscape backslash-escapes line-protocol specials (comma, equals, space) and
+// drops record-terminating newlines, guarding against delimiters in sensor text.
 func influxEscape(s string) string {
 	if !strings.ContainsAny(s, ",= \n\r") {
 		return s
@@ -82,7 +85,7 @@ func influxEscape(s string) string {
 
 	b.Grow(len(s) + 4)
 
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
 		if c == '\n' || c == '\r' {
 			continue
@@ -98,30 +101,68 @@ func influxEscape(s string) string {
 	return b.String()
 }
 
-// influxGetValue returns the numeric part of a "value unit" formatted sensor string.
-func influxGetValue(s string) string {
-	val, _, _ := strings.Cut(s, " ")
-
-	return val
+// influxFieldValue maps a raw sensor value to a line-protocol field and unit tag.
+// Free text is double-quoted because an unquoted space or comma (e.g. "Mac13,2")
+// corrupts the line; "<number> <unit>" strings split into a bare value and unit.
+func influxFieldValue(v any) (string, string) {
+	switch val := v.(type) {
+	case bool:
+		return strconv.FormatBool(val), influxNoUnit
+	case string:
+		return influxStringFieldValue(val)
+	default:
+		return fmt.Sprintf("%v", val), influxNoUnit
+	}
 }
 
-// influxGetUnit returns the unit portion of a "value=<number> <unit>" sensor string,
-// stripped of any degree symbol and lowercased. Returns "none" when no unit is present.
-func influxGetUnit(s string) string {
-	s = strings.TrimPrefix(s, "value=")
+// influxStringFieldValue splits "<number> <unit>" into value and unit, else quotes
+// the whole string. strings.Fields also absorbs the leading space that "%4.0f rpm"
+// padding produces on sub-1000 fan speeds.
+func influxStringFieldValue(s string) (string, string) {
+	fields := strings.Fields(s)
 
-	_, unit, found := strings.Cut(s, " ")
-	if !found {
-		return "none"
+	if len(fields) > 0 {
+		_, err := strconv.ParseFloat(fields[0], 64)
+		if err == nil {
+			unit := influxNoUnit
+			if len(fields) > 1 {
+				unit = strings.ToLower(strings.ReplaceAll(strings.Join(fields[1:], " "), "°", ""))
+			}
+
+			return fields[0], unit
+		}
 	}
 
-	unit = strings.ReplaceAll(unit, "°", "")
-
-	return strings.ToLower(unit)
+	return influxQuoteField(s), influxNoUnit
 }
 
-// print writes smcdata to stdout in InfluxDB line protocol format, tagged with the sensor type name.
-// It is a no-op when smcdata is empty.
+// influxQuoteField double-quotes s as a string field, escaping embedded quotes and
+// backslashes and dropping record-terminating newlines.
+func influxQuoteField(s string) string {
+	var b strings.Builder
+
+	b.Grow(len(s) + 2)
+	b.WriteByte('"')
+
+	for i := range len(s) {
+		c := s[i]
+		if c == '\n' || c == '\r' {
+			continue
+		}
+
+		if c == '"' || c == '\\' {
+			b.WriteByte('\\')
+		}
+
+		b.WriteByte(c)
+	}
+
+	b.WriteByte('"')
+
+	return b.String()
+}
+
+// print emits smcdata as InfluxDB line protocol, tagged with the sensor type name.
 func (o InfluxOutput) print(name string, smcdata map[string]any) {
 	if len(smcdata) == 0 {
 		return
@@ -131,23 +172,26 @@ func (o InfluxOutput) print(name string, smcdata map[string]any) {
 
 	for _, k := range sortedKeys(smcdata) {
 		v := smcdata[k]
-		if sensorMap, ok := v.(map[string]any); ok {
-			// Escape only the user value, not the "=" separator.
-			var key string
-			if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
-				key = ",key=" + influxEscape(influxStringConvert(keyStr))
-			}
 
-			value := fmt.Sprintf("value=%v", sensorMap["value"])
-			unit := influxGetUnit(value)
-
-			fmt.Fprintf(o.writer, "%v,sensortype=%s,unit=%s%s %s %d\n",
-				influxEscape(influxStringConvert(k)),
-				influxEscape(influxStringConvert(name)),
-				influxEscape(unit),
-				key,
-				influxGetValue(value),
-				ct)
+		sensorMap, ok := v.(map[string]any)
+		if !ok {
+			continue
 		}
+
+		// Escape only the user value, not the "=" separator.
+		var key string
+		if keyStr, ok := sensorMap["key"].(string); ok && keyStr != "" {
+			key = ",key=" + influxEscape(influxStringConvert(keyStr))
+		}
+
+		field, unit := influxFieldValue(sensorMap["value"])
+
+		fmt.Fprintf(o.writer, "%v,sensortype=%s,unit=%s%s value=%s %d\n",
+			influxEscape(influxStringConvert(k)),
+			influxEscape(influxStringConvert(name)),
+			influxEscape(unit),
+			key,
+			field,
+			ct)
 	}
 }

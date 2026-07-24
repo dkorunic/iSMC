@@ -6,6 +6,7 @@
 package smc
 
 import (
+	"encoding/binary"
 	"fmt"
 	"os"
 
@@ -27,22 +28,27 @@ type RawKey struct {
 	Bytes    gosmc.SMCBytes
 }
 
-// GetRaw returns all SMC keys with their raw byte values
-func GetRaw() []RawKey {
-	conn, err := openSMC()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return nil
-	}
-	defer gosmc.SMCClose(conn)
+// Open opens an SMC connection for callers issuing many reads over one connection
+// (e.g. repeated sampling); the caller must release it with Close.
+func Open() (uint, error) {
+	return openSMC()
+}
 
+// Close releases an SMC connection returned by Open.
+func Close(conn uint) {
+	gosmc.SMCClose(conn)
+}
+
+// EnumerateKeys returns every SMC key name over conn without reading values, so a
+// caller sampling a fixed subset can enumerate once and then read only its keys.
+func EnumerateKeys(conn uint) []string {
 	countVal, res := gosmc.SMCReadKey(conn, keyCount)
 	if res != gosmc.IOReturnSuccess || countVal.DataSize == 0 {
 		return nil
 	}
 
 	total := min(smcBytesToUint32(countVal.Bytes, countVal.DataSize), maxKeys)
-	keys := make([]RawKey, 0, total)
+	names := make([]string, 0, total)
 
 	for i := range total {
 		input := &gosmc.SMCKeyData{
@@ -56,25 +62,47 @@ func GetRaw() []RawKey {
 		}
 
 		// Decode the uint32 key code as 4-char big-endian ASCII.
-		k := output.Key
-		keyStr := string([]byte{
-			byte(k >> 24),
-			byte(k >> 16),
-			byte(k >> 8),
-			byte(k),
-		})
+		var b [4]byte
 
-		val, res := gosmc.SMCReadKey(conn, keyStr)
-		if res != gosmc.IOReturnSuccess {
-			continue
+		binary.BigEndian.PutUint32(b[:], output.Key)
+		names = append(names, string(b[:]))
+	}
+
+	return names
+}
+
+// ReadRawKey reads a single key's raw value over conn, reporting read success.
+func ReadRawKey(conn uint, key string) (RawKey, bool) {
+	val, res := gosmc.SMCReadKey(conn, key)
+	if res != gosmc.IOReturnSuccess {
+		return RawKey{}, false
+	}
+
+	return RawKey{
+		Key:      key,
+		DataType: smcTypeToString(val.DataType),
+		DataSize: val.DataSize,
+		Bytes:    val.Bytes,
+	}, true
+}
+
+// GetRaw returns all SMC keys with their raw byte values.
+func GetRaw() []RawKey {
+	conn, err := openSMC()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+
+		return nil
+	}
+	defer gosmc.SMCClose(conn)
+
+	names := EnumerateKeys(conn)
+	keys := make([]RawKey, 0, len(names))
+
+	for _, name := range names {
+		if rk, ok := ReadRawKey(conn, name); ok {
+			keys = append(keys, rk)
 		}
-
-		keys = append(keys, RawKey{
-			Key:      keyStr,
-			DataType: smcTypeToString(val.DataType),
-			DataSize: val.DataSize,
-			Bytes:    val.Bytes,
-		})
 	}
 
 	return keys

@@ -9,6 +9,7 @@ import (
 	"cmp"
 	"fmt"
 	"math"
+	"os"
 	"runtime"
 	"slices"
 	"strconv"
@@ -94,29 +95,50 @@ func init() {
 	rootCmd.AddCommand(guessCmd)
 }
 
-// rawTemps reads every T-prefixed SMC key and returns a map of key → °C for all
-// sensors that report a plausible temperature value.
-func rawTemps() map[string]float32 {
+// tempSampler samples SMC temperature sensors over one long-lived connection,
+// enumerating the T-prefixed keys once so each snapshot skips re-walking the full
+// ~1600-key namespace — the dominant cost of a guess run.
+type tempSampler struct {
+	keys []string
+	conn uint
+}
+
+// newTempSampler enumerates conn's keys once, retaining the T-prefixed ones.
+func newTempSampler(conn uint) *tempSampler {
+	var keys []string
+
+	for _, k := range smc.EnumerateKeys(conn) {
+		if len(k) > 0 && k[0] == 'T' {
+			keys = append(keys, k)
+		}
+	}
+
+	return &tempSampler{conn: conn, keys: keys}
+}
+
+// rawTemps returns key → °C for the sampler's keys reporting a plausible value.
+func (s *tempSampler) rawTemps() map[string]float32 {
 	out := make(map[string]float32)
 
-	for _, k := range smc.GetRaw() {
-		if len(k.Key) == 0 || k.Key[0] != 'T' {
+	for _, key := range s.keys {
+		rk, ok := smc.ReadRawKey(s.conn, key)
+		if !ok {
 			continue
 		}
 
-		v, ok := smc.RawKeyToFloat32(k)
+		v, ok := smc.RawKeyToFloat32(rk)
 		if !ok || v < guessTempMin || v > guessTempMax {
 			continue
 		}
 
-		out[k.Key] = v
+		out[key] = v
 	}
 
 	return out
 }
 
 // avgRawTemps returns per-key averages over n samples taken sampleInterval apart.
-func avgRawTemps(n int, interval time.Duration) map[string]float32 {
+func (s *tempSampler) avgRawTemps(n int, interval time.Duration) map[string]float32 {
 	sums := make(map[string]float64)
 	counts := make(map[string]int)
 
@@ -125,7 +147,7 @@ func avgRawTemps(n int, interval time.Duration) map[string]float32 {
 			time.Sleep(interval)
 		}
 
-		for k, v := range rawTemps() {
+		for k, v := range s.rawTemps() {
 			sums[k] += float64(v)
 			counts[k]++
 		}
@@ -160,20 +182,18 @@ func meanAbsDelta(a, b map[string]float32) float32 {
 	return float32(sum / float64(n))
 }
 
-// settledTemps samples averaged temperatures repeatedly until consecutive
-// snapshots differ by less than guessSettleEpsilon on average (thermal steady
-// state) or maxWait elapses, then returns the last snapshot. A fixed cooldown
-// is not enough: cooling time depends on hardware and prior load, and a
-// baseline sampled from a still-cooling chip biases the next phase's deltas —
-// warm starts previously collapsed whole phases to zero detections.
-func settledTemps(maxWait time.Duration) map[string]float32 {
-	prev := avgRawTemps(2, guessSampleInterval)
+// settledTemps samples until consecutive averages differ by less than
+// guessSettleEpsilon (thermal steady state) or maxWait elapses. A fixed cooldown
+// is not enough: a baseline sampled from a still-cooling chip biases the next
+// phase's deltas — warm starts previously collapsed whole phases to zero.
+func (s *tempSampler) settledTemps(maxWait time.Duration) map[string]float32 {
+	prev := s.avgRawTemps(2, guessSampleInterval)
 	deadline := time.Now().Add(maxWait)
 
 	for time.Now().Before(deadline) {
 		time.Sleep(guessSettlePollPause)
 
-		cur := avgRawTemps(2, guessSampleInterval)
+		cur := s.avgRawTemps(2, guessSampleInterval)
 		if meanAbsDelta(prev, cur) < guessSettleEpsilon {
 			return cur
 		}
@@ -200,9 +220,8 @@ func deltaTemps(base, hot map[string]float32) map[string]float32 {
 	return d
 }
 
-// charValue returns the positional value of an SMC index character in the
-// alphabet 0-9 < A-Z < a-z used by SMC key numbering, or -1 for characters
-// outside the alphabet.
+// charValue returns the positional value of an SMC index char in the 0-9<A-Z<a-z
+// alphabet, or -1 if outside it.
 func charValue(c byte) int {
 	switch {
 	case c >= '0' && c <= '9':
@@ -636,10 +655,9 @@ func spinCore(qosClass int, done <-chan struct{}) {
 	}
 }
 
-// runStressPhase launches threads spinCore goroutines simultaneously under the
-// given QoS class, stresses for guessStressDuration, samples temperatures at
-// peak load, then returns the delta map relative to baseline.
-func runStressPhase(threads, qosClass int, baseline map[string]float32) map[string]float32 {
+// runStressPhase spins threads goroutines at qosClass for guessStressDuration,
+// samples at peak load, and returns the per-sensor delta over baseline.
+func runStressPhase(s *tempSampler, threads, qosClass int, baseline map[string]float32) map[string]float32 {
 	done := make(chan struct{})
 
 	for range threads {
@@ -648,7 +666,7 @@ func runStressPhase(threads, qosClass int, baseline map[string]float32) map[stri
 
 	time.Sleep(guessStressDuration)
 
-	hot := avgRawTemps(guessSampleCount, guessSampleInterval)
+	hot := s.avgRawTemps(guessSampleCount, guessSampleInterval)
 
 	close(done)
 
@@ -705,9 +723,20 @@ func runGuess(_ *cobra.Command, _ []string) {
 		fmt.Println()
 	}
 
+	// One connection and key enumeration for the whole run.
+	conn, err := smc.Open()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+
+		return
+	}
+	defer smc.Close(conn)
+
+	sampler := newTempSampler(conn)
+
 	fmt.Print("Sampling baseline (waiting for thermal steady state)... ")
 
-	baseline := settledTemps(guessSettleInitialWait)
+	baseline := sampler.settledTemps(guessSettleInitialWait)
 
 	fmt.Printf("%d sensors visible.\n\n", len(baseline))
 
@@ -723,14 +752,14 @@ func runGuess(_ *cobra.Command, _ []string) {
 			i+1, phaseMidWord(phase.label), qosName(phase.qos))
 		fmt.Printf("  Stressing %d thread(s)...", threads)
 
-		deltas := runStressPhase(threads, phase.qos, baseline)
+		deltas := runStressPhase(sampler, threads, phase.qos, baseline)
 		results = append(results, phaseResult{spec: phase, deltas: deltas})
 
 		if i < len(phases)-1 {
 			fmt.Printf("\n  Inter-phase cooldown (up to %v, until temperatures settle)...\n\n",
 				guessSettleCooldownMax)
 
-			baseline = settledTemps(guessSettleCooldownMax)
+			baseline = sampler.settledTemps(guessSettleCooldownMax)
 		}
 	}
 

@@ -9,11 +9,17 @@ linters:
     - forbidigo
     - funlen
     - gochecknoglobals
+    - gochecknoinits # cobra registers subcommands from init() functions
     - gocognit
+    - gomoddirectives # the nested gosmc module requires a local replace directive
+    - ireturn # the Output factory intentionally returns the interface type
     - lll
     - mnd
+    - paralleltest # tests monkey-patch package-level globals; t.Parallel() would race
+    - testpackage # white-box tests need access to unexported identifiers
     - varnamelen
     - wrapcheck
+    - wsl # deprecated in v2.2.0; superseded by wsl_v5
   exclusions:
     generated: lax
     presets:
@@ -25,6 +31,14 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      # cgo //line directives skew reported positions in these files, so nlreturn
+      # misattributes the guard-clause returns (the reported lines point at
+      # defer/if statements, not the returns). Identical guard clauses in non-cgo
+      # files are not flagged.
+      - path: (internal/platform|hid)/get\.go
+        linters:
+          - nlreturn
 formatters:
   enable:
     - gci

@@ -14,7 +14,7 @@ import (
 
 var OutputFlag string
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:   "iSMC",
 	Short: "Apple SMC information tool",
@@ -27,7 +27,8 @@ information for various hardware in your Apple Mac hardware.`,
 
 // Execute runs the root Cobra command and exits with a non-zero status on error.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	err := rootCmd.Execute()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
