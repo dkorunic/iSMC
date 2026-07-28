@@ -96,24 +96,16 @@ func init() {
 }
 
 // tempSampler samples SMC temperature sensors over one long-lived connection,
-// enumerating the T-prefixed keys once so each snapshot skips re-walking the full
-// ~1600-key namespace — the dominant cost of a guess run.
+// resolving the T-prefixed keys once so each snapshot skips re-walking the full
+// namespace — the dominant cost of a guess run.
 type tempSampler struct {
 	keys []string
 	conn uint
 }
 
-// newTempSampler enumerates conn's keys once, retaining the T-prefixed ones.
+// newTempSampler resolves conn's T-prefixed keys once for the sampler's lifetime.
 func newTempSampler(conn uint) *tempSampler {
-	var keys []string
-
-	for _, k := range smc.EnumerateKeys(conn) {
-		if len(k) > 0 && k[0] == 'T' {
-			keys = append(keys, k)
-		}
-	}
-
-	return &tempSampler{conn: conn, keys: keys}
+	return &tempSampler{conn: conn, keys: smc.EnumerateKeysPrefix(conn, "T")}
 }
 
 // rawTemps returns key → °C for the sampler's keys reporting a plausible value.

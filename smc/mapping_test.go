@@ -545,7 +545,10 @@ func Test_isValidReading(t *testing.T) {
 		{"below minTemp", 2.2, TempUnit, false},
 		{"below minTemp 3.4", 3.4, TempUnit, false},
 		{"below minTemp 5.2", 5.2, TempUnit, false},
-		{"exactly minTemp", 10.0, TempUnit, true},
+		{"sentinel 8.425 (OSHI, M2 Max)", 8.425, TempUnit, false},
+		{"old floor 10.0", 10.0, TempUnit, false},
+		{"just below minTemp", 14.9, TempUnit, false},
+		{"exactly minTemp", 15.0, TempUnit, true},
 		{"plausible idle", 35.0, TempUnit, true},
 		{"plausible load", 85.0, TempUnit, true},
 		// Non-temperature units must not apply the minTempCelsius guard.

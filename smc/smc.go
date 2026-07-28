@@ -35,8 +35,10 @@ const (
 
 	TempUnit = "°C"
 
-	// Rejects firmware sentinels from inactive sensor slots (observed: −4..5.2 °C).
-	minTempCelsius = 10.0
+	// Rejects firmware sentinels from inactive sensor slots (observed up to
+	// 8.425 °C, issue #37); genuine mapped readings stay ≥21 °C, so 15 has
+	// margin both ways.
+	minTempCelsius = 15.0
 )
 
 // Platform tag and CPU family sentinels used by filterForPlatform and platformMatches.
@@ -241,10 +243,9 @@ func getGenericSensors(conn uint, unit string, smcSlice []SensorStat) map[string
 	return generic
 }
 
-// isValidReading reports whether val is plausible for unit. Values below 0.005
-// (zero, near-zero, negative) are rejected; temperature readings below
-// minTempCelsius are firmware sentinels from inactive slots (observed −4..5.2 °C
-// on M4 Pro 14-core).
+// isValidReading reports whether val is plausible for unit: near-zero and
+// negative values are rejected, and temperatures additionally must clear the
+// minTempCelsius sentinel floor.
 func isValidReading(val float32, unit string) bool {
 	if val < 0.005 {
 		return false
