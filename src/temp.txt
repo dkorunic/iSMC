@@ -106,16 +106,26 @@ Sensor Group 2:TSG2:Apple
 // CPU die/PMU peak sensors.
 CPU Die Max:TCMz:Apple
 CPU Die Average:TCMb:Apple
+// Die cluster aggregate max; present on Pro/Max/Ultra SKUs.
+CPU Die Aggregate:TCDX:Apple
 // M5 hex-letter slots listed under M5 section.
 Virtual Die %:TVD%:Apple
 Virtual Memory:TVMR:Apple
 Virtual Memory r:TVMr:Apple
 Virtual Memory Summary:TVmS:Apple
 Virtual Memory Summary:TVms:Apple
+// TVM0/TVm0/TVm1 read the same probe value; TVMC is cluster, TVM4 is hottest.
+Virtual Memory 0:TVM0:Apple
+Virtual Memory 4:TVM4:Apple
+Virtual Memory m0:TVm0:Apple
+Virtual Memory m1:TVm1:Apple
+Virtual Memory Cluster:TVMC:Apple
 Virtual Ambient %:TVA%:Apple
 Virtual Sensor %:TVS%:Apple
 // TVSx mirrors TVS0; % is digits-only.
 Virtual Sensor x:TVSx:Apple
+// Virtual voltage thermal; observed on M1 Pro/Max/Ultra, M2 Max, M3, M4, M5.
+Virtual Voltage:TVV0:Apple
 // Hex-letter slots need explicit rows.
 Power Delivery IC %:TPD%:Apple
 Power Delivery IC Max:TPDX:Apple
@@ -194,6 +204,13 @@ SoC Heatsink 5:Th0I:Apple
 SoC Heatsink 6:Th0K:Apple
 SoC Heatsink 6:Th0L:Apple
 SoC Heatsink 6:Th0M:Apple
+// M2 Max / M3 / M4 Max extra triplets.
+SoC Heatsink 7:Th0O:Apple
+SoC Heatsink 7:Th0P:Apple
+SoC Heatsink 7:Th0Q:Apple
+SoC Heatsink 8:Th0S:Apple
+SoC Heatsink 8:Th0T:Apple
+SoC Heatsink 8:Th0U:Apple
 // M1 Ultra die 2.
 SoC Heatsink Die 2 1:Th20:Apple
 SoC Heatsink Die 2 1:Th21:Apple
@@ -349,8 +366,8 @@ RF Delivery Die 2 17:TrDg:M1
 RF Delivery Die 2 18:TrDh:M1
 RF Delivery Die 2 19:TrDi:M1
 RF Delivery Die 2 20:TrDj:M1
-// M1 Pro/Max power-voltage probe.
-Power Probe Voltage Diode:TPVD:M1
+// Power-voltage probe (M1 Pro/Max and wider Apple Silicon).
+Power Probe Voltage Diode:TPVD:Apple
 // M2
 // M1-style Tp triplets (probe A, probe B, max); last-write-wins captures the max.
 // Tp01 ≡ TCMb and Tp02 ≡ TCMz byte-for-byte on M2 — Core 1 may coincide with the
@@ -387,13 +404,28 @@ CPU Performance Cluster Aggregate 1:Tp0c:M2
 CPU Efficiency Cluster Aggregate 1:Te04:M2
 CPU Efficiency Cluster Aggregate 1:Te05:M2
 CPU Efficiency Cluster Aggregate 1:Te06:M2
-// Three GPU clusters; probe + max doublets.
+// Three GPU clusters on M2 base; probe + max doublets.
 GPU 1:Tg0e:M2
 GPU 1:Tg0f:M2
 GPU 2:Tg0m:M2
 GPU 2:Tg0n:M2
 GPU 3:Tg0q:M2
 GPU 3:Tg0r:M2
+// M2 Max GPU; 8 doublets at different addresses than M2 base.
+GPU 2:Tg0W:M2
+GPU 2:Tg0X:M2
+GPU 3:Tg0i:M2
+GPU 3:Tg0j:M2
+GPU 4:Tg1g:M2
+GPU 4:Tg1h:M2
+GPU 5:Tg1k:M2
+GPU 5:Tg1l:M2
+GPU 6:Tg2W:M2
+GPU 6:Tg2X:M2
+GPU 7:Tg2e:M2
+GPU 7:Tg2f:M2
+GPU 8:Tg3Y:M2
+GPU 8:Tg3Z:M2
 // SSD triplets: probe A and probe B mirror; third position is the max.
 SSD 1:Ts0K:M2
 SSD 1:Ts0L:M2
@@ -413,6 +445,13 @@ SSD 5:Ts0c:M2
 // TsOP uses letter O, not digit 0.
 SSD Controller:Ts1P:M2
 SSD Controller:TsOP:M2
+// M2 Max SSD; triplet convention; different addresses from M2 base.
+SSD 1:Ts0C:M2
+SSD 1:Ts0D:M2
+SSD 1:Ts0E:M2
+SSD 2:Ts0e:M2
+SSD 2:Ts0f:M2
+SSD 2:Ts0g:M2
 // M3
 CPU Efficiency Core 1:Te04:M3
 CPU Efficiency Core 1:Te05:M3
@@ -481,51 +520,52 @@ CPU Performance Cluster 3:Tp18:M3
 CPU Performance Cluster 3:Tp3S:M3
 CPU Performance Cluster 3:Tp3T:M3
 // Tf?4/D/E=aggregate, Tf?5=min, Tf?6=max, Tf?8-B=probes.
-GPU Fabric Block 0:Tf04:M3
+// Shared across M2 Max / M3 / M4 → Apple; Tf?D (M3 only) and Tf9F/TfA0 stay M3.
+GPU Fabric Block 0:Tf04:Apple
 GPU Fabric Block 0:Tf0D:M3
-GPU Fabric Block 0:Tf0E:M3
-GPU Fabric Block 0 Min:Tf05:M3
-GPU Fabric Block 0 Max:Tf06:M3
-GPU Fabric Block 0 Probe 1:Tf08:M3
-GPU Fabric Block 0 Probe 2:Tf09:M3
-GPU Fabric Block 0 Probe 3:Tf0A:M3
-GPU Fabric Block 0 Probe 4:Tf0B:M3
-GPU Fabric Block 1:Tf14:M3
+GPU Fabric Block 0:Tf0E:Apple
+GPU Fabric Block 0 Min:Tf05:Apple
+GPU Fabric Block 0 Max:Tf06:Apple
+GPU Fabric Block 0 Probe 1:Tf08:Apple
+GPU Fabric Block 0 Probe 2:Tf09:Apple
+GPU Fabric Block 0 Probe 3:Tf0A:Apple
+GPU Fabric Block 0 Probe 4:Tf0B:Apple
+GPU Fabric Block 1:Tf14:Apple
 GPU Fabric Block 1:Tf1D:M3
-GPU Fabric Block 1:Tf1E:M3
-GPU Fabric Block 1 Min:Tf15:M3
-GPU Fabric Block 1 Max:Tf16:M3
-GPU Fabric Block 1 Probe 1:Tf18:M3
-GPU Fabric Block 1 Probe 2:Tf19:M3
-GPU Fabric Block 1 Probe 3:Tf1A:M3
-GPU Fabric Block 1 Probe 4:Tf1B:M3
-GPU Fabric Block 2:Tf24:M3
+GPU Fabric Block 1:Tf1E:Apple
+GPU Fabric Block 1 Min:Tf15:Apple
+GPU Fabric Block 1 Max:Tf16:Apple
+GPU Fabric Block 1 Probe 1:Tf18:Apple
+GPU Fabric Block 1 Probe 2:Tf19:Apple
+GPU Fabric Block 1 Probe 3:Tf1A:Apple
+GPU Fabric Block 1 Probe 4:Tf1B:Apple
+GPU Fabric Block 2:Tf24:Apple
 GPU Fabric Block 2:Tf2D:M3
-GPU Fabric Block 2:Tf2E:M3
-GPU Fabric Block 2 Min:Tf25:M3
-GPU Fabric Block 2 Max:Tf26:M3
-GPU Fabric Block 2 Probe 1:Tf28:M3
-GPU Fabric Block 2 Probe 2:Tf29:M3
-GPU Fabric Block 2 Probe 3:Tf2A:M3
-GPU Fabric Block 2 Probe 4:Tf2B:M3
-GPU Fabric Block 3:Tf34:M3
+GPU Fabric Block 2:Tf2E:Apple
+GPU Fabric Block 2 Min:Tf25:Apple
+GPU Fabric Block 2 Max:Tf26:Apple
+GPU Fabric Block 2 Probe 1:Tf28:Apple
+GPU Fabric Block 2 Probe 2:Tf29:Apple
+GPU Fabric Block 2 Probe 3:Tf2A:Apple
+GPU Fabric Block 2 Probe 4:Tf2B:Apple
+GPU Fabric Block 3:Tf34:Apple
 GPU Fabric Block 3:Tf3D:M3
-GPU Fabric Block 3:Tf3E:M3
-GPU Fabric Block 3 Min:Tf35:M3
-GPU Fabric Block 3 Max:Tf36:M3
-GPU Fabric Block 3 Probe 1:Tf38:M3
-GPU Fabric Block 3 Probe 2:Tf39:M3
-GPU Fabric Block 3 Probe 3:Tf3A:M3
-GPU Fabric Block 3 Probe 4:Tf3B:M3
-GPU Fabric Block 4:Tf44:M3
+GPU Fabric Block 3:Tf3E:Apple
+GPU Fabric Block 3 Min:Tf35:Apple
+GPU Fabric Block 3 Max:Tf36:Apple
+GPU Fabric Block 3 Probe 1:Tf38:Apple
+GPU Fabric Block 3 Probe 2:Tf39:Apple
+GPU Fabric Block 3 Probe 3:Tf3A:Apple
+GPU Fabric Block 3 Probe 4:Tf3B:Apple
+GPU Fabric Block 4:Tf44:Apple
 GPU Fabric Block 4:Tf4D:M3
-GPU Fabric Block 4:Tf4E:M3
-GPU Fabric Block 4 Min:Tf45:M3
-GPU Fabric Block 4 Max:Tf46:M3
-GPU Fabric Block 4 Probe 1:Tf48:M3
-GPU Fabric Block 4 Probe 2:Tf49:M3
-GPU Fabric Block 4 Probe 3:Tf4A:M3
-GPU Fabric Block 4 Probe 4:Tf4B:M3
+GPU Fabric Block 4:Tf4E:Apple
+GPU Fabric Block 4 Min:Tf45:Apple
+GPU Fabric Block 4 Max:Tf46:Apple
+GPU Fabric Block 4 Probe 1:Tf48:Apple
+GPU Fabric Block 4 Probe 2:Tf49:Apple
+GPU Fabric Block 4 Probe 3:Tf4A:Apple
+GPU Fabric Block 4 Probe 4:Tf4B:Apple
 GPU Fabric Aggregate:Tf9F:M3
 GPU Fabric Aggregate Max:TfA0:M3
 // GPU clusters (M1-style addressing).
@@ -799,37 +839,7 @@ GPU Fabric 2:TfC1:M4
 GPU Fabric 3:TfC2:M4
 GPU Fabric 4:TfC3:M4
 GPU Fabric 5:TfC4:M4
-// M3 Max convention; min/alias slots unpopulated.
-GPU Fabric Block 0:Tf04:M4
-GPU Fabric Block 0 Max:Tf06:M4
-GPU Fabric Block 0 Probe 1:Tf08:M4
-GPU Fabric Block 0 Probe 2:Tf09:M4
-GPU Fabric Block 0 Probe 3:Tf0A:M4
-GPU Fabric Block 0 Probe 4:Tf0B:M4
-GPU Fabric Block 1:Tf14:M4
-GPU Fabric Block 1 Max:Tf16:M4
-GPU Fabric Block 1 Probe 1:Tf18:M4
-GPU Fabric Block 1 Probe 2:Tf19:M4
-GPU Fabric Block 1 Probe 3:Tf1A:M4
-GPU Fabric Block 1 Probe 4:Tf1B:M4
-GPU Fabric Block 2:Tf24:M4
-GPU Fabric Block 2 Max:Tf26:M4
-GPU Fabric Block 2 Probe 1:Tf28:M4
-GPU Fabric Block 2 Probe 2:Tf29:M4
-GPU Fabric Block 2 Probe 3:Tf2A:M4
-GPU Fabric Block 2 Probe 4:Tf2B:M4
-GPU Fabric Block 3:Tf34:M4
-GPU Fabric Block 3 Max:Tf36:M4
-GPU Fabric Block 3 Probe 1:Tf38:M4
-GPU Fabric Block 3 Probe 2:Tf39:M4
-GPU Fabric Block 3 Probe 3:Tf3A:M4
-GPU Fabric Block 3 Probe 4:Tf3B:M4
-GPU Fabric Block 4:Tf44:M4
-GPU Fabric Block 4 Max:Tf46:M4
-GPU Fabric Block 4 Probe 1:Tf48:M4
-GPU Fabric Block 4 Probe 2:Tf49:M4
-GPU Fabric Block 4 Probe 3:Tf4A:M4
-GPU Fabric Block 4 Probe 4:Tf4B:M4
+// GPU fabric blocks (Tf04-Tf4B) now covered by Apple tag in M3 section above.
 // Uncore die sensors (M4 Pro).
 Uncore Die 1:TUD0:M4
 Uncore Die 2:TUD1:M4
