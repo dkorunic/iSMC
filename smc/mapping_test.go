@@ -551,6 +551,11 @@ func Test_isValidReading(t *testing.T) {
 		{"exactly minTemp", 15.0, TempUnit, true},
 		{"plausible idle", 35.0, TempUnit, true},
 		{"plausible load", 85.0, TempUnit, true},
+		{"exactly maxTemp", 200.0, TempUnit, true},
+		{"just above maxTemp", 200.1, TempUnit, false},
+		{"unsigned ioft misdecode (issue #39, M4)", 2.8147498e14, TempUnit, false},
+		// Non-temperature units must not apply the maxTempCelsius guard.
+		{"high fan speed", 6000.0, "rpm", true},
 		// Non-temperature units must not apply the minTempCelsius guard.
 		{"low voltage", 0.9, "V", true},
 		{"small current", 0.5, "A", true},

@@ -212,7 +212,7 @@ func Test_smcBytesToUint32_bigEndianAsymmetric(t *testing.T) {
 // Test_decodeToFloat32 dispatches to the correct converter for each SMC type family.
 // It verifies that:
 //   - TypeFLT ("flt") routes through fltToFloat32 (little-endian IEEE 754)
-//   - "ioft" routes through ioftToFloat32 (48.16 LE fixed-point)
+//   - "ioft" routes through ioftToFloat32 (signed 47.16 LE fixed-point)
 //   - fp*/sp* types fall through to fpToFloat32 (big-endian fixed-point)
 //   - Unknown types return (0, false) without panicking.
 func Test_decodeToFloat32(t *testing.T) {
@@ -296,6 +296,30 @@ func Test_DecodeValue(t *testing.T) {
 	}
 }
 
+// Test_ioftToFloat32_signed verifies that ioft payloads are decoded as signed 47.16
+// fixed-point (the 64-bit analogue of Apple's signed IOFixed). The payloads are the
+// exact TR1d/TR3d bytes reported in issue #39 on an M4 MacBook Air: interpreted as
+// unsigned they explode to ~2.8e14 °C; signed they are small negative readings from
+// disconnected RF probes.
+func Test_ioftToFloat32_signed(t *testing.T) {
+	tests := []struct {
+		name     string
+		bytes    gosmc.SMCBytes
+		expected float32
+	}{
+		{"TR1d issue #39", makeBytes(0xF8, 0x3F, 0xEA, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), -21.75},
+		{"TR3d issue #39", makeBytes(0xBB, 0xFF, 0xE9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), -22.0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ioftToFloat32(tt.bytes, 8)
+			require.NoError(t, err)
+			assert.InDelta(t, tt.expected, result, 0.01, "high-byte-set ioft payloads must decode as negative, not ~2^48")
+		})
+	}
+}
+
 // Test_ioftToFloat32_divisor verifies that ioftToFloat32 uses the correct 2^16 = 65536
 // divisor (TC-4). Using a raw value of 131072 (2^17 in the 48.16 fixed-point word):
 //   - correct divisor 65536: 131072/65536 = 2.0
@@ -317,6 +341,7 @@ func Test_ioftToFloat32(t *testing.T) {
 		{"one", makeBytes(0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00), 8, 1.0, false},
 		{"zero", makeBytes(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), 8, 0.0, false},
 		{"two", makeBytes(0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00), 8, 2.0, false},
+		{"minus one", makeBytes(0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), 8, -1.0, false},
 		{"size too small", makeBytes(0x00), 1, 0.0, true},
 	}
 

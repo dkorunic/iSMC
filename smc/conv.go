@@ -112,13 +112,17 @@ func smcBytesToFloat32(x gosmc.SMCBytes, size uint32) float32 {
 	return float32(smcBytesToUint32(x, size))
 }
 
-// ioftToFloat32 converts ioft SMC type (48.16 unsigned fixed-point in LittleEndian) to float32.
+// ioftToFloat32 converts ioft SMC type (signed 47.16 fixed-point in LittleEndian, the
+// 64-bit analogue of Apple's signed IOFixed) to float32. Signedness matters: inactive
+// sensor slots report small negative values whose two's-complement payload would
+// otherwise decode to ~2^48 (issue #39, TR1d/TR3d on M4).
 func ioftToFloat32(x gosmc.SMCBytes, size uint32) (float32, error) {
 	if size < 8 {
 		return 0.0, fmt.Errorf("%w: ioft needs 8 bytes, got %d", errShortBytes, size)
 	}
 
-	res := binary.LittleEndian.Uint64(x[:8])
+	//nolint:gosec // G115: same-width reinterpretation of a signed fixed-point value; no truncation
+	res := int64(binary.LittleEndian.Uint64(x[:8]))
 
 	return float32(res) / 65536.0, nil
 }
