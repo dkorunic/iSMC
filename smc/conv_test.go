@@ -296,11 +296,9 @@ func Test_DecodeValue(t *testing.T) {
 	}
 }
 
-// Test_ioftToFloat32_signed verifies that ioft payloads are decoded as signed 47.16
-// fixed-point (the 64-bit analogue of Apple's signed IOFixed). The payloads are the
-// exact TR1d/TR3d bytes reported in issue #39 on an M4 MacBook Air: interpreted as
-// unsigned they explode to ~2.8e14 °C; signed they are small negative readings from
-// disconnected RF probes.
+// Test_ioftToFloat32_signed uses the exact TR1d/TR3d payloads from issue #39 (M4):
+// decoded unsigned they explode to ~2.8e14 °C, signed they are small negatives from
+// disconnected probes.
 func Test_ioftToFloat32_signed(t *testing.T) {
 	tests := []struct {
 		name     string

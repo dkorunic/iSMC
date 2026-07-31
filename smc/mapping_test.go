@@ -531,7 +531,7 @@ func Test_M2ProMapping(t *testing.T) {
 	}
 }
 
-// Test_isValidReading verifies the sentinel-rejection and minimum-temperature logic.
+// Test_isValidReading verifies sentinel rejection and the temperature plausibility window.
 func Test_isValidReading(t *testing.T) {
 	tests := []struct {
 		name string

@@ -17,8 +17,8 @@ import (
 const (
 	keyCount = "#KEY"
 
-	// Guards against a corrupt/spoofed #KEY; the largest observed real values
-	// are ~2300–2400 (A18: 2332, M2 Max: 2409 per OSHI/issue #37).
+	// Guards against a corrupt/spoofed #KEY; largest observed real count is
+	// ~2400 (issue #37).
 	maxKeys = 4096
 )
 
@@ -53,7 +53,6 @@ func keyAtIndex(conn uint, i uint32) (string, bool) {
 		return "", false
 	}
 
-	// Decode the uint32 key code as 4-char big-endian ASCII.
 	var b [4]byte
 
 	binary.BigEndian.PutUint32(b[:], output.Key)
@@ -90,11 +89,11 @@ func EnumerateKeys(conn uint) []string {
 	return names
 }
 
-// scanKeysByPrefix collects the contiguous key block matching prefix via binary
-// search over keyAt. It assumes ascending ASCII index order — observed on every
-// machine in internal/reports, but undocumented firmware behaviour — so a failed
-// probe or order violation returns ok=false, requiring the caller to fall back
-// to a full enumeration walk. O(log total + block length) probes.
+// scanKeysByPrefix binary-searches keyAt for the contiguous block matching
+// prefix, in O(log total + block length) probes. Ascending ASCII index order is
+// undocumented firmware behaviour (holds on all internal/reports dumps), so any
+// failed probe or order violation returns ok=false for the caller to fall back
+// on a full walk.
 func scanKeysByPrefix(total uint32, keyAt func(uint32) (string, bool), prefix string) ([]string, bool) {
 	lo, hi := uint32(0), total
 
@@ -139,9 +138,8 @@ func scanKeysByPrefix(total uint32, keyAt func(uint32) (string, bool), prefix st
 }
 
 // EnumerateKeysPrefix returns the SMC key names starting with prefix in ~30
-// IOKit round trips instead of a full ~2000-key walk. Any anomaly — failed
-// probe, order violation, empty block — degrades to filtering EnumerateKeys,
-// so unsorted firmware stays correct, just slow.
+// IOKit round trips instead of a full ~2000-key walk. Any scan anomaly degrades
+// to filtering EnumerateKeys, so unsorted firmware stays correct, just slow.
 func EnumerateKeysPrefix(conn uint, prefix string) []string {
 	if prefix == "" {
 		return EnumerateKeys(conn)

@@ -35,13 +35,11 @@ const (
 
 	TempUnit = "°C"
 
-	// Rejects firmware sentinels from inactive sensor slots (observed up to
-	// 8.425 °C, issue #37); genuine mapped readings stay ≥21 °C, so 15 has
-	// margin both ways.
+	// Floor rejecting firmware sentinels from inactive slots (≤8.425 °C
+	// observed, issue #37); genuine readings stay ≥21 °C.
 	minTempCelsius = 15.0
 
-	// Rejects implausibly hot readings from decoder/firmware bugs (issue #39:
-	// unsigned misdecode of negative ioft payloads showed ~2.8e14 °C); matches
+	// Ceiling rejecting decoder/firmware garbage (issue #39); matches
 	// rawTempMax in rawtemp.go.
 	maxTempCelsius = 200.0
 )
@@ -248,9 +246,8 @@ func getGenericSensors(conn uint, unit string, smcSlice []SensorStat) map[string
 	return generic
 }
 
-// isValidReading reports whether val is plausible for unit: near-zero and
-// negative values are rejected, and temperatures additionally must fall inside
-// the [minTempCelsius, maxTempCelsius] plausibility window.
+// isValidReading filters sentinel and garbage readings: near-zero/negative for
+// any unit, plus temperatures outside the plausibility window.
 func isValidReading(val float32, unit string) bool {
 	if val < 0.005 {
 		return false
