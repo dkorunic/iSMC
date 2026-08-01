@@ -119,6 +119,11 @@ Virtual Memory 0:TVM0:Apple
 Virtual Memory 4:TVM4:Apple
 Virtual Memory m0:TVm0:Apple
 Virtual Memory m1:TVm1:Apple
+Virtual Memory m2:TVm2:Apple
+// Per-bank hot probes; TVh1 mirrors TVmS.
+Virtual Memory h0:TVh0:Apple
+Virtual Memory h1:TVh1:Apple
+Virtual Memory h2:TVh2:Apple
 Virtual Memory Cluster:TVMC:Apple
 Virtual Ambient %:TVA%:Apple
 Virtual Sensor %:TVS%:Apple
@@ -126,6 +131,9 @@ Virtual Sensor %:TVS%:Apple
 Virtual Sensor x:TVSx:Apple
 // Virtual voltage thermal; observed on M1 Pro/Max/Ultra, M2 Max, M3, M4, M5.
 Virtual Voltage:TVV0:Apple
+// PSU diode + Thunderbolt proximity (M1 Ultra, M4 family dumps).
+Power Supply Diode:TPSD:Apple
+Thunderbolt Proximity:TT0P:Apple
 // Hex-letter slots need explicit rows.
 Power Delivery IC %:TPD%:Apple
 Power Delivery IC Max:TPDX:Apple
@@ -725,12 +733,16 @@ CPU Performance Core 6:Tp0M:M4
 CPU Performance Core 7:Tp0O:M4
 CPU Performance Core 7:Tp0P:M4
 CPU Performance Core 7:Tp0Q:M4
+// M4 base regroups Tp0U-Tp0f as triplets (0U,0V,0W)(0X,0Y,0Z)(0a,0b,0c)(0d,0e,0f);
+// Tp0Z is that grid's Core 9 max (absent on Pro). Base Core 8 max (Tp0W) is
+// unrecoverable under the shared tag - it doubles as Pro's Core 9 probe A.
 CPU Performance Core 8:Tp0S:M4
 CPU Performance Core 8:Tp0T:M4
 CPU Performance Core 8:Tp0U:M4
 CPU Performance Core 9:Tp0W:M4
 CPU Performance Core 9:Tp0X:M4
 CPU Performance Core 9:Tp0Y:M4
+CPU Performance Core 9:Tp0Z:M4
 CPU Performance Core 10:Tp0a:M4
 CPU Performance Core 10:Tp0b:M4
 CPU Performance Core 10:Tp0c:M4
@@ -895,7 +907,7 @@ SSD 11:Ts0h:M4
 SSD 11:Ts0i:M4
 // Lowercase p; distinct from TS0P/TS1P.
 SSD Proximity 1:TS0p:M4
-SSD Proximity 2:TS1p:M4
+Flash/SSD Proximity:TH0p:M4
 SSD Controller:Ts0P:M4
 // TsOP uses letter O, not digit 0.
 SSD Controller:TsOP:M4
@@ -906,8 +918,12 @@ SSD Aggregate:Tsx1:M4
 Memory 1:Tm0p:M4
 Memory 2:Tm1p:M4
 Memory 3:Tm2p:M4
+Memory B:Tm0B:M4
 // M4 Pro/Max SoC cooling probe.
 SoC Cooling Probe:TSCP:M4
+// Observed live on M4 base dumps (m4-3, m4-6).
+Ambient Proximity:Ta0p:M4
+Uncore Voltage Regulator:TUVR:M4
 // M5
 CPU Super Core 1:Tp00:M5
 CPU Super Core 2:Tp04:M5
