@@ -114,6 +114,8 @@ Virtual Memory:TVMR:Apple
 Virtual Memory r:TVMr:Apple
 Virtual Memory Summary:TVmS:Apple
 Virtual Memory Summary:TVms:Apple
+// TVMX equals TVms in every dump carrying both; folded in via last-write-wins.
+Virtual Memory Summary:TVMX:Apple
 // TVM0/TVm0/TVm1 read the same probe value; TVMC is cluster, TVM4 is hottest.
 Virtual Memory 0:TVM0:Apple
 Virtual Memory 4:TVM4:Apple
@@ -924,6 +926,9 @@ SoC Cooling Probe:TSCP:M4
 // Observed live on M4 base dumps (m4-3, m4-6).
 Ambient Proximity:Ta0p:M4
 Uncore Voltage Regulator:TUVR:M4
+// Board-level probes shared with M5 Pro; only m4-pro-3 populates them on M4.
+Power Heatsink 3:TPH3:M4
+Fabric Sensor 2:TF2S:M4
 // M5
 CPU Super Core 1:Tp00:M5
 CPU Super Core 2:Tp04:M5
@@ -1032,8 +1037,7 @@ GPU Fabric 12:TfCA:M5
 Virtual Die A:TVDA:M5
 Virtual Die G:TVDG:M5
 Virtual Die M:TVDM:M5
-Virtual Die P:TVDP:M5
-Virtual Die c:TVDc:M5
+// TVDP and TVDc mirror TVD0 ("Virtual Die 1") byte-for-byte on all M5 dumps.
 // M5 unified memory sensors.
 Memory 1:Tm00:M5
 Memory 2:Tm04:M5
@@ -1052,43 +1056,42 @@ Memory 14:Tm0j:M5
 Memory 15:Tm0m:M5
 Memory 16:Tm0p:M5
 Memory 17:Tm0u:M5
-Memory 18:Tm0y:M5
-Memory 19:Tm1E:M5
-Memory 20:Tm1I:M5
-Memory 21:Tm1M:M5
-Memory 22:Tm1Q:M5
-Memory 23:Tm1U:M5
-Memory 24:Tm1Y:M5
-Memory 25:Tm1c:M5
-Memory 26:Tm1g:M5
-Memory 27:Tm1k:M5
-Memory 28:Tm1o:M5
-Memory 29:Tm1s:M5
-Memory 30:Tm1x:M5
-Memory 31:Tm21:M5
-Memory 32:Tm25:M5
-Memory 33:Tm29:M5
-Memory 34:Tm2D:M5
-Memory 35:Tm2H:M5
-Memory 36:Tm2L:M5
-Memory 37:Tm2P:M5
-Memory 38:Tm2T:M5
-Memory 39:Tm2j:M5
-Memory 40:Tm2n:M5
+// Tm0y and Tm2T alias Tp0a (P-core 5) byte-for-byte across all four M5 dumps.
+Memory 18:Tm1E:M5
+Memory 19:Tm1I:M5
+Memory 20:Tm1M:M5
+Memory 21:Tm1Q:M5
+Memory 22:Tm1U:M5
+Memory 23:Tm1Y:M5
+Memory 24:Tm1c:M5
+Memory 25:Tm1g:M5
+Memory 26:Tm1k:M5
+Memory 27:Tm1o:M5
+Memory 28:Tm1s:M5
+Memory 29:Tm1x:M5
+Memory 30:Tm21:M5
+Memory 31:Tm25:M5
+Memory 32:Tm29:M5
+Memory 33:Tm2D:M5
+Memory 34:Tm2H:M5
+Memory 35:Tm2L:M5
+Memory 36:Tm2P:M5
+Memory 37:Tm2j:M5
+Memory 38:Tm2n:M5
 // M5 SSD slots and controllers.
 SSD 1:Ts00:M5
 SSD 2:Ts04:M5
 SSD 3:Ts08:M5
 SSD 4:Ts0C:M5
-SSD 5:Ts0G:M5
-SSD 6:Ts0K:M5
-SSD 7:Ts0O:M5
-SSD 8:Ts0R:M5
-SSD 9:Ts0U:M5
-SSD 10:Ts0X:M5
-SSD 11:Ts0a:M5
-SSD 12:Ts0d:M5
-SSD 13:Ts0g:M5
+// Ts0G aliases the Ta00-Ta0R thermal-headroom register, not an SSD probe.
+SSD 5:Ts0K:M5
+SSD 6:Ts0O:M5
+SSD 7:Ts0R:M5
+SSD 8:Ts0U:M5
+SSD 9:Ts0X:M5
+SSD 10:Ts0a:M5
+SSD 11:Ts0d:M5
+SSD 12:Ts0g:M5
 SSD Controller:Ts0P:M5
 SSD Controller:Ts1P:M5
 // M5 Max also populates TN04-TN07.
@@ -1104,6 +1107,8 @@ Package 8:TN07:M5
 Voltage Probe %:TV0%:M5
 Voltage Probe (Group 1) %:TV1%:M5
 Voltage Probe Mirror %:TVN%:M5
+// TVMN tracks max(TV11-TV13); TVNN runs exactly 1°C above it.
+Voltage Probe Max:TVMN:M5
 Voltage Probe Mirror Max:TVNN:M5
 // Uncore die sensors (M5 Pro/Max).
 Uncore Die 1:TUD0:M5
@@ -1123,6 +1128,9 @@ Uncore Die 13:TUDc:M5
 Uncore Die 14:TUDd:M5
 Uncore Die 15:TUDe:M5
 Uncore Die 16:TUDf:M5
+// Board-level probes shared with M4 Pro; live on both M5 Pro dumps.
+Power Heatsink 3:TPH3:M5
+Fabric Sensor 2:TF2S:M5
 // A18 Pro (2P+4E); M1-style P-core triplets.
 CPU Performance Core 1:Tp00:A18
 CPU Performance Core 1:Tp01:A18

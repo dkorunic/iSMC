@@ -571,3 +571,141 @@ func Test_isValidReading(t *testing.T) {
 		})
 	}
 }
+
+// m5Pro18CoreReport is a key→value snapshot captured from a real M5 Pro
+// 18-core (6 Super + 12 Performance cores) SMC report, near-idle. M5 abandons
+// the M1–M4 triplet convention: each core is a single Tp0? key at stride 4.
+//
+// The snapshot deliberately retains keys that were removed from the M5 table
+// as register aliases (Ts0G ≡ the Ta00-Ta0R headroom band; Tm0y and Tm2T ≡
+// Tp0a; TVDP and TVDc ≡ TVD0) so that re-adding any of them fails the counts
+// below. Aliasing was proven against a load dump (report-m5-pro.txt) and an
+// idle dump (report-m5-pro-2.txt) of the same machine: values that stay
+// byte-identical across a 20 °C swing are one register, not two sensors.
+var m5Pro18CoreReport = map[string]float32{
+	// ── Super cores (single-key, stride 4) ─────────────────────────────────
+	"Tp00": 37.0156, "Tp04": 36.7656, "Tp08": 37.0625, "Tp0C": 37.0156,
+	"Tp0G": 36.8594, "Tp0K": 36.5312,
+	// ── Performance cores (single-key, stride 3-4) ─────────────────────────
+	"Tp0O": 36.6094, "Tp0R": 36.2812, "Tp0U": 36.5781, "Tp0X": 36.4375,
+	"Tp0a": 36.3594, "Tp0d": 36.7656, "Tp0g": 36.3906, "Tp0j": 36.4531,
+	"Tp0m": 36.7188, "Tp0p": 36.3594, "Tp0u": 36.6719, "Tp0y": 36.6406,
+	// ── P-cluster aggregates (not per-core rows) ───────────────────────────
+	"Tp1E": 36.5469, "Tp1I": 36.4688, "Tp1Q": 36.6406, "Tp1U": 36.4531,
+	"Tp1g": 36.4219,
+	// ── Memory (Tm0y/Tm2T are Tp0a aliases; must not resolve as memory) ────
+	"Tm00": 37.3125, "Tm04": 37.3125, "Tm08": 37.3281, "Tm0C": 37.3125,
+	"Tm0G": 37.3125, "Tm0K": 37.3125, "Tm0O": 37.3125, "Tm0R": 37.3125,
+	"Tm0U": 37.3125, "Tm0X": 37.3125, "Tm0a": 37.3125, "Tm0d": 37.3125,
+	"Tm0g": 37.3125, "Tm0j": 37.3125, "Tm0m": 37.3125, "Tm0p": 37.3125,
+	"Tm0u": 37.3125, "Tm0y": 36.3594, "Tm1E": 37.3281, "Tm1I": 37.3125,
+	"Tm1M": 36.4219, "Tm1Q": 35.2344, "Tm1U": 35.0156, "Tm1Y": 36.3281,
+	"Tm1c": 36.3906, "Tm1g": 36.2812, "Tm1k": 36.1406, "Tm1o": 35.5625,
+	"Tm1s": 35.9688, "Tm1x": 35.6406, "Tm21": 35.7500, "Tm25": 36.5312,
+	"Tm29": 35.8281, "Tm2D": 35.8281, "Tm2H": 36.3906, "Tm2L": 36.7031,
+	"Tm2P": 35.8906, "Tm2T": 36.3594, "Tm2j": 36.3125, "Tm2n": 35.3438,
+	// ── SSD (Ts0G is a headroom alias; Ts0d/Ts0g are M5 Max-only) ──────────
+	"Ts00": 35.9375, "Ts04": 36.1875, "Ts08": 35.2969, "Ts0C": 35.6094,
+	"Ts0G": 36.5156, "Ts0K": 37.3281, "Ts0O": 35.7656, "Ts0P": 31.8750,
+	"Ts0R": 36.3438, "Ts0U": 35.4844, "Ts0X": 36.6875, "Ts0a": 35.5312,
+	"Ts1P": 30.1875,
+	// ── Ambient and CPU die thermal headroom ───────────────────────────────
+	"Ta00": 36.5156, "Ta04": 36.5156, "Ta08": 36.5156, "Ta0K": 36.5156,
+	"Ta0O": 36.5156, "Ta0R": 36.5156, "TaLP": 34.8285, "TaLT": 31.8066,
+	"TaLW": 31.8942, "TaRF": 35.1171, "TaRT": 31.4489, "TaRW": 31.8942,
+	"TaTP": 35.8829,
+	// ── Virtual die / voltage; TV14 is below minTempCelsius and must drop ──
+	"TVMN": 32.6900, "TVNN": 33.6900, "TVMX": 61.0000, "TVmS": 61.0000,
+	"TVms": 61.0000, "TVD0": 46.4406, "TVDA": 44.9156, "TVDG": 43.2000,
+	"TVDM": 46.1281, "TVDP": 46.4406, "TVDc": 46.4406, "TV14": 14.8061,
+	// ── Board-level probes shared with M4 Pro ──────────────────────────────
+	"TPH3": 33.8504, "TF2S": 35.7748,
+}
+
+// isNumberedRow reports whether desc is prefix followed only by an index, so
+// that "Memory 7" counts as a memory slot while "Memory Bank Proximity 3" does
+// not.
+func isNumberedRow(desc, prefix string) bool {
+	rest, ok := strings.CutPrefix(desc, prefix)
+	if !ok || rest == "" {
+		return false
+	}
+
+	_, err := strconv.Atoi(rest)
+
+	return err == nil
+}
+
+// Test_M5Pro18CoreMapping verifies that the M5 temperature definitions resolve
+// the M5 Pro 18-core snapshot to exactly 6 Super Cores and 12 Performance
+// Cores, honouring the S+P pair signature (M5 Pro/Max have no E-cores).
+//
+// It also asserts that the register aliases removed from src/temp.txt stay
+// removed: memory must resolve to 38 rows (not 40 — Tm0y/Tm2T mirror Tp0a) and
+// SSD to 10 rows (not 11 — Ts0G mirrors the thermal-headroom band; Ts0d/Ts0g
+// are M5 Max-only and legitimately absent here).
+func Test_M5Pro18CoreMapping(t *testing.T) {
+	resolved := resolveForFamily(AppleTemp, "M5", m5Pro18CoreReport)
+
+	var (
+		sCores, pCores, eCores       int
+		sCoreNames, pCoreNames       []string
+		eCoreNames, memNames, ssdSet []string
+	)
+
+	for desc := range resolved {
+		switch {
+		case strings.HasPrefix(desc, "CPU Super Core "):
+			sCores++
+
+			sCoreNames = append(sCoreNames, desc)
+		case strings.HasPrefix(desc, "CPU Performance Core "):
+			pCores++
+
+			pCoreNames = append(pCoreNames, desc)
+		case strings.HasPrefix(desc, "CPU Efficiency Core "):
+			eCores++
+
+			eCoreNames = append(eCoreNames, desc)
+		case isNumberedRow(desc, "Memory "):
+			memNames = append(memNames, desc)
+		case isNumberedRow(desc, "SSD "):
+			ssdSet = append(ssdSet, desc)
+		}
+	}
+
+	assert.Equal(t, 6, sCores,
+		"M5 Pro 18-core must resolve to exactly 6 Super Cores; got %v", sCoreNames)
+	assert.Equal(t, 12, pCores,
+		"M5 Pro 18-core must resolve to exactly 12 Performance Cores; got %v", pCoreNames)
+	assert.Equal(t, 0, eCores,
+		"M5 Pro is S+P; no Efficiency Cores may resolve; got %v", eCoreNames)
+
+	assert.Len(t, memNames, 38,
+		"Tm0y/Tm2T alias Tp0a and must not resolve as memory rows; got %v", memNames)
+	assert.Len(t, ssdSet, 10,
+		"Ts0G aliases the thermal-headroom band and must not resolve as an SSD row; got %v", ssdSet)
+
+	// No sensor may resolve below the sentinel floor (TV14 = 14.81 °C).
+	for name, entry := range resolved {
+		assert.GreaterOrEqual(t, entry.Val, float32(minTempCelsius),
+			"%s resolved below minTempCelsius (%g)", name, entry.Val)
+	}
+
+	// Each Tp0? slot belongs to exactly one core: no slot may be claimed by
+	// both a Super Core and a Performance Core row.
+	slotOwner := make(map[string]string)
+
+	for desc, entry := range resolved {
+		if !strings.HasPrefix(desc, "CPU Super Core ") &&
+			!strings.HasPrefix(desc, "CPU Performance Core ") {
+			continue
+		}
+
+		if prev, dup := slotOwner[entry.Key]; dup {
+			t.Errorf("key %s double-assigned to %q and %q", entry.Key, prev, desc)
+		}
+
+		slotOwner[entry.Key] = desc
+	}
+}
