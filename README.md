@@ -141,7 +141,3 @@ Planned features:
 ## Bugs, feature requests, etc.
 
 Please open an issue or submit a pull request.
-
-## Star history
-
-[![Star History Chart](https://star-history.dera.page/svg?repos=dkorunic/iSMC&type=Date)](https://star-history.com/#dkorunic/iSMC&Date)
