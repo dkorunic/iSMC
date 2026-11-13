@@ -414,7 +414,7 @@ var replayAllow = map[string][]string{
 	"m5-max-2": {m5Aliases},
 	"m5-pro":   {m5Aliases},
 	"m5-pro-2": {m5Aliases},
-	// Only (idle) M6 dump: 21 Tp and 9 Te keys carry generic probe labels until
-	// a loaded dump or `iSMC guess` places 2S+4P+6E. TVDC ≡ TVD0 byte-for-byte.
-	"m6": {"cores S=0", "cores P=0", noECores, "unmapped TVDC"},
+	// S- and E-cores still carry generic probe labels: `iSMC guess` placed the
+	// four P-cores only (see src/temp.txt). TVDC ≡ TVD0 byte-for-byte.
+	"m6": {"cores S=0", noECores, "unmapped TVDC"},
 }

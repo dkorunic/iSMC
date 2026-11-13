@@ -1350,16 +1350,19 @@ Virtual Die A:TVDA:M6
 Virtual Die E:TVDE:M6
 Virtual Die G:TVDG:M6
 Virtual Die P:TVDP:M6
-// One idle dump cannot place 2S+4P across 21 Tp keys or 6E across 9 Te keys
-// (all 29.6-31.8 °C); generic labels until a loaded dump or `iSMC guess`.
+// P-cores 1-4 = Tp0E/0G/0I/0L: both owner `iSMC guess` runs (v0.18.1) put them
+// in the Performance phase (Tp0I as a P-leaning cluster in one). S-cores (Tp07,
+// Tp09, Tp0g, Tp0j all candidates) and E-cores (E phase got 0 responders) are
+// still unplaced, so the remaining Tp/Te keys keep generic labels; probe
+// numbers 5-8 are left unused so the other rows keep their names.
+CPU Performance Core 1:Tp0E:M6
+CPU Performance Core 2:Tp0G:M6
+CPU Performance Core 3:Tp0I:M6
+CPU Performance Core 4:Tp0L:M6
 CPU Probe 1:Tp05:M6
 CPU Probe 2:Tp07:M6
 CPU Probe 3:Tp09:M6
 CPU Probe 4:Tp0A:M6
-CPU Probe 5:Tp0E:M6
-CPU Probe 6:Tp0G:M6
-CPU Probe 7:Tp0I:M6
-CPU Probe 8:Tp0L:M6
 CPU Probe 9:Tp0b:M6
 CPU Probe 10:Tp0d:M6
 CPU Probe 11:Tp0g:M6
