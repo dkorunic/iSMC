@@ -26,7 +26,12 @@ import (
 //	         inside the skuLayouts min–max for the SKU;
 //	collide  no description hides a hotter distinct key behind the last-written
 //	         one (last-write-wins in addGeneric);
-//	unmapped every live T* key resolves to some description.
+//	unmapped every live T* key resolves to some description;
+//	dupkey   no key in scope carries two descriptions (both rows would be
+//	         emitted, and LookupTempDesc would report only the last).
+//
+// A core whose live keys all read exactly gatedTemp is a clock-gated
+// placeholder and does not count towards cores.
 //
 // Known violations live in replayAllow; the test fails on new violations and on
 // allowlist entries that no longer fire, so the list can only shrink.
@@ -35,29 +40,10 @@ func Test_DumpReplay(t *testing.T) {
 
 	coreRe := regexp.MustCompile(`^CPU (Performance|Efficiency|Super) Core \d+$`)
 
-	files, err := filepath.Glob("../internal/reports/report-*.txt")
-	if err != nil || len(files) == 0 {
-		t.Fatalf("no dumps found: %v", err)
-	}
-
-	for _, f := range files {
-		name := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(f), "report-"), ".txt")
+	for _, d := range loadDumps(t) {
+		name, family, sku, live := d.name, d.family, d.sku, d.live
 
 		t.Run(name, func(t *testing.T) {
-			// report-<family>[-<pro|max|ultra>][-<seq>].txt
-			tok := strings.Split(name, "-")
-			family := strings.ToUpper(tok[0][:1]) + tok[0][1:]
-			sku := family
-
-			if len(tok) > 1 && slices.Contains([]string{"pro", "max", "ultra"}, tok[1]) {
-				sku += " " + strings.ToUpper(tok[1][:1]) + tok[1][1:]
-			}
-
-			if family == "A18" {
-				sku = "A18 Pro" // only A18 SKU; filename predates the convention.
-			}
-
-			live := liveTemps(t, f)
 			got := map[string]bool{}
 
 			// unmapped
@@ -80,11 +66,20 @@ func Test_DumpReplay(t *testing.T) {
 
 			last := map[string]string{}
 			hottest := map[string]float32{}
+			ungated := map[string]bool{} // description has a live key that is not gated
+			descOf := map[string]string{}
 
 			forEachKey(rows, func(key, desc string) {
+				if prev, ok := descOf[key]; ok && prev != desc {
+					got["dupkey "+key] = true
+				}
+
+				descOf[key] = desc
+
 				if v, ok := live[key]; ok {
 					last[desc] = key
 					hottest[desc] = max(hottest[desc], v)
+					ungated[desc] = ungated[desc] || v != gatedTemp
 				}
 			})
 
@@ -95,7 +90,7 @@ func Test_DumpReplay(t *testing.T) {
 					got["collide "+desc] = true
 				}
 
-				if m := coreRe.FindStringSubmatch(desc); m != nil {
+				if m := coreRe.FindStringSubmatch(desc); m != nil && ungated[desc] {
 					cores[m[1][:1]]++
 				}
 			}
@@ -143,6 +138,141 @@ func Test_DumpReplay(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// gatedTemp is the exact value clock-gated slots are pinned at: inside the
+// isValidReading window, meaningless as data.
+const gatedTemp = 40.0
+
+// dump is one internal/reports file: its platform, taken from the filename
+// (the only label a dump has), and its live temperature keys.
+type dump struct {
+	name, family, sku string
+	live              map[string]float32
+}
+
+// loadDumps reads every report-<family>[-<pro|max|ultra>][-<seq>].txt dump.
+func loadDumps(t *testing.T) []dump {
+	t.Helper()
+
+	files, err := filepath.Glob("../internal/reports/report-*.txt")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no dumps found: %v", err)
+	}
+
+	dumps := make([]dump, 0, len(files))
+
+	for _, f := range files {
+		name := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(f), "report-"), ".txt")
+		tok := strings.Split(name, "-")
+		family := strings.ToUpper(tok[0][:1]) + tok[0][1:]
+		sku := family
+
+		if len(tok) > 1 && slices.Contains([]string{"pro", "max", "ultra"}, tok[1]) {
+			sku += " " + strings.ToUpper(tok[1][:1]) + tok[1][1:]
+		}
+
+		if family == "A18" {
+			sku = "A18 Pro" // only A18 SKU; filename predates the convention.
+		}
+
+		dumps = append(dumps, dump{name: name, family: family, sku: sku, live: liveTemps(t, f)})
+	}
+
+	return dumps
+}
+
+// deadRowAllow lists rows ("KEY:Platform") that no dump reads live but that
+// other evidence supports. The M4 rows are the alternate P-core and E-core 3/4
+// scheme of the M4 Pro 14-core (m4Pro14CoreReport in mapping_test.go); every M4
+// dump here uses the Tp00-Tp0c scheme and reads these as 0 or -4.
+var deadRowAllow = "Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4 TpxC:M4 TpxD:M4 " +
+	"Tp1i:M4 Tp1j:M4 Tp1k:M4 Tp1m:M4 Tp1n:M4 Tp1o:M4 Tp1q:M4 Tp1t:M4 Tp1u:M4 Tp1v:M4 " +
+	"Tp1w:M4 Tp1x:M4 Tp1y:M4 Tp1z:M4 Tp20:M4 Tp21:M4 Tp22:M4 Tp23:M4 Tp24:M4 Tp25:M4 " +
+	"Tp26:M4 Tp27:M4 Tp28:M4 Tp29:M4 Tp2A:M4 Tp2B:M4 Tp2C:M4 Tp2D:M4 Tp2E:M4 Tp2G:M4"
+
+// Test_DumpLiveRows checks that every Apple-Silicon-tagged row reads live in at
+// least one dump its tag matches, so rows nothing supports cannot accumulate.
+// "All" and "Intel" rows are exempt: one T2 dump cannot speak for older Intel
+// hardware. Exceptions live in deadRowAllow, which fails on stale entries.
+func Test_DumpLiveRows(t *testing.T) {
+	dumps := loadDumps(t)
+	allow := map[string]bool{}
+
+	for e := range strings.FieldsSeq(deadRowAllow) {
+		allow[e] = true
+	}
+
+	for _, s := range AppleTemp {
+		if s.Platform == platformAll || s.Platform == familyIntel {
+			continue
+		}
+
+		matched, liveAny := false, false
+
+		for _, d := range dumps {
+			if !platformMatches(s.Platform, d.family, d.sku) {
+				continue
+			}
+
+			matched = true
+
+			forEachKey([]SensorStat{s}, func(key, _ string) {
+				if _, ok := d.live[key]; ok {
+					liveAny = true
+				}
+			})
+		}
+
+		id := s.Key + ":" + s.Platform
+		dead := matched && !liveAny
+
+		switch {
+		case dead && !allow[id]:
+			t.Errorf("row %q (%s) is not live in any %s dump", s.Desc, id, s.Platform)
+		case !dead && allow[id]:
+			t.Errorf("stale deadRowAllow entry, remove it: %s", id)
+		}
+
+		delete(allow, id)
+	}
+
+	for id := range allow {
+		t.Errorf("deadRowAllow entry matches no row: %s", id)
+	}
+}
+
+// Test_SensorRowLint catches typos the generator passes through silently: a
+// platform tag that matches no known family or SKU yields a row that never
+// loads, and a malformed key one that never reads.
+func Test_SensorRowLint(t *testing.T) {
+	tags := map[string]bool{platformAll: true, familyApple: true, familyIntel: true}
+
+	for _, sku := range platform.SKUs() {
+		family, _, _ := strings.Cut(sku, " ")
+		tags[sku], tags[family] = true, true
+
+		if _, ok := platform.LookupSKULayout(family); ok {
+			tags[family+skuBase] = true
+		}
+	}
+
+	for _, s := range AppleTemp {
+		if !tags[s.Platform] {
+			t.Errorf("temp row %q (%s): unknown platform tag %q", s.Desc, s.Key, s.Platform)
+		}
+	}
+
+	for name, rows := range map[string][]SensorStat{
+		"temp": AppleTemp, "power": ApplePower, "voltage": AppleVoltage, "current": AppleCurrent,
+	} {
+		for _, s := range rows {
+			if len(s.Key) != 4 || s.Desc == "" || strings.Count(s.Key, KeyWildcard) > 1 ||
+				strings.Contains(s.Key, KeyWildcard) != strings.Contains(s.Desc, KeyWildcard) {
+				t.Errorf("%s row %q: malformed key %q or wildcard mismatch", name, s.Desc, s.Key)
+			}
+		}
 	}
 }
 
@@ -211,7 +341,7 @@ const (
 	// Tp0y/z/10 ("Core 9"): third < probe B in all five M3 dumps, loaded or idle.
 	m3Core9 = "collide CPU Performance Core 9"
 	// Only Te04/Te0R triplets are live on M4 Pro/Max (Tpx8-D read 0 in all four
-	// dumps); no other key carries per-E-core data.
+	// dumps, see deadRowAllow); no other key carries per-E-core data.
 	m4ProMaxE = "cores E=2"
 	// Register aliases removed from src/temp.txt: TVDP/TVDc ≡ TVD0, Tm0y/Tm2T ≡
 	// Tp0a, Ts0G ≡ the Ta00-Ta0R band (see Test_M5Pro18CoreMapping).
@@ -220,7 +350,7 @@ const (
 
 // replayAllow lists the violations Test_DumpReplay currently tolerates, keyed
 // by dump name (report-<name>.txt). Entries are "cores <T>=<n>",
-// "collide <description>" or "unmapped <key> [<key>...]".
+// "collide <description>", "dupkey <key>" or "unmapped <key> [<key>...]".
 var replayAllow = map[string][]string{
 	// Intel T2 Tc/Te/Th/Tp/Ts a/b/x/z quads, Apple-tagged virtual keys and the SSD
 	// controllers: no Intel-family reference to label them with confidence.
@@ -264,11 +394,15 @@ var replayAllow = map[string][]string{
 	"m4-4": {"unmapped T5SP TH0T TVMh TVMm"},
 	"m4-5": {"unmapped T5SP TH0T TVMh TVMm"},
 	// Tg2I/Tg3K read exactly 4.00 °C below Tg2H/Tg3J in the only M4 Max dump
-	// (Tg0K/L too); cannot tell which of each pair is the max.
-	"m4-max":   {m4ProMaxE, "collide GPU 28", "collide GPU 34", "unmapped TB0p TBBp TI0p TPMp TPSp TR5p TSVL"},
-	"m4-pro":   {m4ProMaxE, "unmapped TVMx TVXX TVXh TVXm TVxx"},
-	"m4-pro-2": {m4ProMaxE, "unmapped TVMx TVXX TVXh TVXm TVxx"},
-	"m4-pro-3": {m4ProMaxE, "unmapped TVMx TVXX TVXh TVxx"},
+	// (Tg0K/L too); cannot tell which of each pair is the max. Every P-core
+	// triplet, TCMb and TCMz are pinned at gatedTemp: the P-core mapping is
+	// unverified until a loaded M4 Max dump exists.
+	"m4-max": {m4ProMaxE, "cores P=0", "collide GPU 28", "collide GPU 34", "unmapped TB0p TBBp TI0p TPMp TPSp TR5p TSVL"},
+	"m4-pro": {m4ProMaxE, "unmapped TVMx TVXX TVXh TVXm TVxx"},
+	// Idle dumps: all ten P-core triplets are parked at gatedTemp (51 keys);
+	// report-m4-pro.txt is the dump that verifies the M4 Pro P-core mapping.
+	"m4-pro-2": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVXm TVxx"},
+	"m4-pro-3": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVxx"},
 	"m5-max":   {m5Aliases},
 	"m5-max-2": {m5Aliases},
 	"m5-pro":   {m5Aliases},

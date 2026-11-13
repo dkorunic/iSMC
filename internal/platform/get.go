@@ -20,6 +20,8 @@ import "C"
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"sync"
 	"unsafe"
@@ -130,6 +132,12 @@ func LookupSKULayout(cpu string) (SKULayout, bool) {
 	layout, ok := skuLayouts[cpu]
 
 	return layout, ok
+}
+
+// SKUs returns every Product.CPU that has a roster entry, in no particular
+// order. Exposed so tests can derive the set of valid platform tags.
+func SKUs() []string {
+	return slices.Collect(maps.Keys(skuLayouts))
 }
 
 // GetTotalCPU returns the total physical and logical CPU counts via the

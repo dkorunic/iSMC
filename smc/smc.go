@@ -35,8 +35,11 @@ const (
 
 	TempUnit = "°C"
 
-	// Floor rejecting firmware sentinels from inactive slots (≤8.425 °C
-	// observed, issue #37); genuine readings stay ≥21 °C.
+	// Floor rejecting firmware sentinels from inactive slots (issue #37). The
+	// margin is thin on both sides: junk reaches 14.81 °C (TV14, M5 Pro) and
+	// genuine probes go down to 16.7 °C (TD02, M1 Pro in a cool room), so
+	// machines in a room below ~15 °C lose real sensors. Recheck against
+	// internal/reports before moving it.
 	minTempCelsius = 15.0
 
 	// Ceiling rejecting decoder/firmware garbage (issue #39); matches

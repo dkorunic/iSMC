@@ -14,16 +14,17 @@ CPU Core %:TC%c:All
 CPU Core %:TC%C:All
 GPU Diode %:TG%D:All
 GPU AMD Radeon:TGDD:All
-GPU Heatsink %:TG%H:All
+GPU Heatsink %:TG%H:Intel
 GPU Proximity %:TG%P:All
 GPU Sensor %:TG%S:All
 GPU Die %:TG%T:All
-// Aliased: TG0B ≈ TG0V ≈ TG1B/2B; TG0C runs cooler.
-GPU Probe A %:TG%A:All
-GPU Probe B %:TG%B:All
-GPU Probe C %:TG%C:All
-GPU Probe V %:TG%V:All
-Memory Bank Proximity %:Tm%P:All
+// Intel-only: on Apple Silicon TG%B/C/H/V are battery sensors (see Apple section)
+// and Tm2P is an M5 memory slot.
+GPU Probe A %:TG%A:Intel
+GPU Probe B %:TG%B:Intel
+GPU Probe C %:TG%C:Intel
+GPU Probe V %:TG%V:Intel
+Memory Bank Proximity %:Tm%P:Intel
 Memory Proximity %:TM%P:All
 Memory Slot %:TM%S:All
 Memory Virtual %:TM%V:All
@@ -90,6 +91,13 @@ Thunderbolt Left Proximity:TaLT:Apple
 Thunderbolt Right Proximity:TaRT:Apple
 Airflow Left Wall:TaLW:Apple
 Airflow Right Wall:TaRW:Apple
+// TG0B/TG0V = TB0T, TG1B = TB1T, TG2B = TB2T within 0.1 °C in every laptop dump;
+// TG0C/TG0H read the same value truncated. Letter meaning unknown. TG0A: A18 only.
+Battery Gas Gauge A %:TG%A:Apple
+Battery Gas Gauge B %:TG%B:Apple
+Battery Gas Gauge C %:TG%C:Apple
+Battery Gas Gauge H %:TG%H:Apple
+Battery Gas Gauge V %:TG%V:Apple
 // Mac Studio 4-corner zones; distinct from TaL*/TaR* above.
 Airflow Front Left:TaFL:Apple
 Airflow Front Right:TaFR:Apple
