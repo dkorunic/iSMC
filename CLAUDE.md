@@ -73,8 +73,8 @@ All sensor data is returned as `map[string]any` where each entry contains `"key"
 ### Output System
 
 `internal/output/` implements the `Output` interface with four backends selected via `-o` flag:
-- `table` — pretty table (default, uses `go-pretty`)
-- `ascii` — plain ASCII table
+- `table` — default. `tableoutput.go` prints lipgloss tables when piped or when they fit the terminal; otherwise `tuioutput.go` opens a scrollable Bubble Tea view: one tab per category, rows flowing newspaper-style into as many side-by-side columns as the width fits (each page is one lipgloss table, one cell per row group). Charm libs are v2 under `charm.land/…`, not `github.com/charmbracelet/…`.
+- `ascii` — same `TableOutput` with `isASCII`: ASCII borders, no colour, never interactive
 - `json` — JSON
 - `influx` — InfluxDB line protocol
 

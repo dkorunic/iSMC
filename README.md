@@ -72,12 +72,14 @@ Each command also accepts short and long aliases: `bat`/`batt`/`battery`, `cur`/
 
 ### Output formats
 
-| Format   | Description                       |
-| -------- | --------------------------------- |
-| `table`  | Coloured terminal table (default) |
-| `ascii`  | Plain ASCII table                 |
-| `json`   | JSON                              |
-| `influx` | InfluxDB line protocol            |
+| Format   | Description                                                     |
+| -------- | --------------------------------------------------------------- |
+| `table`  | Coloured terminal table, scrollable when it overflows (default) |
+| `ascii`  | Plain ASCII table                                               |
+| `json`   | JSON                                                            |
+| `influx` | InfluxDB line protocol                                          |
+
+When `table` output is longer than the terminal, it opens a full-screen view that flows rows into as many side-by-side columns as the terminal width fits: `↑`/`↓` (or `j`/`k`) scroll, `PgUp`/`PgDn` page, `g`/`G` jump to top/bottom, `←`/`→` or `Tab` switch category, `q` quits. Piped or short output prints plain tables instead.
 
 ## Architecture
 
