@@ -9,8 +9,10 @@ import (
 	"cmp"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -43,6 +45,25 @@ var (
 	headerStyle = lipgloss.NewStyle().Bold(true).Foreground(accentColor).Padding(0, 1)
 	cellStyle   = lipgloss.NewStyle().Padding(0, 1)
 	borderStyle = lipgloss.NewStyle().Foreground(mutedColor)
+
+	warmStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow
+	hotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))            // red
+	criticalStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("9")) // bright red
+)
+
+// Temperature levels in °C. Apple Silicon and Intel CPUs throttle around
+// 100–105 °C, so "critical" means at or near the throttle point.
+const (
+	tempWarm     = 70.0
+	tempHot      = 85.0
+	tempCritical = 100.0
+)
+
+// Fan levels as a fraction of the same fan's maximum speed. A fan at maximum
+// is working hard, not failing, so fans never reach "critical".
+const (
+	fanWarm = 0.6
+	fanHot  = 0.85
 )
 
 // section is one titled table: a sensor category and its rendered rows.
@@ -129,11 +150,84 @@ func isNumeric(v string) bool {
 	return v != "" && v[0] >= '0' && v[0] <= '9'
 }
 
+// colorize paints each value cell by how close the reading is to its limit:
+// temperatures against fixed levels, fan speeds against the same fan's maximum.
+// Power, voltage and current have no generic limit and stay plain. It runs
+// after appendSection's alignment; widths ignore the ANSI codes it adds.
+func colorize(secs []section) {
+	for _, s := range secs {
+		byDesc := make(map[string]string, len(s.rows))
+		for _, r := range s.rows {
+			byDesc[r[0]] = r[2]
+		}
+
+		for _, r := range s.rows {
+			if st, ok := severity(r[0], r[2], byDesc); ok {
+				r[2] = st.Render(r[2])
+			}
+		}
+	}
+}
+
+// severity returns the style for one reading, or false when it is normal or
+// has no known limit. byDesc maps the section's descriptions to their values.
+func severity(desc, value string, byDesc map[string]string) (lipgloss.Style, bool) {
+	v, unit, ok := reading(value)
+	if !ok {
+		return lipgloss.Style{}, false
+	}
+
+	switch unit {
+	case "°C":
+		return levelStyle(v, tempWarm, tempHot, tempCritical)
+	case "rpm":
+		for _, sfx := range []string{" Current Speed", " Target Speed"} {
+			if fan, found := strings.CutSuffix(desc, sfx); found {
+				if maxRPM, _, ok := reading(byDesc[fan+" Maximum Speed"]); ok && maxRPM > 0 {
+					return levelStyle(v/maxRPM, fanWarm, fanHot, math.Inf(1))
+				}
+			}
+		}
+	}
+
+	return lipgloss.Style{}, false
+}
+
+// levelStyle maps v onto the warm/hot/critical styles by its thresholds.
+func levelStyle(v, warm, hot, critical float64) (lipgloss.Style, bool) {
+	switch {
+	case v >= critical:
+		return criticalStyle, true
+	case v >= hot:
+		return hotStyle, true
+	case v >= warm:
+		return warmStyle, true
+	default:
+		return lipgloss.Style{}, false
+	}
+}
+
+// reading splits a formatted value ("45.3 °C", " 900 rpm") into number and unit.
+func reading(value string) (float64, string, bool) {
+	f := strings.Fields(value)
+	if len(f) != 2 {
+		return 0, "", false
+	}
+
+	v, err := strconv.ParseFloat(f[0], 64)
+
+	return v, f[1], err == nil
+}
+
 // show prints secs statically, or opens the scrollable view when the writer and
 // stdin are a terminal and the static form would not fit on screen.
 func (to TableOutput) show(secs []section) {
 	if len(secs) == 0 {
 		return
+	}
+
+	if !to.isASCII {
+		colorize(secs)
 	}
 
 	static := to.renderStatic(secs)

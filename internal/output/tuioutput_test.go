@@ -196,3 +196,25 @@ func TestTableOutput_CategoryOrder(t *testing.T) {
 
 	assert.Equal(t, []string{"Temperature", "Power", "Fans", "Voltage", "Current", "Battery"}, titles)
 }
+
+// Coloured values keep every line of the scrollable view the same width:
+// column sizing must ignore the ANSI codes colorize adds.
+func TestTUIModel_ColoredAlignment(t *testing.T) {
+	secs := appendSection(nil, "Temperature", map[string]any{
+		"CPU Core 1": sensor("Tp01", "112.25 °C"),
+		"CPU Core 2": sensor("Tp05", "45.5 °C"),
+		"GPU 1":      sensor("Tg05", "88.0 °C"),
+	})
+	colorize(secs)
+
+	assert.Contains(t, secs[0].rows[0][2], "\x1b[", "112.25 °C must be coloured")
+	assert.NotContains(t, secs[0].rows[1][2], "\x1b[", "45.5 °C must stay plain")
+
+	m, _ := newTUIModel(secs).Update(tea.WindowSizeMsg{Width: 80, Height: 12})
+	lines := strings.Split(m.View().Content, "\n")
+	table := lines[1 : len(lines)-1] // between the tab bar and the help line
+
+	for _, l := range table {
+		assert.Equal(t, lipgloss.Width(table[0]), lipgloss.Width(l), "misaligned line %q", l)
+	}
+}

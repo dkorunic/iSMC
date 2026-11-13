@@ -169,3 +169,40 @@ func getASCIITpl(title ...string) string {
 
 	return out.String()
 }
+
+func TestSeverity(t *testing.T) {
+	t.Parallel()
+
+	fans := map[string]string{"Fan 1 Maximum Speed": "2000 rpm"}
+
+	tests := []struct {
+		desc, value string
+		want        any // nil means no colour
+	}{
+		{"CPU", "69.9 °C", nil},
+		{"CPU", "70 °C", warmStyle},
+		{"CPU", "85.0 °C", hotStyle},
+		{"CPU", "100.0 °C", criticalStyle},
+		{"Fan 1 Current Speed", "1100 rpm", nil},
+		{"Fan 1 Current Speed", "1200 rpm", warmStyle},
+		{"Fan 1 Target Speed", "1900 rpm", hotStyle},
+		{"Fan 1 Current Speed", "4000 rpm", hotStyle}, // fans never go critical
+		{"Fan 1 Maximum Speed", "2000 rpm", nil},      // the limit itself stays plain
+		{"Fan 2 Current Speed", "1900 rpm", nil},      // no maximum known
+		{"PSTR", "250.0 W", nil},
+		{"Mac Model", "Mac Studio (M1 Ultra)", nil},
+	}
+
+	for _, tt := range tests {
+		st, ok := severity(tt.desc, tt.value, fans)
+		if tt.want == nil {
+			assert.False(t, ok, "%s %q must stay plain", tt.desc, tt.value)
+
+			continue
+		}
+
+		if assert.True(t, ok, "%s %q must be coloured", tt.desc, tt.value) {
+			assert.Equal(t, tt.want, st, "%s %q", tt.desc, tt.value)
+		}
+	}
+}

@@ -81,6 +81,8 @@ Each command also accepts short and long aliases: `bat`/`batt`/`battery`, `cur`/
 
 When `table` output is longer than the terminal, it opens a scrollable view that fills the terminal and flows rows into as many side-by-side columns as the terminal width fits: `↑`/`↓` (or `j`/`k`) scroll, `PgUp`/`PgDn` page, `g`/`G` jump to top/bottom, `←`/`→` or `Tab` switch category, `q` quits and leaves the last screen in your scrollback. Piped or short output prints plain tables instead; use `-o ascii` or pipe the output for unattended runs.
 
+In a terminal, `table` colours values by how high they are: temperatures turn yellow from 70 °C, red from 85 °C and bold bright red from 100 °C (around where CPUs throttle); fan speeds turn yellow from 60% and red from 85% of that fan's maximum. Power, voltage and current have no generic limit and stay uncoloured.
+
 ## Architecture
 
 `iSMC` reads sensors through two hardware paths and unifies them at the output layer:
