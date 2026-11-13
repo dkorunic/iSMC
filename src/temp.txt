@@ -1325,10 +1325,9 @@ Virtual Ambient C:TVAC:M5 Base
 Virtual Ambient O:TVAO:M5 Base
 Virtual Sensor G0:TVG0:M5 Base
 Airflow Left Rear:TaLR:M5 Base
-// M6 (2S+4P+6E). Source: SiliconScope#84 (Mac18,5, 0.1 °C values, no raw
-// bytes, idle), not a dump. Only key families whose meaning is fixed across
-// Apple Silicon; Tp*/Te* cores, the Ta0O-Ta0h band and TVN* await iSMC raw.
-// TVDC/TVDP mirror TVD0, as TVDP/TVDc do on M5.
+// M6 (2S+4P+6E). report-m6.txt (Mac18,5, idle, no gated keys) confirms every
+// row SiliconScope#84 listed. TVDC mirrors TVD0 byte-for-byte; TVDP does not
+// (39.95 vs 40.04 °C).
 Power Delivery IC 27:TPDG:M6
 Power Delivery IC 28:TPDH:M6
 Power Delivery IC 29:TPDI:M6
@@ -1349,6 +1348,61 @@ GPU Fabric 5:TfCD:M6
 Virtual Die A:TVDA:M6
 Virtual Die E:TVDE:M6
 Virtual Die G:TVDG:M6
+Virtual Die P:TVDP:M6
+// One idle dump cannot place 2S+4P across 21 Tp keys or 6E across 9 Te keys
+// (all 29.6-31.8 °C); generic labels until a loaded dump or `iSMC guess`.
+CPU Probe 1:Tp05:M6
+CPU Probe 2:Tp07:M6
+CPU Probe 3:Tp09:M6
+CPU Probe 4:Tp0A:M6
+CPU Probe 5:Tp0E:M6
+CPU Probe 6:Tp0G:M6
+CPU Probe 7:Tp0I:M6
+CPU Probe 8:Tp0L:M6
+CPU Probe 9:Tp0b:M6
+CPU Probe 10:Tp0d:M6
+CPU Probe 11:Tp0g:M6
+CPU Probe 12:Tp0j:M6
+CPU Probe 13:Tp0m:M6
+CPU Probe 14:Tp0o:M6
+CPU Probe 15:Tp0r:M6
+CPU Probe 16:Tp0t:M6
+CPU Probe 17:Tp0u:M6
+CPU Probe 18:Tp0w:M6
+CPU Probe 19:Tp0x:M6
+CPU Probe 20:Tp0y:M6
+CPU Probe 21:Tp0z:M6
+CPU Efficiency Probe 1:Te07:M6
+CPU Efficiency Probe 2:Te08:M6
+CPU Efficiency Probe 3:Te09:M6
+CPU Efficiency Probe 4:Te0c:M6
+CPU Efficiency Probe 5:Te0e:M6
+CPU Efficiency Probe 6:Te0f:M6
+CPU Efficiency Probe 7:Te0g:M6
+CPU Efficiency Probe 8:Te0h:M6
+CPU Efficiency Probe 9:Te0i:M6
+// Ta0O-Ta0h read one value byte-for-byte, as the M5 Ta band does.
+CPU Die Thermal Headroom:Ta0O:M6
+CPU Die Thermal Headroom:Ta0P:M6
+CPU Die Thermal Headroom:Ta0Q:M6
+CPU Die Thermal Headroom:Ta0S:M6
+CPU Die Thermal Headroom:Ta0T:M6
+CPU Die Thermal Headroom:Ta0V:M6
+CPU Die Thermal Headroom:Ta0b:M6
+CPU Die Thermal Headroom:Ta0c:M6
+CPU Die Thermal Headroom:Ta0e:M6
+CPU Die Thermal Headroom:Ta0f:M6
+CPU Die Thermal Headroom:Ta0g:M6
+CPU Die Thermal Headroom:Ta0h:M6
+// No TV0% keys on M6, so TVN% is not a mirror here. TVNS is the max of
+// TVN0/TVN1 on M6 and base M5, with a different winner on each.
+Voltage Probe %:TVN%:M6
+Voltage Probe Summary:TVNS:M6
+Voltage Probe Summary:TVNS:M5 Base
+// Single-dump keys of unknown meaning; labels follow neighbouring keys.
+Drive Bay Proximity S:THSP:M6
+Uncore Voltage S:TUVS:M6
+System Controller B:TSCB:M6
 // Ts00-Ts08 are contiguous on M6, unlike the stride-4 M5 slots.
 SSD 1:Ts00:M6
 SSD 2:Ts01:M6

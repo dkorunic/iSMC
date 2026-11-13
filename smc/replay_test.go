@@ -303,6 +303,8 @@ func liveTemps(t *testing.T, path string) map[string]float32 {
 // Shared allowlist fragments; each names keys a dump exposes but that cannot be
 // labelled honestly from the dumps alone.
 const (
+	// No live, ungated E-core row: M2 Pro/Max (no E mapping) and M6 (generic labels).
+	noECores = "cores E=0"
 	// Clock-gated placeholders pinned at exactly 40.00 °C in both M3 Max dumps.
 	m3MaxGated = "unmapped Tp1g Tp1h Tp1i Tp1o Tp1p Tp1q Tp1x Tp1y Tp1z Tp25 Tp26 Tp27 Tp29 Tp2A " +
 		"Tp2B Tp2H Tp2I Tp2J Tp2P Tp2Q Tp2R Tp2X Tp2Y Tp2Z Tp2f Tp2g Tp2h Tp2j Tp2k Tp2l " +
@@ -358,10 +360,10 @@ var replayAllow = map[string][]string{
 	"m1-ultra": {"unmapped TB0p TB1p TIDP TMVC TSVL Tc01 Tc02 Tc05 Tc06"},
 	// Every Tp0* key reads a sentinel (0-8.4 °C) in the only dump; Te04-06 is a
 	// single E-cluster aggregate.
-	"m2-max": {"cores E=0", "cores P=0"},
+	"m2-max": {noECores, "cores P=0"},
 	// Four E-cores share the Te04-06 cluster aggregate; Tp0a/b/c third < probe B
 	// (documented cluster aggregate); TaMP/Th1H unknown, single dump.
-	"m2-pro": {"cores E=0", "collide CPU Performance Cluster Aggregate 1", "unmapped TaMP Th1H"},
+	"m2-pro": {noECores, "collide CPU Performance Cluster Aggregate 1", "unmapped TaMP Th1H"},
 	// Loaded dump: cluster 3 mixes Tp16-18 with Tp3S/T where Tp3T ≡ Tp10.
 	"m3-max": {m3MaxP, m3Core9, "collide CPU Performance Cluster 3", m3Aliases, m3MaxVirtual, m3MaxGated},
 	// Idle dump: third-of-triplet < probe B on most P triplets, so last-write
@@ -394,11 +396,14 @@ var replayAllow = map[string][]string{
 	"m4-pro-2": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVXm TVxx"},
 	"m4-pro-3": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVxx"},
 	// Only four Te keys exist; E-cores 5-6 are among the generic "CPU Probe" Tp
-	// slots, which the only (idle) base M5 dump cannot place. TVNS ≡ TVN0 and
-	// TVC0 ≡ TVD0 byte-for-byte; TVMS is unknown, as on M4.
-	"m5":       {"cores E=4", "unmapped TVC0 TVMS TVNS"},
+	// slots, which the only (idle) base M5 dump cannot place. TVC0 ≡ TVD0
+	// byte-for-byte; TVMS is unknown, as on M4.
+	"m5":       {"cores E=4", "unmapped TVC0 TVMS"},
 	"m5-max":   {m5Aliases},
 	"m5-max-2": {m5Aliases},
 	"m5-pro":   {m5Aliases},
 	"m5-pro-2": {m5Aliases},
+	// Only (idle) M6 dump: 21 Tp and 9 Te keys carry generic probe labels until
+	// a loaded dump or `iSMC guess` places 2S+4P+6E. TVDC ≡ TVD0 byte-for-byte.
+	"m6": {"cores S=0", "cores P=0", noECores, "unmapped TVDC"},
 }
