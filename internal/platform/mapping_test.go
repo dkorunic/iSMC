@@ -159,6 +159,8 @@ func Test_productFromBrand(t *testing.T) {
 		{"Apple M4", "M4", "M4", true},
 		{"Apple M1 Ultra", "M1", "M1 Ultra", true},
 		{"Apple A18 Pro", "A18", "A18 Pro", true},
+		{"Apple M4 (Virtual)", "M4", "M4", true},
+		{"Apple M5 Max (Virtual)", "M5", "M5 Max", true},
 		{"Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz", "", "", false},
 		{"Apple processor", "", "", false},
 		{"", "", "", false},
@@ -169,6 +171,7 @@ func Test_productFromBrand(t *testing.T) {
 		assert.Equal(t, tt.ok, ok, tt.brand)
 		assert.Equal(t, tt.family, p.Family, tt.brand)
 		assert.Equal(t, tt.cpu, p.CPU, tt.brand)
+		assert.Empty(t, p.Name, "brand fallback must not invent a model name: %s", tt.brand)
 	}
 }
 

@@ -52,7 +52,7 @@ type section struct {
 }
 
 // TableOutput renders sensors as tables. The coloured mode (-o table) opens a
-// scrollable full-screen view (tuioutput.go) when stdout and stdin are a
+// scrollable, terminal-high view (tuioutput.go) when stdout and stdin are a
 // terminal and the tables are taller than it; otherwise it prints static
 // tables, so piped output and short listings behave like a plain CLI. The ASCII
 // mode (-o ascii) always prints static, uncoloured tables with ASCII borders.
@@ -121,9 +121,10 @@ func appendSection(secs []section, name string, smcdata map[string]any) []sectio
 	return append(secs, section{title: name, rows: rows})
 }
 
-// isNumeric reports whether v reads as a number ("45.5 °C", "-1.2 A", "20").
+// isNumeric reports whether v reads as a number ("45.5 °C", "-1.2 A", "20",
+// " 900 rpm" as fans format it with %4.0f).
 func isNumeric(v string) bool {
-	v = strings.TrimPrefix(v, "-")
+	v = strings.TrimPrefix(strings.TrimLeft(v, " "), "-")
 
 	return v != "" && v[0] >= '0' && v[0] <= '9'
 }
@@ -159,6 +160,22 @@ func (to TableOutput) show(secs []section) {
 	}
 }
 
+// newTable returns a table with the given border, border style and header
+// style; body cells use cellStyle. Both the static tables and the scrollable
+// view build on it, so they cannot drift apart.
+func newTable(border lipgloss.Border, borders, header lipgloss.Style) *lgtable.Table {
+	return lgtable.New().
+		Border(border).
+		BorderStyle(borders).
+		StyleFunc(func(row, _ int) lipgloss.Style {
+			if row == lgtable.HeaderRow {
+				return header
+			}
+
+			return cellStyle
+		})
+}
+
 // renderStatic renders every section as a bordered table under a centred title.
 func (to TableOutput) renderStatic(secs []section) string {
 	border, borders, title, header := lipgloss.RoundedBorder(), borderStyle, titleStyle, headerStyle
@@ -169,19 +186,7 @@ func (to TableOutput) renderStatic(secs []section) string {
 	var b strings.Builder
 
 	for _, s := range secs {
-		t := lgtable.New().
-			Border(border).
-			BorderStyle(borders).
-			Headers(tableHeaders...).
-			Rows(s.rows...).
-			StyleFunc(func(row, _ int) lipgloss.Style {
-				if row == lgtable.HeaderRow {
-					return header
-				}
-
-				return cellStyle
-			}).
-			String()
+		t := newTable(border, borders, header).Headers(tableHeaders...).Rows(s.rows...).String()
 
 		b.WriteString(strings.TrimRight(lipgloss.PlaceHorizontal(lipgloss.Width(t), lipgloss.Center, title.Render(s.title)), " "))
 		b.WriteString("\n")

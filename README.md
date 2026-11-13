@@ -79,7 +79,7 @@ Each command also accepts short and long aliases: `bat`/`batt`/`battery`, `cur`/
 | `json`   | JSON                                                            |
 | `influx` | InfluxDB line protocol                                          |
 
-When `table` output is longer than the terminal, it opens a full-screen view that flows rows into as many side-by-side columns as the terminal width fits: `↑`/`↓` (or `j`/`k`) scroll, `PgUp`/`PgDn` page, `g`/`G` jump to top/bottom, `←`/`→` or `Tab` switch category, `q` quits. Piped or short output prints plain tables instead.
+When `table` output is longer than the terminal, it opens a scrollable view that fills the terminal and flows rows into as many side-by-side columns as the terminal width fits: `↑`/`↓` (or `j`/`k`) scroll, `PgUp`/`PgDn` page, `g`/`G` jump to top/bottom, `←`/`→` or `Tab` switch category, `q` quits and leaves the last screen in your scrollback. Piped or short output prints plain tables instead; use `-o ascii` or pipe the output for unattended runs.
 
 ## Architecture
 

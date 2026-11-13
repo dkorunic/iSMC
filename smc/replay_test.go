@@ -11,12 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 
 	"github.com/dkorunic/iSMC/gosmc"
 	"github.com/dkorunic/iSMC/internal/platform"
+	"github.com/dkorunic/iSMC/internal/reports"
 )
 
 // Test_DumpReplay replays every internal/reports dump through the production
@@ -56,13 +56,7 @@ func Test_DumpReplay(t *testing.T) {
 			}
 
 			// Replay addGeneric order: last live key written per description.
-			var rows []SensorStat
-
-			for _, s := range AppleTemp {
-				if platformMatches(s.Platform, family, sku) {
-					rows = append(rows, s)
-				}
-			}
+			rows := rowsFor(AppleTemp, family, sku)
 
 			last := map[string]string{}
 			hottest := map[string]float32{}
@@ -165,17 +159,7 @@ func loadDumps(t *testing.T) []dump {
 
 	for _, f := range files {
 		name := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(f), "report-"), ".txt")
-		tok := strings.Split(name, "-")
-		family := strings.ToUpper(tok[0][:1]) + tok[0][1:]
-		sku := family
-
-		if len(tok) > 1 && slices.Contains([]string{"pro", "max", "ultra"}, tok[1]) {
-			sku += " " + strings.ToUpper(tok[1][:1]) + tok[1][1:]
-		}
-
-		if family == "A18" {
-			sku = "A18 Pro" // only A18 SKU; filename predates the convention.
-		}
+		family, sku := reports.PlatformFromFilename(filepath.Base(f))
 
 		dumps = append(dumps, dump{name: name, family: family, sku: sku, live: liveTemps(t, f)})
 	}

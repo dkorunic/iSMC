@@ -74,17 +74,25 @@ var getProduct = sync.OnceValues(func() (Product, bool) {
 })
 
 // productFromBrand derives Family and CPU from an Apple Silicon brand string
-// ("Apple M3 Max" → "M3", "M3 Max"). Intel brand strings return false so callers
-// keep their GOARCH fallback.
+// ("Apple M3 Max" → "M3", "M3 Max"). Only a Pro/Max/Ultra token extends the
+// SKU, so a suffix such as "(Virtual)" still yields a SKU that matches temp.txt
+// tags and skuLayouts. Name and Year stay empty: the brand string carries no
+// model name. Intel brand strings return false so callers keep their GOARCH
+// fallback.
 func productFromBrand(brand string) (Product, bool) {
-	cpu, ok := strings.CutPrefix(brand, "Apple ")
-	family, _, _ := strings.Cut(cpu, " ")
+	rest, ok := strings.CutPrefix(brand, "Apple ")
+	fields := strings.Fields(rest)
 
-	if !ok || len(family) < 2 || family[1] < '0' || family[1] > '9' {
+	if !ok || len(fields) == 0 || len(fields[0]) < 2 || fields[0][1] < '0' || fields[0][1] > '9' {
 		return Product{}, false
 	}
 
-	return Product{Name: "Mac (" + cpu + ")", Family: family, CPU: cpu, Year: 0}, true
+	family, cpu := fields[0], fields[0]
+	if len(fields) > 1 && slices.Contains([]string{"Pro", "Max", "Ultra"}, fields[1]) {
+		cpu += " " + fields[1]
+	}
+
+	return Product{Name: "", Family: family, CPU: cpu, Year: 0}, true
 }
 
 // GetFamily returns the CPU platform family name (e.g. "M4", "Intel") for the current hardware,

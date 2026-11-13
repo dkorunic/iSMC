@@ -41,6 +41,47 @@ func TestFamilyFromFilename(t *testing.T) {
 	}
 }
 
+func TestPlatformFromFilename(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct{ name, family, sku string }{
+		{"report-m4-pro-2.txt", "M4", "M4 Pro"},
+		{"report-m1-ultra.txt", "M1", "M1 Ultra"},
+		{"report-m5-max.txt", "M5", "M5 Max"},
+		{"report-m4-3.txt", "M4", "M4"},
+		{"report-m4.txt", "M4", "M4"},
+		{"report-a18.txt", "A18", "A18 Pro"},
+		{"report-intel-t2.txt", "Intel", "Intel"},
+		{"some-other-file.txt", "", ""},
+	}
+
+	for _, tt := range tests {
+		family, sku := PlatformFromFilename(tt.name)
+		if family != tt.family || sku != tt.sku {
+			t.Errorf("PlatformFromFilename(%q) = %q, %q; want %q, %q", tt.name, family, sku, tt.family, tt.sku)
+		}
+	}
+}
+
+// TestSKUKeys checks that SKU scoping separates SKUs of one family: an M4
+// base-only key set must not include keys seen only on M4 Pro/Max dumps.
+func TestSKUKeys(t *testing.T) {
+	t.Parallel()
+
+	base, pro, family := SKUKeys("M4"), SKUKeys("M4 Pro"), Keys("M4")
+	if len(base) == 0 || len(pro) == 0 {
+		t.Fatalf("SKUKeys: M4 %d keys, M4 Pro %d keys; want both non-empty", len(base), len(pro))
+	}
+
+	if len(base) >= len(family) {
+		t.Errorf("SKUKeys(\"M4\") has %d keys, family union %d; want fewer", len(base), len(family))
+	}
+
+	if SKUKeys("M9 Hyper") != nil {
+		t.Error("SKUKeys for an unknown SKU must be nil")
+	}
+}
+
 // TestKeysIntegration exercises the embedded reports end-to-end: every chip
 // family that has a report file in reports/ should produce a non-trivial key
 // set with at least one Tp-prefixed key (CPU performance / super cores —

@@ -331,15 +331,22 @@ func GetVoltage() map[string]any {
 // family and SKU (see platformMatches).
 func filterForPlatform(smcSlice []SensorStat) []SensorStat {
 	family, sku := resolvePlatform()
-	filteredSensors := make([]SensorStat, 0, len(smcSlice))
+
+	return rowsFor(smcSlice, family, sku)
+}
+
+// rowsFor returns the rows of smcSlice whose Platform tag accepts family and
+// sku (see platformMatches), in table order.
+func rowsFor(smcSlice []SensorStat, family, sku string) []SensorStat {
+	out := make([]SensorStat, 0, len(smcSlice))
 
 	for _, v := range smcSlice {
 		if platformMatches(v.Platform, family, sku) {
-			filteredSensors = append(filteredSensors, v)
+			out = append(out, v)
 		}
 	}
 
-	return filteredSensors
+	return out
 }
 
 // resolvePlatform returns the chip family and SKU (Product.CPU) for the current
@@ -415,11 +422,7 @@ func LookupTempDesc(key, family, sku string) (string, bool) {
 func MappedTempKeys(family, sku string) map[string]string {
 	out := make(map[string]string)
 
-	for _, s := range AppleTemp {
-		if platformMatches(s.Platform, family, sku) {
-			forEachKey([]SensorStat{s}, func(key, desc string) { out[key] = desc })
-		}
-	}
+	forEachKey(rowsFor(AppleTemp, family, sku), func(key, desc string) { out[key] = desc })
 
 	return out
 }

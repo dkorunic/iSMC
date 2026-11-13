@@ -109,11 +109,15 @@ func getHardware() map[string]any {
 
 	product, ok := platform.GetProduct()
 	if ok {
-		result["Mac Model"] = map[string]any{
-			"key":   "hw.model",
-			"value": product.Name,
-			"type":  "platform",
+		// Name is empty when the product came from the brand-string fallback.
+		if product.Name != "" {
+			result["Mac Model"] = map[string]any{
+				"key":   "hw.model",
+				"value": product.Name,
+				"type":  "platform",
+			}
 		}
+
 		result["Platform Family"] = map[string]any{
 			"key":   "hw.family",
 			"value": product.Family,

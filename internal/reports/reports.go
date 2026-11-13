@@ -14,12 +14,14 @@
 //
 //	KEY   [type]  [decoded] (bytes b0 b1 b2 b3)
 //
-// Filenames encode the family: report-<family>(-<variant>)?(-<seq>)?.txt,
-// e.g. report-m1-ultra.txt → "M1", report-m4-pro-2.txt → "M4".
+// Filenames encode the platform: report-<family>(-<variant>)?(-<seq>)?.txt,
+// e.g. report-m1-ultra.txt → family "M1", SKU "M1 Ultra"; report-m4-pro-2.txt
+// → "M4", "M4 Pro" (see PlatformFromFilename).
 package reports
 
 import (
 	"embed"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -30,6 +32,7 @@ var rawDumps embed.FS
 var (
 	parseOnce sync.Once
 	byFamily  map[string]map[string]struct{}
+	bySKU     map[string]map[string]struct{}
 )
 
 // Keys returns the union of T-prefixed SMC keys observed across every embedded
@@ -40,6 +43,15 @@ func Keys(family string) map[string]struct{} {
 	parseOnce.Do(load)
 
 	return byFamily[family]
+}
+
+// SKUKeys returns the union of T-prefixed SMC keys observed across every
+// embedded report of the given SKU (Product.CPU, e.g. "M4 Pro"), or nil when
+// no report exists for it. Callers must not mutate the returned map.
+func SKUKeys(sku string) map[string]struct{} {
+	parseOnce.Do(load)
+
+	return bySKU[sku]
 }
 
 // Families returns every family tag that has at least one embedded report.
@@ -61,6 +73,7 @@ func Families() []string {
 // cross-check reports zero observed keys for that family.
 func load() {
 	byFamily = make(map[string]map[string]struct{})
+	bySKU = make(map[string]map[string]struct{})
 
 	entries, err := rawDumps.ReadDir(".")
 	if err != nil {
@@ -72,7 +85,7 @@ func load() {
 			continue
 		}
 
-		family := familyFromFilename(e.Name())
+		family, sku := PlatformFromFilename(e.Name())
 		if family == "" {
 			continue
 		}
@@ -83,6 +96,7 @@ func load() {
 		}
 
 		ingest(byFamily, string(data), family)
+		ingest(bySKU, string(data), sku)
 	}
 }
 
@@ -114,6 +128,35 @@ func familyFromFilename(name string) string {
 	}
 
 	return strings.ToUpper(first[:1]) + first[1:]
+}
+
+// PlatformFromFilename derives the family and SKU (Product.CPU) of a report
+// from its filename. The variant token, when it is pro/max/ultra, completes the
+// SKU; anything else (a sequence number, "t2") leaves the base SKU, which is
+// spelled like the family. A18 has a single SKU, A18 Pro.
+//
+//	report-m4-pro-2.txt → "M4", "M4 Pro"
+//	report-m4-3.txt     → "M4", "M4"
+//	report-a18.txt      → "A18", "A18 Pro"
+//	report-intel-t2.txt → "Intel", "Intel"
+//
+// Returns "", "" when the filename does not follow the convention.
+func PlatformFromFilename(name string) (string, string) {
+	family := familyFromFilename(name)
+	if family == "" {
+		return "", ""
+	}
+
+	if family == "A18" {
+		return family, "A18 Pro"
+	}
+
+	tok := strings.Split(strings.TrimSuffix(strings.TrimPrefix(name, "report-"), ".txt"), "-")
+	if len(tok) > 1 && slices.Contains([]string{"pro", "max", "ultra"}, tok[1]) {
+		return family, family + " " + strings.ToUpper(tok[1][:1]) + tok[1][1:]
+	}
+
+	return family, family
 }
 
 // ingest scans body for lines that start with a 4-character T-prefixed SMC

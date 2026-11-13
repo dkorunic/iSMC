@@ -11,7 +11,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	lgtable "charm.land/lipgloss/v2/table"
 )
 
 var (
@@ -21,9 +20,11 @@ var (
 )
 
 // tuiChrome is the number of terminal lines that are not sensor rows: the tab
-// bar, the table's top border, header, header rule and bottom border, and the
-// help line.
-const tuiChrome = 6
+// bar, the table's top border, header, header rule and bottom border, the help
+// line, and one spare line. The view draws inline rather than on the alternate
+// screen, so the last frame stays in scrollback after quitting; the spare line
+// keeps a full-height frame from scrolling the terminal.
+const tuiChrome = 7
 
 // fieldGap separates the fields inside one row group, matching the two spaces
 // of cell padding between the columns of the static tables.
@@ -145,19 +146,7 @@ func (m tuiModel) View() tea.View {
 		}
 	}
 
-	page := lgtable.New().
-		Border(lipgloss.RoundedBorder()).
-		BorderStyle(borderStyle).
-		Headers(header...).
-		Rows(data...).
-		StyleFunc(func(row, _ int) lipgloss.Style {
-			if row == lgtable.HeaderRow {
-				return headerStyle
-			}
-
-			return cellStyle
-		}).
-		String()
+	page := newTable(lipgloss.RoundedBorder(), borderStyle, headerStyle).Headers(header...).Rows(data...).String()
 
 	help := fmt.Sprintf("%d-%d/%d · ↑/↓ scroll · pgup/pgdn page · g/G top/bottom",
 		off+1, min(off+cols*rows, len(s.rows)), len(s.rows))
@@ -172,7 +161,6 @@ func (m tuiModel) View() tea.View {
 		page,
 		helpStyle.Render(help+" · q quit"),
 	)))
-	v.AltScreen = true
 
 	return v
 }
@@ -200,7 +188,10 @@ func (m tuiModel) maxOffset() int {
 
 // scrolled returns the active category's offset moved by delta, clamped to its range.
 func (m tuiModel) scrolled(delta int) int {
-	return min(max(m.offsets[m.active]+delta, 0), m.maxOffset())
+	// Clamp the stored offset first: a resize may have left it past the end.
+	cur := min(m.offsets[m.active], m.maxOffset())
+
+	return min(max(cur+delta, 0), m.maxOffset())
 }
 
 // joinFields pads each field to its column width and joins them into one row

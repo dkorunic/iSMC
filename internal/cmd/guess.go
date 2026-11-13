@@ -692,8 +692,11 @@ func runGuess(_ *cobra.Command, _ []string) {
 
 	fmt.Printf("Platform : %s\n", family)
 
-	if product.CPU != "" {
+	switch {
+	case product.Name != "":
 		fmt.Printf("Model    : %s (%s)\n", product.Name, product.CPU)
+	case product.CPU != "":
+		fmt.Printf("Model    : %s\n", product.CPU)
 	}
 
 	if layoutOK {
@@ -1026,8 +1029,11 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	fmt.Println()
 	fmt.Printf("// %s (%d logical CPUs) – guessed sensor mappings\n", family, numCPU)
 
-	if product.CPU != "" {
+	switch {
+	case product.Name != "":
 		fmt.Printf("// SKU: %s (%s)\n", product.CPU, product.Name)
+	case product.CPU != "":
+		fmt.Printf("// SKU: %s\n", product.CPU)
 	}
 
 	if layoutOK {
@@ -1087,7 +1093,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 
 	detected := allDetectedKeys(results, clusterKeys)
 	printTempTxtCrosscheck(family, product.CPU, detected)
-	printReportsCrosscheck(family, detected)
+	printReportsCrosscheck(family, product.CPU, detected)
 }
 
 // allDetectedKeys returns the union of detected sensor keys across every phase
@@ -1170,15 +1176,20 @@ func printTempTxtCrosscheck(family, sku string, detected map[string]struct{}) {
 }
 
 // printReportsCrosscheck compares the detected keys against the union of keys
-// observed in reports/ for the same family. The reports represent ground-truth
+// observed in reports/ for the same SKU, matching the SKU-scoped temp.txt
+// cross-check; it falls back to the whole family when no dump of the SKU exists. The reports represent ground-truth
 // sensor presence captured from real machines, so missing detections often
 // reflect runtime conditions (e.g. GPU/SSD sensors that don't heat from a
 // CPU stress phase) rather than mapping bugs. Truly novel keys (detected this
 // run but absent from every prior dump) are worth investigating — they may be
 // new firmware additions or evidence the chip is a sub-variant we haven't
 // captured in the reports/ set yet.
-func printReportsCrosscheck(family string, detected map[string]struct{}) {
-	observed := reports.Keys(family)
+func printReportsCrosscheck(family, sku string, detected map[string]struct{}) {
+	scope, observed := sku, reports.SKUKeys(sku)
+	if len(observed) == 0 {
+		scope, observed = family, reports.Keys(family)
+	}
+
 	if len(observed) == 0 {
 		return
 	}
@@ -1213,7 +1224,7 @@ func printReportsCrosscheck(family string, detected map[string]struct{}) {
 
 	fmt.Println()
 	fmt.Printf("// %s\n", strings.Repeat("─", 72))
-	fmt.Printf("// Cross-check vs reports/ observations for %q:\n", family)
+	fmt.Printf("// Cross-check vs reports/ observations for %q:\n", scope)
 	fmt.Printf("//   detected: %d  |  observed: %d  |  matched: %d  |  novel: %d  |  silent: %d\n",
 		len(detected), len(observed), matched, len(novel), len(silent))
 
@@ -1223,7 +1234,7 @@ func printReportsCrosscheck(family string, detected map[string]struct{}) {
 		shown := min(len(novel), maxNovel)
 
 		fmt.Printf("// Detected but never seen in any %s report (showing %d of %d):\n",
-			family, shown, len(novel))
+			scope, shown, len(novel))
 
 		for _, k := range novel[:shown] {
 			fmt.Printf("//   %s\n", k)

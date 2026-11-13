@@ -82,7 +82,7 @@ func sized(t *testing.T, secs []section, width, height int) tea.Model {
 	m, _ := tea.Model(newTUIModel(secs)).Update(tea.WindowSizeMsg{Width: width, Height: height})
 	lines := strings.Split(m.View().Content, "\n")
 
-	assert.Len(t, lines, height, "view must fill the window height exactly")
+	assert.Len(t, lines, height-1, "view must fill the window but its last line")
 
 	for _, l := range lines {
 		assert.LessOrEqual(t, lipgloss.Width(l), width, "line overflows the window: %q", l)
@@ -92,7 +92,8 @@ func sized(t *testing.T, secs []section, width, height int) tea.Model {
 }
 
 // nineRows is a category of nine rows; with the test's headers one row group
-// is 31 columns wide, so an 80-column window fits two groups side by side.
+// is 31 columns wide, so an 80-column window fits two groups side by side, and
+// an 11-line window holds four rows per group.
 func nineRows() []section {
 	rows := map[string]any{}
 	for _, k := range []string{"a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9"} {
@@ -114,14 +115,14 @@ func TestTUIModel_Columns(t *testing.T) {
 		{80, "1-8/9"},  // two columns
 		{200, "1-9/9"}, // room for six, three hold every row
 	} {
-		assert.Contains(t, sized(t, nineRows(), tc.width, 10).View().Content, tc.want, "width %d", tc.width)
+		assert.Contains(t, sized(t, nineRows(), tc.width, 11).View().Content, tc.want, "width %d", tc.width)
 	}
 }
 
 // Scrolling is clamped to the last page, paging moves a whole page, and each
 // category keeps its own offset across tab switches.
 func TestTUIModel_Scroll(t *testing.T) {
-	m := sized(t, nineRows(), 40, 10)
+	m := sized(t, nineRows(), 40, 11)
 
 	m = press(m, tea.KeyPgDown)
 	assert.Contains(t, m.View().Content, "5-8/9")
@@ -145,12 +146,29 @@ func TestTUIModel_Scroll(t *testing.T) {
 	assert.IsType(t, tea.QuitMsg{}, cmd())
 }
 
-// Widening the window after scrolling to the end clamps the stored offset.
+// Widening the window after scrolling to the end clamps the stored offset,
+// and the first key press scrolls from the clamped position.
 func TestTUIModel_ResizeClamps(t *testing.T) {
-	m := press(sized(t, nineRows(), 40, 10), tea.KeyEnd)
+	m := press(sized(t, nineRows(), 40, 11), tea.KeyEnd)
+	assert.Contains(t, m.View().Content, "6-9/9")
 
-	m, _ = m.Update(tea.WindowSizeMsg{Width: 200, Height: 10})
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 11})
+	assert.Contains(t, m.View().Content, "2-9/9")
+
+	m = press(m, tea.KeyUp)
+	assert.Contains(t, m.View().Content, "1-8/9", "first up after a resize must move")
+
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 200, Height: 11})
 	assert.Contains(t, m.View().Content, "1-9/9")
+}
+
+func TestIsNumeric(t *testing.T) {
+	for v, want := range map[string]bool{
+		"45.5 °C": true, "-1.2 A": true, "20": true, " 900 rpm": true,
+		"M1 Ultra": false, "auto": false, "": false, " ": false, "-": false,
+	} {
+		assert.Equal(t, want, isNumeric(v), "%q", v)
+	}
 }
 
 // All shows categories in categoryOrder, with unlisted ones (Battery) last.
