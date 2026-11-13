@@ -113,7 +113,7 @@ var AppleTemp = []SensorStat{
 	{Key: "TSG2", Desc: "Sensor Group 2", Platform: "Apple"},
 	{Key: "TCMz", Desc: "CPU Die Max", Platform: "Apple"},
 	{Key: "TCMb", Desc: "CPU Die Average", Platform: "Apple"},
-	{Key: "TCDX", Desc: "CPU Die Aggregate", Platform: "Apple"},
+	{Key: "TCDX", Desc: "SoC Die Max", Platform: "Apple"},
 	{Key: "TVD%", Desc: "Virtual Die %", Platform: "Apple"},
 	{Key: "TVMR", Desc: "Virtual Memory", Platform: "Apple"},
 	{Key: "TVMr", Desc: "Virtual Memory r", Platform: "Apple"},

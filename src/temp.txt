@@ -118,8 +118,10 @@ Sensor Group 2:TSG2:Apple
 // CPU die/PMU peak sensors.
 CPU Die Max:TCMz:Apple
 CPU Die Average:TCMb:Apple
-// Die cluster aggregate max; present on Pro/Max/Ultra SKUs.
-CPU Die Aggregate:TCDX:Apple
+// Max over the die probes; present on Pro/Max/Ultra SKUs. On M1 it reads
+// 0.03-0.3 °C above the hottest TC group, which spans CPU, GPU and SoC areas
+// (see TCn0-3 below), so it is not CPU-only. Reads below the hottest core.
+SoC Die Max:TCDX:Apple
 // M5 hex-letter slots listed under M5 section.
 Virtual Die %:TVD%:Apple
 Virtual Memory:TVMR:Apple
