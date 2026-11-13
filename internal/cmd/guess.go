@@ -29,10 +29,13 @@ const (
 	guessSampleCount    = 3
 	guessSampleInterval = 500 * time.Millisecond
 
-	// Thermal steady-state detection: consecutive snapshots must differ by
-	// less than the epsilon on average. Sensor noise (sp78, ~0.25 °C/key)
-	// averages well below this; a cooling chip drifts well above it.
-	guessSettleEpsilon     = float32(0.25)
+	// Thermal steady-state detection: the signed mean change between
+	// consecutive snapshots (~3 s apart) must be below the epsilon. Signed, not
+	// absolute: per-key noise cancels across ~100 keys (sp78 ~0.25 °C/key →
+	// ~0.03 °C), while a cooling trend does not. An absolute mean sits at the
+	// noise level, so on low-noise flt sensors (M6) a chip still cooling by
+	// ~4 °C/min passed as settled and zeroed the following E phase.
+	guessSettleEpsilon     = float32(0.05)
 	guessSettlePollPause   = 2 * time.Second
 	guessSettleInitialWait = 20 * time.Second
 	guessSettleCooldownMax = 90 * time.Second
@@ -172,16 +175,16 @@ func (s *tempSampler) avgRawTemps(n int, interval time.Duration) map[string]floa
 	return result
 }
 
-// meanAbsDelta returns the mean absolute per-key difference between two
-// temperature snapshots over their common keys, or 0 when no keys are shared.
-func meanAbsDelta(a, b map[string]float32) float32 {
+// meanDelta returns the signed mean per-key change from snapshot a to b over
+// their common keys (negative while cooling), or 0 when no keys are shared.
+func meanDelta(a, b map[string]float32) float32 {
 	var sum float64
 
 	n := 0
 
 	for k, av := range a {
 		if bv, ok := b[k]; ok {
-			sum += math.Abs(float64(av - bv))
+			sum += float64(bv - av)
 			n++
 		}
 	}
@@ -205,7 +208,7 @@ func (s *tempSampler) settledTemps(maxWait time.Duration) map[string]float32 {
 		time.Sleep(guessSettlePollPause)
 
 		cur := s.avgRawTemps(2, guessSampleInterval)
-		if meanAbsDelta(prev, cur) < guessSettleEpsilon {
+		if math.Abs(float64(meanDelta(prev, cur))) < float64(guessSettleEpsilon) {
 			return cur
 		}
 
@@ -213,6 +216,60 @@ func (s *tempSampler) settledTemps(maxWait time.Duration) map[string]float32 {
 	}
 
 	return prev
+}
+
+// reportDeltas returns deltaTemps(base, hot) and prints the responder count.
+// With no responders it also prints the raw change range, which tells a phase
+// that barely warmed (small positive max) from one measured against a
+// still-cooling baseline (negative max).
+func reportDeltas(base, hot map[string]float32) map[string]float32 {
+	deltas := deltaTemps(base, hot)
+
+	fmt.Printf("  →  %d sensor(s) responded\n", len(deltas))
+
+	if len(deltas) == 0 {
+		if lo, hi, ok := deltaRange(base, hot); ok {
+			fmt.Printf("     raw change %+.2f°C (%s) .. %+.2f°C (%s), mean %+.2f°C\n",
+				lo.d, lo.key, hi.d, hi.key, meanDelta(base, hot))
+		}
+	}
+
+	return deltas
+}
+
+// keyDelta is one sensor's change between two snapshots.
+type keyDelta struct {
+	key string
+	d   float32
+}
+
+// deltaRange returns the smallest and largest per-key change from base to hot,
+// ties broken by key for stable output; ok is false when no keys are shared.
+func deltaRange(base, hot map[string]float32) (keyDelta, keyDelta, bool) {
+	var lo, hi keyDelta
+
+	ok := false
+
+	for k, b := range base {
+		h, found := hot[k]
+		if !found {
+			continue
+		}
+
+		d := keyDelta{key: k, d: h - b}
+
+		if !ok || d.d < lo.d || (d.d == lo.d && k < lo.key) {
+			lo = d
+		}
+
+		if !ok || d.d > hi.d || (d.d == hi.d && k < hi.key) {
+			hi = d
+		}
+
+		ok = true
+	}
+
+	return lo, hi, ok
 }
 
 // deltaTemps returns sensors in hot that exceed the corresponding baseline value
@@ -531,7 +588,9 @@ func rebalanceToLayout(perPhase [][][]string, results []phaseResult, layout plat
 			}
 
 			src = i
-		case len(perPhase[i]) < expMin:
+		// A phase with no responders failed to load its tier; filling it
+		// would invent cores (M6 E phase: 0 responders, 5 Te keys moved in).
+		case len(perPhase[i]) < expMin && len(r.deltas) > 0:
 			if dst >= 0 {
 				return nil, 0, 0
 			}
@@ -778,11 +837,7 @@ func runStressPhase(s *tempSampler, threads, qosClass int, baseline map[string]f
 
 	close(done)
 
-	deltas := deltaTemps(baseline, hot)
-
-	fmt.Printf("  →  %d sensor(s) responded\n", len(deltas))
-
-	return deltas
+	return reportDeltas(baseline, hot)
 }
 
 // runGuess implements the guess subcommand.
@@ -911,11 +966,7 @@ func runGPUPhase(s *tempSampler, baseline map[string]float32) map[string]float32
 
 	stop()
 
-	deltas := deltaTemps(baseline, hot)
-
-	fmt.Printf("  →  %d sensor(s) responded\n", len(deltas))
-
-	return deltas
+	return reportDeltas(baseline, hot)
 }
 
 // A key is GPU-tier when its GPU-phase rise is at least gpuDominanceRatio × its

@@ -144,3 +144,44 @@ func TestRebalanceToLayout_MeanNotSum(t *testing.T) {
 		t.Errorf("moved %v, want the Tp08 E-core", moved)
 	}
 }
+
+// TestRebalanceToLayout_SkipsEmptyPhase: a phase with no responders (M6 E phase)
+// failed to load its tier, so rebalancing must not fill it with other cores.
+func TestRebalanceToLayout_SkipsEmptyPhase(t *testing.T) {
+	t.Parallel()
+
+	groups, results := m1UltraDesktopRun()
+	results[1].deltas = map[string]float32{}
+
+	perPhase := [][][]string{slices.Clone(groups), nil}
+	layout := platform.SKULayout{
+		PairSignature: platform.PairSignaturePE,
+		PCoresMin:     2, PCoresMax: 2,
+		ECoresMin: 1, ECoresMax: 1,
+		SCoresMin: 0, SCoresMax: 0,
+		GPUCoresMin: 0, GPUCoresMax: 0,
+		Dies: 1,
+	}
+
+	if moved, _, _ := rebalanceToLayout(perPhase, results, layout, groups); moved != nil {
+		t.Fatalf("moved %v into a phase with no responders, want nothing", moved)
+	}
+}
+
+// TestMeanDelta: per-key noise cancels in the signed mean, a cooling trend
+// does not, so settledTemps waits out a chip that is still cooling.
+func TestMeanDelta(t *testing.T) {
+	t.Parallel()
+
+	prev := map[string]float32{"a": 40, "b": 40, "c": 40, "d": 40}
+	noise := map[string]float32{"a": 40.25, "b": 39.75, "c": 40.25, "d": 39.75}
+	cooling := map[string]float32{"a": 39.8, "b": 39.8, "c": 39.8, "d": 39.8}
+
+	if d := meanDelta(prev, noise); d != 0 {
+		t.Errorf("noise: meanDelta = %v, want 0", d)
+	}
+
+	if d := meanDelta(prev, cooling); d > -guessSettleEpsilon {
+		t.Errorf("cooling: meanDelta = %v, want below -%v (not settled)", d, guessSettleEpsilon)
+	}
+}
