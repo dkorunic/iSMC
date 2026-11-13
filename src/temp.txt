@@ -340,13 +340,13 @@ Memory 3:Tm0A:M1
 Memory 4:Tm0C:M1
 Memory 4:Tm0D:M1
 Memory 4:Tm0E:M1
-// Die-level aggregates (M1 Pro/Max/Ultra).
+// Die-level aggregate triplet (M1 Pro/Max/Ultra); Te01 = Te00 + 13.36 in every dump.
 CPU Die 1:Te00:M1
-CPU Die 2:Te01:M1
-CPU Die 3:Te02:M1
-// M1 Ultra die 2 aggregates.
-CPU Die 4:Te20:M1
-CPU Die 5:Te21:M1
+CPU Die 1:Te01:M1
+CPU Die 1:Te02:M1
+// M1 Ultra die 2 (no Te22 in the dump).
+CPU Die 2:Te20:M1
+CPU Die 2:Te21:M1
 // SSD die sensors (M1 Pro/Max/Ultra).
 SSD 1:Ts00:M1
 SSD 1:Ts01:M1
