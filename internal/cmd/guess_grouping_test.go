@@ -8,6 +8,8 @@ package cmd
 import (
 	"slices"
 	"testing"
+
+	"github.com/dkorunic/iSMC/internal/platform"
 )
 
 func TestCharValue(t *testing.T) {
@@ -222,6 +224,27 @@ func TestGroupCoresM5SingleKey(t *testing.T) {
 		if len(g) != 1 {
 			t.Errorf("group %d: got %v, want a single key", i, g)
 		}
+	}
+}
+
+func TestGroupCoresM6SingleKey(t *testing.T) {
+	t.Parallel()
+
+	m6, ok := platform.LookupSKULayout("M6")
+	if !ok || !singleKeyLayout(m6) {
+		t.Fatalf("M6 (S+P+E) must use the single-key convention")
+	}
+
+	if m4, _ := platform.LookupSKULayout("M4"); singleKeyLayout(m4) {
+		t.Fatalf("M4 (P+E) must keep the triplet convention")
+	}
+
+	// report-m6.txt Te keys: the triplet rule turns these into 3 groups for 6
+	// E-cores (Te0e-Te0i becomes one run of five).
+	keys := []string{"Te07", "Te08", "Te09", "Te0c", "Te0e", "Te0f", "Te0g", "Te0h", "Te0i"}
+
+	if groups := groupCores(keys, true, singleKeyLayout(m6)); len(groups) != len(keys) {
+		t.Fatalf("M6: got %d core groups, want %d; sizes=%v", len(groups), len(keys), groupsOf(groups))
 	}
 }
 

@@ -1235,6 +1235,18 @@ func warnAbsentTypes(l platform.SKULayout, results []phaseResult, perPhase [][][
 	}
 }
 
+// singleKeyLayout reports whether the SKU exposes one sensor key per core (M5
+// and later: S+E, S+P, S+P+E) rather than M1-M4 style probe triplets. On M6 the
+// triplet rule would merge Te0e-Te0i into one core and Tp0w-Tp0z into another.
+func singleKeyLayout(l platform.SKULayout) bool {
+	switch l.PairSignature {
+	case platform.PairSignatureSE, platform.PairSignatureSP, platform.PairSignatureSPE:
+		return true
+	default:
+		return false
+	}
+}
+
 // printMapping analyses N-phase delta results and emits a src/temp.txt-style mapping.
 // Core-eligible sensors are grouped by series and per-core index structure over
 // the union of all phases, then each group is assigned to the phase with the
@@ -1251,9 +1263,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 ) {
 	appleSilicon := family != "Intel"
 	tePerCore := family != "M1" && family != "M2"
-	singleKey := layoutOK &&
-		(layout.PairSignature == platform.PairSignatureSE ||
-			layout.PairSignature == platform.PairSignatureSP)
+	singleKey := layoutOK && singleKeyLayout(layout)
 
 	allKeys := make(map[string]struct{})
 
