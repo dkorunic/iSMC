@@ -206,6 +206,8 @@ func getFans(c uint) map[string]any {
 	}
 
 	for i := range val {
+		addFanMode(c, fans, i)
+
 		for _, v := range AppleFans {
 			key := fmt.Sprintf(v.Key, i)
 			desc := fmt.Sprintf(v.Desc, i+1)
@@ -226,6 +228,61 @@ func getFans(c uint) map[string]any {
 	}
 
 	return fans
+}
+
+// Fan mode keys: F%dMd on M1-M4, lowercase F%dmd on M5 Max. Ftst ("force
+// test") is the switch fan-control tools set on some M1-M4 Macs to take fans
+// from thermalmonitord; it is absent elsewhere (M1 Ultra, M5 Max).
+const (
+	fanModeKey      = "F%dMd"
+	fanModeKeyLower = "F%dmd"
+	fanForceTestKey = "Ftst"
+)
+
+// addFanMode adds "Fan N Mode" for fan i, showing whether macOS or a
+// fan-control tool drives it, and the Ftst switch once, when the Mac has it.
+func addFanMode(c uint, fans map[string]any, i uint32) {
+	for _, tpl := range []string{fanModeKey, fanModeKeyLower} {
+		key := fmt.Sprintf(tpl, i)
+
+		v, t, err := getKeyUint32(c, key)
+		if err == nil {
+			fans[fmt.Sprintf("Fan %d Mode", i+1)] = map[string]any{"key": key, "value": fanModeName(v), "type": t}
+
+			break
+		}
+	}
+
+	if i != 0 {
+		return
+	}
+
+	v, t, err := getKeyUint32(c, fanForceTestKey)
+	if err != nil {
+		return
+	}
+
+	state := "off"
+	if v != 0 {
+		state = "on"
+	}
+
+	fans["Fan Force Test"] = map[string]any{"key": fanForceTestKey, "value": state, "type": t}
+}
+
+// fanModeName names a fan mode value: 0 auto (macOS), 1 manual (a fan-control
+// tool holds the fan), 3 system. Unknown values are shown as numbers.
+func fanModeName(v uint32) string {
+	switch v {
+	case 0:
+		return "auto"
+	case 1:
+		return "manual"
+	case 3:
+		return "system"
+	default:
+		return strconv.FormatUint(uint64(v), 10)
+	}
 }
 
 // getGenericSensors reads smcSlice over conn, expanding wildcard (%) keys to

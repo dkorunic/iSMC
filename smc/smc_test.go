@@ -388,3 +388,13 @@ func Test_MappedTempKeys_familyIsolation(t *testing.T) {
 		t.Errorf("MappedTempKeys(M3)[Tp1E] = (%q, %v), want (\"CPU Performance Core 7\", true)", d, ok)
 	}
 }
+
+func Test_fanModeName(t *testing.T) {
+	t.Parallel()
+
+	for v, want := range map[uint32]string{0: "auto", 1: "manual", 3: "system", 2: "2", 5: "5"} {
+		if got := fanModeName(v); got != want {
+			t.Errorf("fanModeName(%d) = %q, want %q", v, got, want)
+		}
+	}
+}
