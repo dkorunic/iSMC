@@ -168,7 +168,7 @@ Power Delivery IC 23:TPDg:Apple
 Power Delivery IC 24:TPDh:Apple
 Power Delivery IC 25:TPDi:Apple
 Power Delivery IC 26:TPDj:Apple
-// TRDa-f explicit; TRDA-F unobserved.
+// TRDa-f explicit; uppercase TRDA-G only on M6 (rows in the M6 section).
 RF Delivery %:TRD%:Apple
 RF Delivery Max:TRDX:Apple
 RF Delivery 11:TRDa:Apple
@@ -1319,6 +1319,59 @@ Virtual Ambient C:TVAC:M5 Base
 Virtual Ambient O:TVAO:M5 Base
 Virtual Sensor G0:TVG0:M5 Base
 Airflow Left Rear:TaLR:M5 Base
+// M6 (2S+4P+6E). Source: SiliconScope#84 (Mac18,5, 0.1 °C values, no raw
+// bytes, idle), not a dump. Only key families whose meaning is fixed across
+// Apple Silicon; Tp*/Te* cores, the Ta0O-Ta0h band and TVN* await iSMC raw.
+// TVDC/TVDP mirror TVD0, as TVDP/TVDc do on M5.
+Power Delivery IC 27:TPDG:M6
+Power Delivery IC 28:TPDH:M6
+Power Delivery IC 29:TPDI:M6
+Power Delivery IC 30:TPDJ:M6
+Power Delivery IC 31:TPDK:M6
+Power Delivery IC 32:TPDL:M6
+Power Delivery IC 33:TPDM:M6
+Power Delivery IC 34:TPDN:M6
+RF Delivery 21:TRDA:M6
+RF Delivery 22:TRDC:M6
+RF Delivery 23:TRDE:M6
+RF Delivery 24:TRDF:M6
+RF Delivery 25:TRDG:M6
+Package 1:TN00:M6
+Package 2:TN01:M6
+GPU Fabric 2:TfC1:M6
+GPU Fabric 5:TfCD:M6
+Virtual Die A:TVDA:M6
+Virtual Die E:TVDE:M6
+Virtual Die G:TVDG:M6
+// Ts00-Ts08 are contiguous on M6, unlike the stride-4 M5 slots.
+SSD 1:Ts00:M6
+SSD 2:Ts01:M6
+SSD 3:Ts02:M6
+SSD 4:Ts03:M6
+SSD 5:Ts04:M6
+SSD 6:Ts05:M6
+SSD 7:Ts06:M6
+SSD 8:Ts07:M6
+SSD 9:Ts08:M6
+// One row per Tg key, as on M5: the number is a slot, not a GPU core.
+GPU 1:Tg01:M6
+GPU 2:Tg07:M6
+GPU 3:Tg08:M6
+GPU 4:Tg09:M6
+GPU 5:Tg0a:M6
+GPU 6:Tg0b:M6
+GPU 7:Tg0c:M6
+GPU 8:Tg0d:M6
+GPU 9:Tg10:M6
+GPU 10:Tg17:M6
+GPU 11:Tg1a:M6
+GPU 12:Tg1b:M6
+GPU 13:Tg1c:M6
+GPU 14:Tg1d:M6
+GPU 15:Tg1e:M6
+GPU 16:Tg1f:M6
+GPU 17:Tg1g:M6
+GPU 18:Tg1h:M6
 // A18 Pro (2P+4E); M1-style P-core triplets.
 CPU Performance Core 1:Tp00:A18
 CPU Performance Core 1:Tp01:A18
