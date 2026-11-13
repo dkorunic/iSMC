@@ -54,17 +54,17 @@ var skuLayouts = map[string]SKULayout{
 	"M3 Ultra": {PCoresMin: 20, PCoresMax: 24, ECoresMin: 8, ECoresMax: 8, GPUCoresMin: 60, GPUCoresMax: 80, PairSignature: PairSignaturePE, Dies: 2},
 
 	// M4 family — P+E
-	"M4":     {PCoresMin: 3, PCoresMax: 4, ECoresMin: 4, ECoresMax: 6, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignaturePE, Dies: 1},
+	"M4":     {PCoresMin: 4, PCoresMax: 4, ECoresMin: 4, ECoresMax: 6, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignaturePE, Dies: 1},
 	"M4 Pro": {PCoresMin: 8, PCoresMax: 10, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 16, GPUCoresMax: 20, PairSignature: PairSignaturePE, Dies: 1},
 	"M4 Max": {PCoresMin: 10, PCoresMax: 12, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 32, GPUCoresMax: 40, PairSignature: PairSignaturePE, Dies: 1},
 
 	// M5: base = S+E, Pro/Max = S+P. Don't collapse without splitting temp.txt.
-	"M5":     {SCoresMin: 3, SCoresMax: 4, ECoresMin: 6, ECoresMax: 6, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignatureSE, Dies: 1},
+	"M5":     {SCoresMin: 4, SCoresMax: 4, ECoresMin: 6, ECoresMax: 6, GPUCoresMin: 8, GPUCoresMax: 10, PairSignature: PairSignatureSE, Dies: 1},
 	"M5 Pro": {SCoresMin: 5, SCoresMax: 6, PCoresMin: 10, PCoresMax: 12, GPUCoresMin: 16, GPUCoresMax: 20, PairSignature: PairSignatureSP, Dies: 1},
 	"M5 Max": {SCoresMin: 6, SCoresMax: 6, PCoresMin: 12, PCoresMax: 12, GPUCoresMin: 32, GPUCoresMax: 40, PairSignature: PairSignatureSP, Dies: 1},
 
 	// A-series
-	"A18 Pro": {PCoresMin: 2, PCoresMax: 2, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 6, GPUCoresMax: 6, PairSignature: PairSignaturePE, Dies: 1},
+	"A18 Pro": {PCoresMin: 2, PCoresMax: 2, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 5, GPUCoresMax: 5, PairSignature: PairSignaturePE, Dies: 1},
 }
 
 // https://en.wikipedia.org/wiki/List_of_Mac_models

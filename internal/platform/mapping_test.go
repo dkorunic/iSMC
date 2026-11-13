@@ -267,11 +267,11 @@ func Test_LookupSKULayout_known(t *testing.T) {
 		// M3 Pro: variable P-count (5 or 6), 6E baseline.
 		{"M3 Pro", PairSignaturePE, 5, 6, 6, 6, 0, 0, 1, 14, 18},
 		// M5 base: S+E, no P-cores.
-		{"M5", PairSignatureSE, 0, 0, 6, 6, 3, 4, 1, 8, 10},
+		{"M5", PairSignatureSE, 0, 0, 6, 6, 4, 4, 1, 8, 10},
 		// M5 Pro: S+P, no E-cores.
 		{"M5 Pro", PairSignatureSP, 10, 12, 0, 0, 5, 6, 1, 16, 20},
 		// A18 Pro: P+E.
-		{"A18 Pro", PairSignaturePE, 2, 2, 4, 4, 0, 0, 1, 6, 6},
+		{"A18 Pro", PairSignaturePE, 2, 2, 4, 4, 0, 0, 1, 5, 5},
 	}
 
 	for _, tt := range tests {
