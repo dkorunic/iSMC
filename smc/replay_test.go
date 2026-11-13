@@ -324,7 +324,7 @@ const (
 	// Same twelve triplets on M3 Max; only 9 carry core labels (expected 10-12)
 	// and nothing in the dumps says which cluster triplets are the missing cores.
 	m3MaxP = "cores P=9"
-	// Tp0y/z/10 ("Core 9"): third < probe B in all five M3 dumps, loaded or idle.
+	// Tp0y/z/10 ("Core 9"): third < probe B in all six M3 dumps, loaded or idle.
 	m3Core9 = "collide CPU Performance Core 9"
 	// Only Te04/Te0R triplets are live on M4 Pro/Max (Tpx8-D read 0 in all four
 	// dumps, see deadRowAllow); no other key carries per-E-core data.
@@ -380,6 +380,16 @@ var replayAllow = map[string][]string{
 	"m3-pro":   {m3ProP, m3ProE, m3Core9, "collide CPU Performance Core 6", "collide CPU Performance Cluster 3", m3ProAliases, m3ProVirtual},
 	"m3-pro-2": {m3ProP, m3ProE, m3Core9, m3ProAliases, m3ProVirtual},
 	"m3-pro-3": {m3ProP, m3ProE, m3Core9, "collide CPU Performance Core 6", m3ProAliases, m3ProVirtual},
+	// Cool idle dump (MBP 14" Nov 2023): third-of-triplet < probe B on cores 1-7
+	// and cluster 1, as in m3-max-2; not a distinct sensor.
+	"m3-pro-4": {
+		m3ProP, m3ProE, m3Core9, m3ProAliases, m3ProVirtual,
+		"collide CPU Performance Cluster 1",
+		"collide CPU Performance Core 1", "collide CPU Performance Core 2",
+		"collide CPU Performance Core 3", "collide CPU Performance Core 4",
+		"collide CPU Performance Core 5", "collide CPU Performance Core 6",
+		"collide CPU Performance Core 7",
+	},
 	// Virtual-memory and misc keys with no known meaning.
 	"m4":   {"unmapped TVMS TVMh TVMm"},
 	"m4-2": {"unmapped TVMS TVMh"},
