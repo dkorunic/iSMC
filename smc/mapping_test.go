@@ -259,8 +259,10 @@ var a18ProFullReport = map[string]float32{
 // resolveForFamily replays the full SMC resolution pipeline (family filter +
 // wildcard expansion + isValidReading + last-write-wins) against a snapshot,
 // matching what addGeneric would produce during a live SMC read.
+// The platform gate is the production platformMatches, so SKU-tagged rows
+// resolve exactly as on hardware.
 // It returns a map keyed by Desc (as shown to the user) → (key, value).
-func resolveForFamily(sensors []SensorStat, family string, snapshot map[string]float32) map[string]struct {
+func resolveForFamily(sensors []SensorStat, family, sku string, snapshot map[string]float32) map[string]struct {
 	Key string
 	Val float32
 } {
@@ -269,22 +271,8 @@ func resolveForFamily(sensors []SensorStat, family string, snapshot map[string]f
 		Val float32
 	})
 
-	familyApple := strings.HasPrefix(family, "M") || strings.HasPrefix(family, "A") || family == "Apple"
-
 	for _, s := range sensors {
-		// Platform gate
-		passes := false
-
-		switch {
-		case s.Platform == "Apple" && familyApple:
-			passes = true
-		case s.Platform == "" || s.Platform == "All":
-			passes = true
-		case s.Platform == family:
-			passes = true
-		}
-
-		if !passes {
+		if !platformMatches(s.Platform, family, sku) {
 			continue
 		}
 
@@ -322,7 +310,7 @@ func resolveForFamily(sensors []SensorStat, family string, snapshot map[string]f
 // inspect the output. Also asserts invariants: 2 P-cores, 4 E-cores, no
 // sensor below minTempCelsius.
 func Test_A18ProResolvedTable(t *testing.T) {
-	resolved := resolveForFamily(AppleTemp, "A18", a18ProFullReport)
+	resolved := resolveForFamily(AppleTemp, "A18", "A18 Pro", a18ProFullReport)
 
 	// Sort descriptions for stable output.
 	names := make([]string, 0, len(resolved))
@@ -645,7 +633,7 @@ func isNumberedRow(desc, prefix string) bool {
 // SSD to 10 rows (not 11 — Ts0G mirrors the thermal-headroom band; Ts0d/Ts0g
 // are M5 Max-only and legitimately absent here).
 func Test_M5Pro18CoreMapping(t *testing.T) {
-	resolved := resolveForFamily(AppleTemp, "M5", m5Pro18CoreReport)
+	resolved := resolveForFamily(AppleTemp, "M5", "M5 Pro", m5Pro18CoreReport)
 
 	var (
 		sCores, pCores, eCores       int
@@ -708,4 +696,26 @@ func Test_M5Pro18CoreMapping(t *testing.T) {
 
 		slotOwner[entry.Key] = desc
 	}
+}
+
+// Test_M5BaseNoProCoreRows replays the M5 Pro snapshot as a base M5 (4S+6E, no
+// P-cores): the Pro/Max-only rows (Super Core 5-6, P-cores, P-clusters) must not
+// load, so a base M5 never labels its keys as Performance cores.
+func Test_M5BaseNoProCoreRows(t *testing.T) {
+	t.Parallel()
+
+	resolved := resolveForFamily(AppleTemp, "M5", "M5", m5Pro18CoreReport)
+
+	var sCores []string
+
+	for desc := range resolved {
+		assert.False(t, strings.HasPrefix(desc, "CPU Performance "),
+			"base M5 must not resolve %q", desc)
+
+		if strings.HasPrefix(desc, "CPU Super Core ") {
+			sCores = append(sCores, desc)
+		}
+	}
+
+	assert.Len(t, sCores, 4, "base M5 has 4 Super Cores; got %v", sCores)
 }

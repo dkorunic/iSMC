@@ -802,7 +802,7 @@ CPU Performance Core 9:Tp0Y:M4 Max
 CPU Performance Core 10:Tp0a:M4 Max
 CPU Performance Core 10:Tp0b:M4 Max
 CPU Performance Core 10:Tp0c:M4 Max
-// M4 base (3-4 P-cores) shows eight Tp triplets with the same B = A + 8.8 °C
+// M4 base (4 P-cores) shows eight Tp triplets with the same B = A + 8.8 °C
 // shape: Tp00-Tp0E above plus (0U,0V,0W)(0X,0Y,0Z)(0a,0b,0c)(0d,0e,0f), all live
 // in the six m4* dumps. Which core the extra ones sample is unknown, so they are
 // groups, not cores; Tp0d-f stays Fabric 1 below. Tp3P = max(Tp0W, Tp0Z).
@@ -1017,28 +1017,50 @@ CPU Super Core 1:Tp00:M5
 CPU Super Core 2:Tp04:M5
 CPU Super Core 3:Tp08:M5
 CPU Super Core 4:Tp0C:M5
-CPU Super Core 5:Tp0G:M5
-CPU Super Core 6:Tp0K:M5
-CPU Performance Core 1:Tp0O:M5
-CPU Performance Core 2:Tp0R:M5
-CPU Performance Core 3:Tp0U:M5
-CPU Performance Core 4:Tp0X:M5
-CPU Performance Core 5:Tp0a:M5
-CPU Performance Core 6:Tp0d:M5
-CPU Performance Core 7:Tp0g:M5
-CPU Performance Core 8:Tp0j:M5
-CPU Performance Core 9:Tp0m:M5
-CPU Performance Core 10:Tp0p:M5
-CPU Performance Core 11:Tp0u:M5
-CPU Performance Core 12:Tp0y:M5
+// Super Cores 5-6, P-cores and P-clusters exist on M5 Pro/Max only; base M5
+// is 4S+6E (no dump yet), so these must not load there.
+CPU Super Core 5:Tp0G:M5 Pro
+CPU Super Core 6:Tp0K:M5 Pro
+CPU Performance Core 1:Tp0O:M5 Pro
+CPU Performance Core 2:Tp0R:M5 Pro
+CPU Performance Core 3:Tp0U:M5 Pro
+CPU Performance Core 4:Tp0X:M5 Pro
+CPU Performance Core 5:Tp0a:M5 Pro
+CPU Performance Core 6:Tp0d:M5 Pro
+CPU Performance Core 7:Tp0g:M5 Pro
+CPU Performance Core 8:Tp0j:M5 Pro
+CPU Performance Core 9:Tp0m:M5 Pro
+CPU Performance Core 10:Tp0p:M5 Pro
+CPU Performance Core 11:Tp0u:M5 Pro
+CPU Performance Core 12:Tp0y:M5 Pro
 // Tp12/Tp16 removed: absent in every dump.
 // 5th cluster (M5 Pro/Max has no E-cores).
-CPU Performance Cluster Aggregate:Tp1E:M5
+CPU Performance Cluster Aggregate:Tp1E:M5 Pro
 // M5 P-core cluster companion sensors.
-CPU Performance Cluster 1:Tp1I:M5
-CPU Performance Cluster 2:Tp1Q:M5
-CPU Performance Cluster 3:Tp1U:M5
-CPU Performance Cluster 4:Tp1g:M5
+CPU Performance Cluster 1:Tp1I:M5 Pro
+CPU Performance Cluster 2:Tp1Q:M5 Pro
+CPU Performance Cluster 3:Tp1U:M5 Pro
+CPU Performance Cluster 4:Tp1g:M5 Pro
+// Same rows for M5 Max.
+CPU Super Core 5:Tp0G:M5 Max
+CPU Super Core 6:Tp0K:M5 Max
+CPU Performance Core 1:Tp0O:M5 Max
+CPU Performance Core 2:Tp0R:M5 Max
+CPU Performance Core 3:Tp0U:M5 Max
+CPU Performance Core 4:Tp0X:M5 Max
+CPU Performance Core 5:Tp0a:M5 Max
+CPU Performance Core 6:Tp0d:M5 Max
+CPU Performance Core 7:Tp0g:M5 Max
+CPU Performance Core 8:Tp0j:M5 Max
+CPU Performance Core 9:Tp0m:M5 Max
+CPU Performance Core 10:Tp0p:M5 Max
+CPU Performance Core 11:Tp0u:M5 Max
+CPU Performance Core 12:Tp0y:M5 Max
+CPU Performance Cluster Aggregate:Tp1E:M5 Max
+CPU Performance Cluster 1:Tp1I:M5 Max
+CPU Performance Cluster 2:Tp1Q:M5 Max
+CPU Performance Cluster 3:Tp1U:M5 Max
+CPU Performance Cluster 4:Tp1g:M5 Max
 // Ta00-Ta0R are aliases; collapse via last-write-wins.
 CPU Die Thermal Headroom:Ta00:M5
 CPU Die Thermal Headroom:Ta04:M5
