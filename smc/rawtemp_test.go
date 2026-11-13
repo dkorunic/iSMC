@@ -15,11 +15,9 @@ import (
 // Test_RawKeyToFloat32 verifies the full type-dispatch and NaN/Inf-rejection logic of
 // RawKeyToFloat32 without requiring a live SMC connection.
 //
-// Special cases covered:
-//   - Ta0P is mislabelled as "flt" by the SMC firmware but encodes its value in sp78;
-//     the workaround in RawKeyToFloat32 must decode it via fpToFloat32("sp78",...).
-//   - TypeFLT values that decode to NaN or ±Inf must be rejected (return false), while
-//     finite values are accepted.
+// TypeFLT values that decode to NaN or ±Inf must be rejected (return false), while
+// finite values are accepted. Ta0P is decoded as its declared flt type (every
+// dump in internal/reports holds a valid little-endian float there).
 func Test_RawKeyToFloat32(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -101,18 +99,12 @@ func Test_RawKeyToFloat32(t *testing.T) {
 			wantOK: false,
 		},
 
-		// Ta0P: mislabelled flt, decoded as sp78.
 		{
-			// BE 0x1900 / 256 = 25.0.
-			name:    "Ta0P sp78 workaround",
-			key:     RawKey{Key: "Ta0P", DataType: gosmc.TypeFLT, DataSize: 2, Bytes: makeBytes(0x19, 0x00)},
-			wantVal: 25.0,
+			// 0x40C66666 LE = 6.2; an sp78 read of the same bytes would give 102.4.
+			name:    "Ta0P decoded as plain flt",
+			key:     RawKey{Key: "Ta0P", DataType: gosmc.TypeFLT, DataSize: 4, Bytes: makeBytes(0x66, 0x66, 0xC6, 0x40)},
+			wantVal: 6.2,
 			wantOK:  true,
-		},
-		{
-			name:   "Ta0P too small for sp78",
-			key:    RawKey{Key: "Ta0P", DataType: gosmc.TypeFLT, DataSize: 1, Bytes: makeBytes(0x19)},
-			wantOK: false,
 		},
 	}
 

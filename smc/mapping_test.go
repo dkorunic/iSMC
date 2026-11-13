@@ -97,11 +97,11 @@ func resolveM4Sensors(sensors []SensorStat, snapshot map[string]float32) map[str
 //     return real-looking values in the snapshot
 //   - Tp0* sentinel values (−4, 0, 2.2, 3.4 °C) do not overwrite valid readings
 func Test_M4Pro14CoreMapping(t *testing.T) {
-	// Extract only M4-tagged sensors from the generated AppleTemp table.
+	// Extract the M4 family and M4 Pro SKU rows from the generated AppleTemp table.
 	m4Sensors := make([]SensorStat, 0, 64)
 
 	for _, s := range AppleTemp {
-		if s.Platform == "M4" {
+		if s.Platform == "M4" || s.Platform == "M4 Pro" {
 			m4Sensors = append(m4Sensors, s)
 		}
 	}
@@ -418,7 +418,7 @@ func Test_A18ProMapping(t *testing.T) {
 	}
 }
 
-// m2ProReport is a representative key→value snapshot captured from report-m2.txt
+// m2ProReport is a representative key→value snapshot captured from report-m2-pro.txt
 // (M2 Pro, 8 P-cores + 4 E-cores). Per-E-core sensors are not exposed individually
 // on this SKU; the four E-cores share one Te04/05/06 cluster-aggregate triplet.
 // Tp0a/0b/0c violates third-is-max (third value 35.77 < probe-B 37.02) and is

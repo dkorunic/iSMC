@@ -1,3 +1,7 @@
+// Format: Description:KEY:Platform. KEY "%" expands to 0-9 (Description "%" to 1-10).
+// Platform: "All"; "Apple" (any Apple Silicon); a family ("M4", every M4 SKU);
+// a SKU spelled as Product.CPU in internal/platform/mapping.go ("M4 Pro");
+// or "<family> Base" for the base SKU only ("M4 Base"), since "M4" means the family.
 // All
 Thermal Zone %:TZ%C:All
 CPU Diode %:TC%D:All
@@ -342,8 +346,9 @@ SSD 1:Ts02:M1
 SSD 2:Ts04:M1
 SSD 2:Ts05:M1
 SSD 2:Ts06:M1
-SSD Controller:Ts0P:M1
-SSD Controller:Ts1P:M1
+// Ts0P/Ts1P/TsOP are distinct controllers (never equal in any dump).
+SSD Controller 1:Ts0P:M1
+SSD Controller 2:Ts1P:M1
 // M1 Ultra die-2 SSD.
 SSD 3:Ts20:M1
 SSD 3:Ts21:M1
@@ -378,6 +383,37 @@ RF Delivery Die 2 19:TrDi:M1
 RF Delivery Die 2 20:TrDj:M1
 // Power-voltage probe (M1 Pro/Max and wider Apple Silicon).
 Power Probe Voltage Diode:TPVD:Apple
+// TCn0-3: groups of four die probes; 3 groups on M1 Pro, 5 on Max, 10 on Ultra.
+// TCDX tracks their max. Physical placement unknown, hence generic labels.
+CPU Die Group 1 Probe %:TC1%:M1
+CPU Die Group 2 Probe %:TC2%:M1
+CPU Die Group 3 Probe %:TC3%:M1
+CPU Die Group 4 Probe %:TC4%:M1
+CPU Die Group 5 Probe %:TC5%:M1
+CPU Die Group 6 Probe %:TC6%:M1
+CPU Die Group 7 Probe %:TC7%:M1
+CPU Die Group 8 Probe %:TC8%:M1
+CPU Die Group 9 Probe %:TC9%:M1
+CPU Die Group 10 Probe %:TCA%:M1
+// Td triplets: probe A ≡ probe B byte-for-byte, third is max (M1 Pro/Max/Ultra).
+SoC Diode Group 1:Td00:M1
+SoC Diode Group 1:Td01:M1
+SoC Diode Group 1:Td02:M1
+SoC Diode Group 2:Td04:M1
+SoC Diode Group 2:Td05:M1
+SoC Diode Group 2:Td06:M1
+SoC Diode Group 3:Td08:M1
+SoC Diode Group 3:Td09:M1
+SoC Diode Group 3:Td0A:M1
+SoC Diode Group 4:Td0C:M1
+SoC Diode Group 4:Td0D:M1
+SoC Diode Group 4:Td0E:M1
+SoC Diode Group 5:Td0G:M1
+SoC Diode Group 5:Td0H:M1
+SoC Diode Group 5:Td0I:M1
+SoC Diode Group 6:Td0K:M1
+SoC Diode Group 6:Td0L:M1
+SoC Diode Group 6:Td0M:M1
 // M2
 // M1-style Tp triplets (probe A, probe B, max); last-write-wins captures the max.
 // Tp01 ≡ TCMb and Tp02 ≡ TCMz byte-for-byte on M2 — Core 1 may coincide with the
@@ -453,8 +489,8 @@ SSD 5:Ts0a:M2
 SSD 5:Ts0b:M2
 SSD 5:Ts0c:M2
 // TsOP uses letter O, not digit 0.
-SSD Controller:Ts1P:M2
-SSD Controller:TsOP:M2
+SSD Controller 2:Ts1P:M2
+SSD Controller 3:TsOP:M2
 // M2 Max SSD; triplet convention; different addresses from M2 base.
 SSD 1:Ts0C:M2
 SSD 1:Ts0D:M2
@@ -647,8 +683,12 @@ SSD 7:Ts0Z:M3
 SSD 7:Ts0a:M3
 SSD 8:Ts0h:M3
 SSD 8:Ts0i:M3
-SSD Controller:Ts0P:M3
-SSD Controller:Ts1P:M3
+SSD Controller 1:Ts0P:M3
+SSD Controller 2:Ts1P:M3
+// M3 Pro only (all three dumps); meaning unknown, labels echo the key.
+Die Sensor ED %:TED%:M3
+Die Sensor FD %:TFD%:M3
+SoC Cooling Probe:TSCP:M3
 // M4
 // E-core cluster 1 triplet.
 CPU Efficiency Core 1:Te04:M4
@@ -735,19 +775,38 @@ CPU Performance Core 6:Tp0M:M4
 CPU Performance Core 7:Tp0O:M4
 CPU Performance Core 7:Tp0P:M4
 CPU Performance Core 7:Tp0Q:M4
-// M4 base regroups Tp0U-Tp0f as triplets (0U,0V,0W)(0X,0Y,0Z)(0a,0b,0c)(0d,0e,0f);
-// Tp0Z is that grid's Core 9 max (absent on Pro). Base Core 8 max (Tp0W) is
-// unrecoverable under the shared tag - it doubles as Pro's Core 9 probe A.
-CPU Performance Core 8:Tp0S:M4
-CPU Performance Core 8:Tp0T:M4
-CPU Performance Core 8:Tp0U:M4
-CPU Performance Core 9:Tp0W:M4
-CPU Performance Core 9:Tp0X:M4
-CPU Performance Core 9:Tp0Y:M4
-CPU Performance Core 9:Tp0Z:M4
-CPU Performance Core 10:Tp0a:M4
-CPU Performance Core 10:Tp0b:M4
-CPU Performance Core 10:Tp0c:M4
+// Cores 8-10 exist on Pro/Max only.
+CPU Performance Core 8:Tp0S:M4 Pro
+CPU Performance Core 8:Tp0T:M4 Pro
+CPU Performance Core 8:Tp0U:M4 Pro
+CPU Performance Core 9:Tp0W:M4 Pro
+CPU Performance Core 9:Tp0X:M4 Pro
+CPU Performance Core 9:Tp0Y:M4 Pro
+CPU Performance Core 10:Tp0a:M4 Pro
+CPU Performance Core 10:Tp0b:M4 Pro
+CPU Performance Core 10:Tp0c:M4 Pro
+CPU Performance Core 8:Tp0S:M4 Max
+CPU Performance Core 8:Tp0T:M4 Max
+CPU Performance Core 8:Tp0U:M4 Max
+CPU Performance Core 9:Tp0W:M4 Max
+CPU Performance Core 9:Tp0X:M4 Max
+CPU Performance Core 9:Tp0Y:M4 Max
+CPU Performance Core 10:Tp0a:M4 Max
+CPU Performance Core 10:Tp0b:M4 Max
+CPU Performance Core 10:Tp0c:M4 Max
+// M4 base (3-4 P-cores) shows eight Tp triplets with the same B = A + 8.8 °C
+// shape: Tp00-Tp0E above plus (0U,0V,0W)(0X,0Y,0Z)(0a,0b,0c)(0d,0e,0f), all live
+// in the six m4* dumps. Which core the extra ones sample is unknown, so they are
+// groups, not cores; Tp0d-f stays Fabric 1 below. Tp3P = max(Tp0W, Tp0Z).
+CPU Performance Group 1:Tp0U:M4 Base
+CPU Performance Group 1:Tp0V:M4 Base
+CPU Performance Group 1:Tp0W:M4 Base
+CPU Performance Group 2:Tp0X:M4 Base
+CPU Performance Group 2:Tp0Y:M4 Base
+CPU Performance Group 2:Tp0Z:M4 Base
+CPU Performance Group 3:Tp0a:M4 Base
+CPU Performance Group 3:Tp0b:M4 Base
+CPU Performance Group 3:Tp0c:M4 Base
 // Die-fabric probes (not cores).
 CPU Performance Fabric 1:Tp0d:M4
 CPU Performance Fabric 1:Tp0e:M4
@@ -772,7 +831,6 @@ CPU Performance Cluster 2 Die:Tpx3:M4
 CPU Performance Cluster 3 Die:Tpx4:M4
 CPU Performance Cluster 3 Die:Tpx5:M4
 // Cluster companions (M3-shared addresses).
-CPU Performance Cluster 1:Tp0V:M4
 CPU Performance Cluster 1:Tp3O:M4
 CPU Performance Cluster 1:Tp3P:M4
 CPU Performance Cluster 2:Tp3W:M4
@@ -789,29 +847,46 @@ CPU Performance Cluster Aggregate 2:Tp1G:M4
 CPU Performance Cluster Aggregate 3:Tp1Q:M4
 CPU Performance Cluster Aggregate 3:Tp1R:M4
 CPU Performance Cluster Aggregate 3:Tp1S:M4
-GPU 1:Tg0G:M4
-GPU 2:Tg0H:M4
-GPU 3:Tg0C:M4
-GPU 3:Tg0K:M4
-GPU 4:Tg0D:M4
-GPU 4:Tg0L:M4
-GPU 5:Tg0O:M4
-GPU 5:Tg0d:M4
-GPU 6:Tg0P:M4
-GPU 6:Tg0e:M4
-GPU 7:Tg0U:M4
-GPU 7:Tg0j:M4
-GPU 8:Tg0V:M4
-GPU 8:Tg0k:M4
-GPU 9:Tg0m:M4
-GPU 10:Tg0n:M4
+// M4 base: nine probe+max doublets, B = A + 5.3 °C in all six m4* dumps.
+GPU 1:Tg0C:M4 Base
+GPU 1:Tg0D:M4 Base
+GPU 2:Tg0G:M4 Base
+GPU 2:Tg0H:M4 Base
+GPU 3:Tg0K:M4 Base
+GPU 3:Tg0L:M4 Base
+GPU 4:Tg0O:M4 Base
+GPU 4:Tg0P:M4 Base
+GPU 5:Tg0U:M4 Base
+GPU 5:Tg0V:M4 Base
+GPU 6:Tg0X:M4 Base
+GPU 6:Tg0Y:M4 Base
+GPU 7:Tg0d:M4 Base
+GPU 7:Tg0e:M4 Base
+GPU 8:Tg0j:M4 Base
+GPU 8:Tg0k:M4 Base
+GPU 9:Tg0m:M4 Base
+GPU 9:Tg0n:M4 Base
+GPU 3:Tg0K:M4 Pro
+GPU 4:Tg0L:M4 Pro
+GPU 5:Tg0d:M4 Pro
+GPU 6:Tg0e:M4 Pro
+GPU 7:Tg0j:M4 Pro
+GPU 8:Tg0k:M4 Pro
+GPU 3:Tg0K:M4 Max
+GPU 4:Tg0L:M4 Max
+GPU 5:Tg0d:M4 Max
+GPU 6:Tg0e:M4 Max
+GPU 7:Tg0j:M4 Max
+GPU 8:Tg0k:M4 Max
 // M4 Pro 20-core GPU clusters.
 GPU 11:Tg04:M4
 GPU 12:Tg05:M4
 GPU 13:Tg0R:M4
 GPU 14:Tg0S:M4
-GPU 15:Tg0X:M4
-GPU 16:Tg0Y:M4
+GPU 15:Tg0X:M4 Pro
+GPU 16:Tg0Y:M4 Pro
+GPU 15:Tg0X:M4 Max
+GPU 16:Tg0Y:M4 Max
 GPU 17:Tg0y:M4
 GPU 18:Tg0z:M4
 GPU 19:Tg1E:M4
@@ -910,10 +985,10 @@ SSD 11:Ts0i:M4
 // Lowercase p; distinct from TS0P/TS1P.
 SSD Proximity 1:TS0p:M4
 Flash/SSD Proximity:TH0p:M4
-SSD Controller:Ts0P:M4
+SSD Controller 1:Ts0P:M4
 // TsOP uses letter O, not digit 0.
-SSD Controller:TsOP:M4
-SSD Controller:Ts1P:M4
+SSD Controller 3:TsOP:M4
+SSD Controller 2:Ts1P:M4
 SSD Aggregate:Tsx0:M4
 SSD Aggregate:Tsx1:M4
 // Memory sensors (M4 Max/Ultra).
@@ -1007,6 +1082,49 @@ GPU 39:Tg3l:M5
 GPU 40:Tg3t:M5
 GPU 41:Tg3x:M5
 GPU 42:Tg43:M5
+// M5 Max only (m5-max, m5-max-2); same single-key scheme, numbering continues.
+GPU 43:Tg4D:M5
+GPU 44:Tg4G:M5
+GPU 45:Tg4P:M5
+GPU 46:Tg4S:M5
+GPU 47:Tg4V:M5
+GPU 48:Tg4Y:M5
+GPU 49:Tg4b:M5
+GPU 50:Tg4e:M5
+GPU 51:Tg4h:M5
+GPU 52:Tg4k:M5
+GPU 53:Tg50:M5
+GPU 54:Tg53:M5
+GPU 55:Tg5C:M5
+GPU 56:Tg5F:M5
+GPU 57:Tg5I:M5
+GPU 58:Tg5L:M5
+GPU 59:Tg5O:M5
+GPU 60:Tg5R:M5
+GPU 61:Tg5Y:M5
+GPU 62:Tg5b:M5
+GPU 63:Tg5h:M5
+GPU 64:Tg5q:M5
+GPU 65:Tg5t:M5
+GPU 66:Tg63:M5
+GPU 67:Tg66:M5
+GPU 68:Tg69:M5
+GPU 69:Tg6C:M5
+GPU 70:Tg6F:M5
+GPU 71:Tg6I:M5
+GPU 72:Tg6L:M5
+GPU 73:Tg6O:M5
+GPU 74:Tg6e:M5
+GPU 75:Tg6h:M5
+GPU 76:Tg6q:M5
+GPU 77:Tg6t:M5
+GPU 78:Tg6w:M5
+GPU 79:Tg70:M5
+GPU 80:Tg73:M5
+GPU 81:Tg76:M5
+GPU 82:Tg7C:M5
+GPU 83:Tg7F:M5
+GPU 84:Tg7L:M5
 // Tf?6 is a static ~64°C threshold.
 GPU Fabric Block 0:Tf04:M5
 GPU Fabric Block 0 Max:Tf06:M5
@@ -1092,8 +1210,8 @@ SSD 9:Ts0X:M5
 SSD 10:Ts0a:M5
 SSD 11:Ts0d:M5
 SSD 12:Ts0g:M5
-SSD Controller:Ts0P:M5
-SSD Controller:Ts1P:M5
+SSD Controller 1:Ts0P:M5
+SSD Controller 2:Ts1P:M5
 // M5 Max also populates TN04-TN07.
 Package 1:TN00:M5
 Package 2:TN01:M5

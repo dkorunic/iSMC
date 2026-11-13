@@ -819,7 +819,7 @@ func expectedCores(l platform.SKULayout, phaseLabel string) (int, int) {
 // every other responding sensor is listed in a reference-only section so
 // package-heated SSD/GPU/heatsink/aggregate sensors no longer masquerade as
 // cores.
-func printPhase(family string, i int, r phaseResult, groups [][]string,
+func printPhase(family, sku string, i int, r phaseResult, groups [][]string,
 	layout platform.SKULayout, layoutOK, appleSilicon, tePerCore bool,
 ) {
 	if len(groups) == 0 {
@@ -832,7 +832,7 @@ func printPhase(family string, i int, r phaseResult, groups [][]string,
 				formatRange(expMin, expMax))
 		}
 	} else {
-		printCoreGroups(family, i, r.spec.label, groups)
+		printCoreGroups(family, sku, i, r.spec.label, groups)
 
 		if layoutOK {
 			printDetectionVerdict(layout, r.spec.label, len(groups))
@@ -847,13 +847,13 @@ func printPhase(family string, i int, r phaseResult, groups [][]string,
 		}
 	}
 
-	printNonCoreResponders(family, r, otherKeys)
+	printNonCoreResponders(family, sku, r, otherKeys)
 }
 
 // printCoreGroups emits the temp.txt-style mapping lines for one phase's
 // assigned core groups, numbering cores sequentially and annotating each line
 // against the canonical src/temp.txt description.
-func printCoreGroups(family string, i int, label string, groups [][]string) {
+func printCoreGroups(family, sku string, i int, label string, groups [][]string) {
 	fmt.Printf("// Phase %d (%s): %d core group(s)\n", i+1, phaseMidWord(label), len(groups))
 
 	for coreIdx, g := range groups {
@@ -864,7 +864,7 @@ func printCoreGroups(family string, i int, label string, groups [][]string) {
 
 		for _, k := range g {
 			line := fmt.Sprintf("%s %d:%s:%s", label, coreIdx+1, k, family)
-			fmt.Println(annotateLine(line, label, k, family, coreIdx+1))
+			fmt.Println(annotateLine(line, label, k, family, sku, coreIdx+1))
 		}
 	}
 }
@@ -873,7 +873,7 @@ func printCoreGroups(family string, i int, label string, groups [][]string) {
 // belong to non-core series (SSD, GPU, heatsink, die aggregates, proximity,
 // virtual). They heat through the package; labelling them as CPU cores was the
 // main source of phantom cores in earlier guess output.
-func printNonCoreResponders(family string, r phaseResult, keys []string) {
+func printNonCoreResponders(family, sku string, r phaseResult, keys []string) {
 	if len(keys) == 0 {
 		return
 	}
@@ -885,7 +885,7 @@ func printNonCoreResponders(family string, r phaseResult, keys []string) {
 
 	for _, k := range keys {
 		desc := "(unmapped)"
-		if existing, ok := smc.LookupTempDesc(k, family); ok {
+		if existing, ok := smc.LookupTempDesc(k, family, sku); ok {
 			desc = fmt.Sprintf("%q", existing)
 		}
 
@@ -902,11 +902,11 @@ func printNonCoreResponders(family string, r phaseResult, keys []string) {
 //
 // The fixed alignment column (45) keeps annotations readable even with
 // 16-core SKUs whose lines reach ~36 characters.
-func annotateLine(line, label, key, family string, coreIdx int) string {
+func annotateLine(line, label, key, family, sku string, coreIdx int) string {
 	const annotationCol = 45
 
 	guessed := fmt.Sprintf("%s %d", label, coreIdx)
-	existing, ok := smc.LookupTempDesc(key, family)
+	existing, ok := smc.LookupTempDesc(key, family, sku)
 
 	switch {
 	case !ok:
@@ -1053,7 +1053,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 
 	// Per-phase sensor sections.
 	for i, r := range results {
-		printPhase(family, i, r, perPhase[i], layout, layoutOK, appleSilicon, tePerCore)
+		printPhase(family, product.CPU, i, r, perPhase[i], layout, layoutOK, appleSilicon, tePerCore)
 	}
 
 	if layoutOK {
@@ -1077,7 +1077,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 			}
 
 			line := fmt.Sprintf("// %-6s  %s", k, strings.Join(parts, "  "))
-			if existing, ok := smc.LookupTempDesc(k, family); ok {
+			if existing, ok := smc.LookupTempDesc(k, family, product.CPU); ok {
 				fmt.Printf("%-50s ← src/temp.txt: %q\n", line, existing)
 			} else {
 				fmt.Println(line)
@@ -1086,7 +1086,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	}
 
 	detected := allDetectedKeys(results, clusterKeys)
-	printTempTxtCrosscheck(family, detected)
+	printTempTxtCrosscheck(family, product.CPU, detected)
 	printReportsCrosscheck(family, detected)
 }
 
@@ -1122,8 +1122,8 @@ func allDetectedKeys(results []phaseResult, clusterKeys []string) map[string]str
 // When silent keys exist, the first few are listed with their canonical
 // descriptions so the operator can spot-check whether they belong to a
 // no-longer-present sensor or simply did not fire in this run.
-func printTempTxtCrosscheck(family string, detected map[string]struct{}) {
-	mapped := smc.MappedTempKeys(family)
+func printTempTxtCrosscheck(family, sku string, detected map[string]struct{}) {
+	mapped := smc.MappedTempKeys(family, sku)
 	if len(mapped) == 0 {
 		return
 	}

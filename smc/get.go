@@ -34,13 +34,6 @@ func getKeyFloat32(c uint, key string) (float32, string, error) {
 
 	t := smcTypeToString(v.DataType)
 
-	// Ta0P: mislabelled flt, decode as sp78.
-	if t == gosmc.TypeFLT && key == "Ta0P" && v.DataSize >= 2 {
-		val, err := fpToFloat32("sp78", v.Bytes, v.DataSize)
-
-		return val, t, err
-	}
-
 	switch t {
 	// hex_ is decoded as an unsigned integer for now.
 	case gosmc.TypeUI8, gosmc.TypeUI16, gosmc.TypeUI32, smcTypeHex:

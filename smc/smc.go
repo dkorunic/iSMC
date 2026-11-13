@@ -50,6 +50,10 @@ const (
 	familyApple   = "Apple"
 	familyIntel   = "Intel"
 	familyUnknown = "Unknown"
+
+	// skuBase suffixes a family to tag the base SKU only ("M4 Base"), since the
+	// base SKU's Product.CPU equals the family name and "M4" means every M4 SKU.
+	skuBase = " Base"
 )
 
 // SensorStat is SMC key to description mapping.
@@ -226,24 +230,29 @@ func getFans(c uint) map[string]any {
 func getGenericSensors(conn uint, unit string, smcSlice []SensorStat) map[string]any {
 	generic := make(map[string]any)
 
-	for _, v := range smcSlice {
-		key := v.Key
-		desc := v.Desc
+	forEachKey(smcSlice, func(key, desc string) {
+		addGeneric(generic, conn, key, desc, unit)
+	})
 
-		if strings.IndexByte(key, KeyWildcard[0]) < 0 {
-			addGeneric(generic, conn, key, desc, unit)
+	return generic
+}
+
+// forEachKey calls fn for every concrete (key, description) pair in rows, in
+// row order, expanding a wildcard (%) key to indices 0–9 and its description
+// to 1–10.
+func forEachKey(rows []SensorStat, fn func(key, desc string)) {
+	for _, v := range rows {
+		if !strings.Contains(v.Key, KeyWildcard) {
+			fn(v.Key, v.Desc)
 
 			continue
 		}
 
 		for i := range 10 {
-			iKey := strings.Replace(key, KeyWildcard, strconv.Itoa(i), 1)
-			iDesc := strings.Replace(desc, KeyWildcard, strconv.Itoa(i+1), 1)
-			addGeneric(generic, conn, iKey, iDesc, unit)
+			fn(strings.Replace(v.Key, KeyWildcard, strconv.Itoa(i), 1),
+				strings.Replace(v.Desc, KeyWildcard, strconv.Itoa(i+1), 1))
 		}
 	}
-
-	return generic
 }
 
 // isValidReading filters sentinel and garbage readings: near-zero/negative for
@@ -316,14 +325,13 @@ func GetVoltage() map[string]any {
 }
 
 // filterForPlatform returns the sensors whose Platform tag matches the detected
-// family. "All"/"" always match; "Apple" matches any Apple Silicon family. Falls
-// back to runtime architecture when the model is unknown.
+// family and SKU (see platformMatches).
 func filterForPlatform(smcSlice []SensorStat) []SensorStat {
-	family := resolveFamily()
+	family, sku := resolvePlatform()
 	filteredSensors := make([]SensorStat, 0, len(smcSlice))
 
 	for _, v := range smcSlice {
-		if platformMatches(v.Platform, family) {
+		if platformMatches(v.Platform, family, sku) {
 			filteredSensors = append(filteredSensors, v)
 		}
 	}
@@ -331,40 +339,45 @@ func filterForPlatform(smcSlice []SensorStat) []SensorStat {
 	return filteredSensors
 }
 
-// resolveFamily returns the chip family for the current host, falling back to
-// the runtime architecture when platform.GetFamily cannot identify the model.
-func resolveFamily() string {
-	family := platform.GetFamily()
-	if family != "" && family != familyUnknown {
-		return family
+// resolvePlatform returns the chip family and SKU (Product.CPU) for the current
+// host, falling back to the runtime architecture with no SKU when platform
+// cannot identify the machine.
+func resolvePlatform() (string, string) {
+	if p, ok := platform.GetProduct(); ok {
+		return p.Family, p.CPU
 	}
 
 	switch runtime.GOARCH {
 	case "arm64":
-		return familyApple
+		return familyApple, ""
 	case "amd64", "386":
-		return familyIntel
+		return familyIntel, ""
 	}
 
-	return family
+	return familyUnknown, ""
 }
 
-// platformMatches reports whether a row's Platform tag accepts family. Unlike
-// filterForPlatform it takes an explicit family, enabling offline cross-checks
-// (e.g. cmd/guess against any tag). "" and "All" match anything; "Apple" matches
-// any Apple Silicon family.
-func platformMatches(rowPlatform, family string) bool {
-	if rowPlatform == "" || rowPlatform == platformAll {
+// platformMatches reports whether a row's Platform tag accepts family and sku
+// (Product.CPU, may be empty). Unlike filterForPlatform it takes them
+// explicitly, enabling offline cross-checks. "" and "All" match anything;
+// "Apple" matches any Apple Silicon family; a family tag ("M4") matches every
+// SKU of it; a SKU tag ("M4 Pro") matches that SKU; "<family> Base" matches
+// only the base SKU.
+func platformMatches(rowPlatform, family, sku string) bool {
+	switch {
+	case rowPlatform == "" || rowPlatform == platformAll || rowPlatform == family:
 		return true
-	}
-
-	if rowPlatform == familyApple {
+	case rowPlatform == familyApple:
 		return strings.HasPrefix(family, "M") ||
 			strings.HasPrefix(family, "A") ||
 			family == familyApple
+	case sku == "":
+		return false
+	case strings.HasSuffix(rowPlatform, skuBase):
+		return rowPlatform == sku+skuBase
 	}
 
-	return rowPlatform == family
+	return rowPlatform == sku
 }
 
 var (
@@ -372,17 +385,18 @@ var (
 	tempDescCache   = map[string]map[string]string{}
 )
 
-// LookupTempDesc returns the AppleTemp description for a concrete key under family,
-// matching GetTemperature's runtime resolution (last-write-wins on duplicates).
-// The per-family key→description map is built once via MappedTempKeys and cached,
-// so repeated guess-output lookups are O(1).
-func LookupTempDesc(key, family string) (string, bool) {
+// LookupTempDesc returns the AppleTemp description for a concrete key under
+// family and sku (see platformMatches), matching GetTemperature's runtime
+// resolution (last-write-wins on duplicates). The key→description map is built
+// once per platform via MappedTempKeys and cached, so repeated guess-output
+// lookups are O(1).
+func LookupTempDesc(key, family, sku string) (string, bool) {
 	tempDescCacheMu.Lock()
 
-	m, ok := tempDescCache[family]
+	m, ok := tempDescCache[family+"/"+sku]
 	if !ok {
-		m = MappedTempKeys(family)
-		tempDescCache[family] = m
+		m = MappedTempKeys(family, sku)
+		tempDescCache[family+"/"+sku] = m
 	}
 
 	tempDescCacheMu.Unlock()
@@ -392,26 +406,15 @@ func LookupTempDesc(key, family string) (string, bool) {
 	return desc, found
 }
 
-// MappedTempKeys returns every concrete temperature key in scope for family,
-// wildcards expanded to 0–9, mapped to the description GetTemperature resolves.
-func MappedTempKeys(family string) map[string]string {
+// MappedTempKeys returns every concrete temperature key in scope for family and
+// sku (see platformMatches), wildcards expanded to 0–9, mapped to the
+// description GetTemperature resolves.
+func MappedTempKeys(family, sku string) map[string]string {
 	out := make(map[string]string)
 
 	for _, s := range AppleTemp {
-		if !platformMatches(s.Platform, family) {
-			continue
-		}
-
-		if !strings.Contains(s.Key, KeyWildcard) {
-			out[s.Key] = s.Desc
-
-			continue
-		}
-
-		for i := range 10 {
-			iKey := strings.Replace(s.Key, KeyWildcard, strconv.Itoa(i), 1)
-			iDesc := strings.Replace(s.Desc, KeyWildcard, strconv.Itoa(i+1), 1)
-			out[iKey] = iDesc
+		if platformMatches(s.Platform, family, sku) {
+			forEachKey([]SensorStat{s}, func(key, desc string) { out[key] = desc })
 		}
 	}
 

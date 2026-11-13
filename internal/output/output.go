@@ -124,10 +124,13 @@ func getHardware() map[string]any {
 			"value": product.CPU,
 			"type":  "platform",
 		}
-		result["Year"] = map[string]any{
-			"key":   "hw.year",
-			"value": strconv.Itoa(product.Year),
-			"type":  "platform",
+		// Year is 0 when the product came from the brand-string fallback.
+		if product.Year > 0 {
+			result["Year"] = map[string]any{
+				"key":   "hw.year",
+				"value": strconv.Itoa(product.Year),
+				"type":  "platform",
+			}
 		}
 	}
 

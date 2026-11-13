@@ -20,6 +20,7 @@ import "C"
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"unsafe"
 )
@@ -32,44 +33,62 @@ type PerfLevel struct {
 	LogicalCPU  int
 }
 
-var (
-	modelOnce   sync.Once
-	cachedModel string
-)
+// sysctlString returns the string value of the named sysctl, or "" on failure.
+func sysctlString(key string) string {
+	name := C.CString(key)
+	defer C.free(unsafe.Pointer(name))
+
+	var size C.size_t
+
+	if ret := C.sysctlbyname(name, nil, &size, nil, 0); ret < 0 || size == 0 {
+		return ""
+	}
+
+	buf := C.malloc(size)
+	if buf == nil {
+		return ""
+	}
+	defer C.free(buf)
+
+	if ret := C.sysctlbyname(name, buf, &size, nil, 0); ret < 0 {
+		return ""
+	}
+
+	return C.GoString((*C.char)(buf))
+}
 
 // getModel returns the hardware model identifier (e.g. "Mac16,1") via the hw.model sysctl,
 // or an empty string if the sysctl call fails. The result is cached after the first call.
-func getModel() string {
-	modelOnce.Do(func() {
-		name := C.CString("hw.model")
-		defer C.free(unsafe.Pointer(name))
+var getModel = sync.OnceValue(func() string { return sysctlString("hw.model") })
 
-		var size C.size_t
+// getProduct looks the model up in products and, for model IDs newer than the
+// table, falls back to the machdep.cpu.brand_string sysctl. Cached.
+var getProduct = sync.OnceValues(func() (Product, bool) {
+	if p, ok := products[getModel()]; ok {
+		return p, true
+	}
 
-		if ret := C.sysctlbyname(name, nil, &size, nil, 0); ret < 0 || size == 0 {
-			return
-		}
+	return productFromBrand(sysctlString("machdep.cpu.brand_string"))
+})
 
-		buf := C.malloc(size)
-		if buf == nil {
-			return
-		}
-		defer C.free(buf)
+// productFromBrand derives Family and CPU from an Apple Silicon brand string
+// ("Apple M3 Max" → "M3", "M3 Max"). Intel brand strings return false so callers
+// keep their GOARCH fallback.
+func productFromBrand(brand string) (Product, bool) {
+	cpu, ok := strings.CutPrefix(brand, "Apple ")
+	family, _, _ := strings.Cut(cpu, " ")
 
-		if ret := C.sysctlbyname(name, buf, &size, nil, 0); ret < 0 {
-			return
-		}
+	if !ok || len(family) < 2 || family[1] < '0' || family[1] > '9' {
+		return Product{}, false
+	}
 
-		cachedModel = C.GoString((*C.char)(buf))
-	})
-
-	return cachedModel
+	return Product{Name: "Mac (" + cpu + ")", Family: family, CPU: cpu, Year: 0}, true
 }
 
 // GetFamily returns the CPU platform family name (e.g. "M4", "Intel") for the current hardware,
-// or "Unknown" when the model identifier is not in the products map.
+// or "Unknown" when neither the model identifier nor the CPU brand string identifies it.
 func GetFamily() string {
-	p, ok := products[getModel()]
+	p, ok := getProduct()
 	if !ok {
 		return "Unknown"
 	}
@@ -84,10 +103,10 @@ func GetModelID() string {
 }
 
 // GetProduct returns the full Product metadata for the current hardware.
-// The boolean reports whether the model was found in the products map.
+// The boolean reports whether the model was found in the products map or
+// derived from the CPU brand string.
 func GetProduct() (Product, bool) {
-	p, ok := products[getModel()]
-	return p, ok
+	return getProduct()
 }
 
 // GetSKULayout returns the validated core composition for the current machine's
@@ -95,7 +114,7 @@ func GetProduct() (Product, bool) {
 // model is unknown or the SKU has no roster entry — callers should treat that
 // as "no validation possible" rather than as an error.
 func GetSKULayout() (SKULayout, bool) {
-	p, ok := products[getModel()]
+	p, ok := getProduct()
 	if !ok {
 		return SKULayout{}, false
 	}
@@ -143,32 +162,10 @@ func GetPerfLevels() []PerfLevel {
 	levels := make([]PerfLevel, 0, n)
 
 	for i := range n {
-		nameKey := C.CString(fmt.Sprintf("hw.perflevel%d.name", i))
-		var size C.size_t
-
-		if ret := C.sysctlbyname(nameKey, nil, &size, nil, 0); ret < 0 || size == 0 {
-			C.free(unsafe.Pointer(nameKey))
-
+		levelName := sysctlString(fmt.Sprintf("hw.perflevel%d.name", i))
+		if levelName == "" {
 			continue
 		}
-
-		buf := C.malloc(size)
-		if buf == nil {
-			C.free(unsafe.Pointer(nameKey))
-
-			continue
-		}
-
-		if ret := C.sysctlbyname(nameKey, buf, &size, nil, 0); ret < 0 {
-			C.free(buf)
-			C.free(unsafe.Pointer(nameKey))
-
-			continue
-		}
-
-		levelName := C.GoString((*C.char)(buf))
-		C.free(buf)
-		C.free(unsafe.Pointer(nameKey))
 
 		pcpuKey := C.CString(fmt.Sprintf("hw.perflevel%d.physicalcpu", i))
 		lcpuKey := C.CString(fmt.Sprintf("hw.perflevel%d.logicalcpu", i))

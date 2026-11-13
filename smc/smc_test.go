@@ -240,27 +240,36 @@ func Test_platformMatches(t *testing.T) {
 		name         string
 		rowPlatform  string
 		family       string
+		sku          string
 		wantMatching bool
 	}{
-		{"empty row matches all", "", "M5", true},
-		{"All row matches all", platformAll, familyIntel, true},
-		{"Apple row matches M-family", familyApple, "M1", true},
-		{"Apple row matches A-family", familyApple, "A18", true},
-		{"Apple row matches generic Apple", familyApple, familyApple, true},
-		{"Apple row rejects Intel", familyApple, familyIntel, false},
-		{"Exact M5 match", "M5", "M5", true},
-		{"M3 row rejects M5 family", "M3", "M5", false},
-		{"Intel row rejects Apple Silicon", familyIntel, "M1", false},
+		{"empty row matches all", "", "M5", "", true},
+		{"All row matches all", platformAll, familyIntel, "", true},
+		{"Apple row matches M-family", familyApple, "M1", "", true},
+		{"Apple row matches A-family", familyApple, "A18", "", true},
+		{"Apple row matches generic Apple", familyApple, familyApple, "", true},
+		{"Apple row rejects Intel", familyApple, familyIntel, "", false},
+		{"Exact M5 match", "M5", "M5", "", true},
+		{"M3 row rejects M5 family", "M3", "M5", "", false},
+		{"Intel row rejects Apple Silicon", familyIntel, "M1", "", false},
+		{"family row matches every SKU", "M4", "M4", "M4 Pro", true},
+		{"SKU row matches its SKU", "M4 Pro", "M4", "M4 Pro", true},
+		{"SKU row rejects sibling SKU", "M4 Pro", "M4", "M4 Max", false},
+		{"SKU row rejects base SKU", "M4 Pro", "M4", "M4", false},
+		{"SKU row rejects unknown SKU", "M4 Pro", "M4", "", false},
+		{"Base row matches base SKU", "M4 Base", "M4", "M4", true},
+		{"Base row rejects Pro SKU", "M4 Base", "M4", "M4 Pro", false},
+		{"Base row rejects unknown SKU", "M4 Base", "M4", "", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := platformMatches(tt.rowPlatform, tt.family)
+			got := platformMatches(tt.rowPlatform, tt.family, tt.sku)
 			if got != tt.wantMatching {
-				t.Errorf("platformMatches(%q, %q) = %v, want %v",
-					tt.rowPlatform, tt.family, got, tt.wantMatching)
+				t.Errorf("platformMatches(%q, %q, %q) = %v, want %v",
+					tt.rowPlatform, tt.family, tt.sku, got, tt.wantMatching)
 			}
 		})
 	}
@@ -317,7 +326,7 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			desc, ok := LookupTempDesc(tt.key, tt.family)
+			desc, ok := LookupTempDesc(tt.key, tt.family, "")
 			if ok != tt.wantOK {
 				t.Errorf("LookupTempDesc(%q, %q) ok = %v, want %v",
 					tt.key, tt.family, ok, tt.wantOK)
@@ -336,7 +345,7 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 func Test_MappedTempKeys_M5(t *testing.T) {
 	t.Parallel()
 
-	got := MappedTempKeys("M5")
+	got := MappedTempKeys("M5", "")
 
 	for _, k := range []string{"Tp00", "Tp04", "Tp08", "Tp0C"} {
 		if _, ok := got[k]; !ok {
@@ -364,8 +373,8 @@ func Test_MappedTempKeys_M5(t *testing.T) {
 func Test_MappedTempKeys_familyIsolation(t *testing.T) {
 	t.Parallel()
 
-	m1 := MappedTempKeys("M1")
-	m3 := MappedTempKeys("M3")
+	m1 := MappedTempKeys("M1", "")
+	m3 := MappedTempKeys("M3", "")
 
 	if d, ok := m1["Tp08"]; !ok || d != "CPU Efficiency Core 1" {
 		t.Errorf("MappedTempKeys(M1)[Tp08] = (%q, %v), want (\"CPU Efficiency Core 1\", true)", d, ok)

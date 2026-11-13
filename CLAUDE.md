@@ -53,7 +53,7 @@ The tool supports two distinct hardware paths that are merged at the output laye
 
 - **`gosmc/`** — nested Go module (`github.com/dkorunic/iSMC/gosmc`). CGo bindings to Apple IOKit's SMC interface via `smc.h`. Handles Intel/PPC Macs. Contains IOKit constants (`values.go`) and wrapper functions for `SMCOpen`/`SMCClose`/`SMCReadKey`/`SMCCall`/`SMCWriteKey`.
 
-- **`smc/`** — uses `gosmc` to query named SMC keys. `sensors.go` is **code-generated** (do not edit directly) — regenerate with `task generate` or `go generate ./smc`. The generator reads colon-delimited data from `../src/{temp,fans,power,voltage,current}.txt`. Supports wildcard keys (`%`) expanded to indices 0–9.
+- **`smc/`** — uses `gosmc` to query named SMC keys. `sensors.go` is **code-generated** (do not edit directly) — regenerate with `task generate` or `go generate ./smc`. The generator reads colon-delimited data from `../src/{temp,fans,power,voltage,current}.txt`. Supports wildcard keys (`%`) expanded to indices 0–9. A row's platform tag is `All`, `Apple`, a family (`M4`, every M4 SKU), a SKU spelled exactly as `Product.CPU` in `internal/platform/mapping.go` (`M4 Pro`), or `<family> Base` for the base SKU only (`M4 Base`) — see `platformMatches` in `smc/smc.go`. `smc/replay_test.go` (`Test_DumpReplay`) replays every `internal/reports` dump through this mapping; known gaps live in its `replayAllow` list, which fails when an entry goes stale.
 
 - **`hid/`** — Apple Silicon (M-series) sensor support via the HID sensor hub. Uses embedded C (`get.go` has CGo). Reads temperature, current, voltage from IOKit HID services.
 

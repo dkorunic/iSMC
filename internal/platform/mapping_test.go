@@ -94,7 +94,8 @@ func Test_productsKnownEntries(t *testing.T) {
 
 // Test_GetProduct_consistency verifies that GetProduct() and GetModelID() return
 // mutually consistent results: the product returned by GetProduct() must be identical
-// to the entry at products[GetModelID()].
+// to the entry at products[GetModelID()], or to the brand-string fallback when the
+// model is not in the table.
 //
 // The test is skipped when hw.model returns an empty string (e.g. in a sandbox that
 // blocks sysctl) and gracefully passes when the model is not in the products map.
@@ -105,7 +106,11 @@ func Test_GetProduct_consistency(t *testing.T) {
 	}
 
 	gotProduct, gotOK := GetProduct()
+
 	wantProduct, wantOK := products[modelID]
+	if !wantOK {
+		wantProduct, wantOK = productFromBrand(sysctlString("machdep.cpu.brand_string"))
+	}
 
 	assert.Equal(t, wantOK, gotOK,
 		"GetProduct() found=%v but products[%q] found=%v", gotOK, modelID, wantOK)
@@ -128,7 +133,11 @@ func Test_GetFamily_consistency(t *testing.T) {
 
 	p, inMap := products[modelID]
 	if !inMap {
-		// Model not yet in the table; GetFamily returns "Unknown" — just verify that.
+		p, inMap = productFromBrand(sysctlString("machdep.cpu.brand_string"))
+	}
+
+	if !inMap {
+		// Neither table nor brand string identifies it; GetFamily returns "Unknown".
 		assert.Equal(t, "Unknown", family,
 			"GetFamily must return 'Unknown' for unrecognised model %q", modelID)
 
@@ -137,6 +146,30 @@ func Test_GetFamily_consistency(t *testing.T) {
 
 	assert.Equal(t, p.Family, family,
 		"GetFamily() must match products[%q].Family", modelID)
+}
+
+// Test_productFromBrand covers the unknown-model fallback: Apple Silicon brand
+// strings yield family + SKU, anything else (Intel, empty) is rejected.
+func Test_productFromBrand(t *testing.T) {
+	tests := []struct {
+		brand, family, cpu string
+		ok                 bool
+	}{
+		{"Apple M3 Max", "M3", "M3 Max", true},
+		{"Apple M4", "M4", "M4", true},
+		{"Apple M1 Ultra", "M1", "M1 Ultra", true},
+		{"Apple A18 Pro", "A18", "A18 Pro", true},
+		{"Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz", "", "", false},
+		{"Apple processor", "", "", false},
+		{"", "", "", false},
+	}
+
+	for _, tt := range tests {
+		p, ok := productFromBrand(tt.brand)
+		assert.Equal(t, tt.ok, ok, tt.brand)
+		assert.Equal(t, tt.family, p.Family, tt.brand)
+		assert.Equal(t, tt.cpu, p.CPU, tt.brand)
+	}
 }
 
 // Test_skuLayoutsIntegrity walks the SKU roster and verifies every entry honours

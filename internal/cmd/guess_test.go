@@ -475,7 +475,7 @@ func TestAnnotateLine(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := annotateLine(tt.line, tt.label, tt.key, tt.family, tt.coreIdx)
+			got := annotateLine(tt.line, tt.label, tt.key, tt.family, "", tt.coreIdx)
 			if !strings.Contains(got, tt.contains) {
 				t.Errorf("annotateLine(...) = %q\n  must contain %q", got, tt.contains)
 			}
