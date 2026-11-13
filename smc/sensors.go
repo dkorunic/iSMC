@@ -165,7 +165,6 @@ var AppleTemp = []SensorStat{
 	{Key: "TRDh", Desc: "RF Delivery 18", Platform: "Apple"},
 	{Key: "TRDi", Desc: "RF Delivery 19", Platform: "Apple"},
 	{Key: "TRDj", Desc: "RF Delivery 20", Platform: "Apple"},
-	{Key: "TR0Z", Desc: "RF Reference", Platform: "All"},
 	{Key: "TR1d", Desc: "RF Probe 1", Platform: "All"},
 	{Key: "TR2d", Desc: "RF Probe 2", Platform: "All"},
 	{Key: "TR3d", Desc: "RF Probe 3", Platform: "All"},

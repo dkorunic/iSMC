@@ -182,9 +182,9 @@ RF Delivery 17:TRDg:Apple
 RF Delivery 18:TRDh:Apple
 RF Delivery 19:TRDi:Apple
 RF Delivery 20:TRDj:Apple
-// TR0Z: fixed reference (~51.85°C); TR1d/2d live.
-// TR3d/4d/5d: M4 + Intel/T2.
-RF Reference:TR0Z:All
+// TR0Z is not mapped: it holds one of two constants (51.85/51.82 °C) in every
+// dump, Intel T2 included, and equals HID "PMU tcal", a calibration value.
+// TR1d/2d live. TR3d/4d/5d: M4 + Intel/T2.
 RF Probe 1:TR1d:All
 RF Probe 2:TR2d:All
 RF Probe 3:TR3d:All

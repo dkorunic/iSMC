@@ -50,7 +50,7 @@ func Test_DumpReplay(t *testing.T) {
 			mapped := MappedTempKeys(family, sku)
 
 			for k := range live {
-				if _, ok := mapped[k]; !ok {
+				if _, ok := mapped[k]; !ok && !notTemperature[k] {
 					got["unmapped "+k] = true
 				}
 			}
@@ -331,6 +331,12 @@ const (
 	// Tp0a, Ts0G ≡ the Ta00-Ta0R band (see Test_M5Pro18CoreMapping).
 	m5Aliases = "unmapped TVDP TVDc Tm0y Tm2T Ts0G"
 )
+
+// notTemperature lists live T* keys that are deliberately unmapped because
+// they are not temperatures. TR0Z reads one of two constants (51.85/51.82 °C)
+// in every dump, Intel T2 included, and matches HID "PMU tcal" on M1 Max,
+// M1 Ultra and M6: a PMU calibration value.
+var notTemperature = map[string]bool{"TR0Z": true}
 
 // replayAllow lists the violations Test_DumpReplay currently tolerates, keyed
 // by dump name (report-<name>.txt). Entries are "cores <T>=<n>",
