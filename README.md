@@ -117,7 +117,7 @@ internal/cmd/            Cobra subcommands
 | `internal/output/` | internal | `Output` interface + four backend formatters |
 | `internal/platform/` | internal | CPU family / SKU detection used by `smc` |
 | `internal/reports/` | internal | Diagnostic report bundler |
-| `internal/stress/` | internal | CPU QoS helpers and Metal GPU load for the `guess` workload (`--gpu`) |
+| `internal/stress/` | internal | CPU QoS helpers, per-CPU load accounting and Metal GPU load for the `guess` workload (`--gpu`) |
 
 The repo is two Go modules: the root `github.com/dkorunic/iSMC` and the nested `github.com/dkorunic/iSMC/gosmc` (replaced locally via `go.mod`). `internal/` packages are compiler-enforced private to this module; the three public packages are the intended library surface.
 

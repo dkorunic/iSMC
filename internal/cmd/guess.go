@@ -105,7 +105,15 @@ number, ✗ a different tier, ⚠ a non-core label, ★ unmapped.
 and lists the sensors that respond, comparing each key's GPU rise with its
 largest CPU-phase rise. It tells GPU-tier keys from package-wide ones and flags
 src/temp.txt labels that disagree; it cannot number GPU cores, because the
-kernel loads every core evenly.`,
+kernel loads every core evenly.
+
+After the mapping, a CPU-load section lists the logical CPUs each phase kept
+busy (host_processor_info), and flags phases that shared CPUs (QoS did not
+separate the tiers) or whose busy-CPU count differs from the thread count.
+
+--save FILE writes the whole run (baselines, peak samples, per-CPU load, and
+snapshots every 0.5 s while each load runs) as JSON; --replay FILE re-analyses
+a saved run without touching the SMC, on any Mac.`,
 	Run: runGuess,
 }
 
@@ -114,6 +122,10 @@ var guessGPU bool
 
 func init() {
 	guessCmd.Flags().BoolVar(&guessGPU, "gpu", false, "add a GPU load phase to classify GPU-tier sensors")
+	guessCmd.Flags().StringVar(&guessSave, "save", "", "save the run (including per-load snapshots) as JSON to this file")
+	guessCmd.Flags().StringVar(&guessReplay, "replay", "", "analyse a run saved with --save instead of measuring")
+	guessCmd.MarkFlagsMutuallyExclusive("save", "replay")
+	guessCmd.MarkFlagsMutuallyExclusive("gpu", "replay")
 	rootCmd.AddCommand(guessCmd)
 }
 
@@ -218,11 +230,11 @@ func (s *tempSampler) settledTemps(maxWait time.Duration) map[string]float32 {
 	return prev
 }
 
-// reportDeltas returns deltaTemps(base, hot) and prints the responder count.
-// With no responders it also prints the raw change range, which tells a phase
+// reportDeltas prints how many sensors deltaTemps(base, hot) keeps. With no
+// responders it also prints the raw change range, which tells a phase
 // that barely warmed (small positive max) from one measured against a
 // still-cooling baseline (negative max).
-func reportDeltas(base, hot map[string]float32) map[string]float32 {
+func reportDeltas(base, hot map[string]float32) {
 	deltas := deltaTemps(base, hot)
 
 	fmt.Printf("  →  %d sensor(s) responded\n", len(deltas))
@@ -233,8 +245,6 @@ func reportDeltas(base, hot map[string]float32) map[string]float32 {
 				lo.d, lo.key, hi.d, hi.key, meanDelta(base, hot))
 		}
 	}
-
-	return deltas
 }
 
 // keyDelta is one sensor's change between two snapshots.
@@ -822,27 +832,69 @@ func spinCore(qosClass int, done <-chan struct{}) {
 	}
 }
 
-// runStressPhase spins threads goroutines at qosClass for guessStressDuration,
-// samples at peak load, and returns the per-sensor delta over baseline.
-func runStressPhase(s *tempSampler, threads, qosClass int, baseline map[string]float32) map[string]float32 {
+// runStressPhase spins threads goroutines at the phase's QoS for
+// guessStressDuration, samples at peak load, prints the responder count and
+// returns what it measured, including each CPU's busy share over the load.
+func runStressPhase(s *tempSampler, spec phaseSpec, threads int, baseline map[string]float32) capturedPhase {
 	done := make(chan struct{})
+	before := stress.ReadCPUTicks()
 
 	for range threads {
-		go spinCore(qosClass, done)
+		go spinCore(spec.qos, done)
 	}
 
-	time.Sleep(guessStressDuration)
-
+	series := s.sampleDuring(guessStressDuration, guessSave != "")
 	hot := s.avgRawTemps(guessSampleCount, guessSampleInterval)
+	busy := stress.BusyShare(before, stress.ReadCPUTicks())
 
 	close(done)
 
-	return reportDeltas(baseline, hot)
+	reportDeltas(baseline, hot)
+
+	return capturedPhase{
+		Label: spec.label, QoS: spec.qos, Cores: spec.cores, Threads: threads,
+		Baseline: baseline, Hot: hot, CPUBusy: busy, Series: series,
+	}
 }
 
-// runGuess implements the guess subcommand.
+// runGuess implements the guess subcommand: measure (or load a saved run),
+// optionally save it, then analyse.
 func runGuess(_ *cobra.Command, _ []string) {
-	numCPU := runtime.NumCPU()
+	if guessReplay != "" {
+		c, err := loadCapture(guessReplay)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+
+			return
+		}
+
+		fmt.Printf("Replaying %s (saved by iSMC %s)\n\n", guessReplay, cmp.Or(c.Tool, "unknown"))
+		printGuessHeader(c, len(c.Phases))
+		analyzeCapture(c)
+
+		return
+	}
+
+	c := collectGuess()
+	if c == nil {
+		return
+	}
+
+	if guessSave != "" {
+		err := saveCapture(guessSave, c)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		} else {
+			fmt.Printf("\nSaved run to %s\n", guessSave)
+		}
+	}
+
+	analyzeCapture(c)
+}
+
+// collectGuess runs the stress phases on this machine and returns what they
+// measured, or nil when the SMC cannot be opened.
+func collectGuess() *guessCapture {
 	family := platform.GetFamily()
 
 	if family == "" || family == "Unknown" {
@@ -861,40 +913,20 @@ func runGuess(_ *cobra.Command, _ []string) {
 	perfLevels := platform.GetPerfLevels()
 	phases := buildPhases(perfLevels, layout)
 
-	fmt.Printf("Platform : %s\n", family)
-
-	switch {
-	case product.Name != "":
-		fmt.Printf("Model    : %s (%s)\n", product.Name, product.CPU)
-	case product.CPU != "":
-		fmt.Printf("Model    : %s\n", product.CPU)
+	c := &guessCapture{
+		Version: captureVersion, Tool: cmp.Or(GitTag, "dev"), Family: family, Product: product,
+		Layout: layout, LayoutOK: layoutOK, PerfLevels: perfLevels, NumCPU: runtime.NumCPU(),
+		Phases: nil, GPU: nil,
 	}
 
-	if layoutOK {
-		fmt.Printf("SKU      : %s, %d die(s)\n", layout.PairSignature, layout.Dies)
-		fmt.Printf("Expected : %s\n", layoutSummary(layout))
-	}
-
-	fmt.Printf("CPUs     : %d logical\n", numCPU)
-	fmt.Printf("Per-phase: %v stress  (×%d phases, one spinner per target-tier CPU)\n\n",
-		guessStressDuration, len(phases))
-
-	if len(perfLevels) > 0 {
-		fmt.Printf("Topology : %d perf level(s)\n", len(perfLevels))
-
-		for i, pl := range perfLevels {
-			fmt.Printf("           perflevel%d: %d phys-CPU %q\n", i, pl.PhysicalCPU, pl.Name)
-		}
-
-		fmt.Println()
-	}
+	printGuessHeader(c, len(phases))
 
 	// One connection and key enumeration for the whole run.
 	conn, err := smc.Open()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 
-		return
+		return nil
 	}
 	defer smc.Close(conn)
 
@@ -906,20 +938,17 @@ func runGuess(_ *cobra.Command, _ []string) {
 
 	fmt.Printf("%d sensors visible.\n\n", len(baseline))
 
-	results := make([]phaseResult, 0, len(phases))
-
 	for i, phase := range phases {
 		threads := phase.threads
 		if threads <= 0 {
-			threads = numCPU
+			threads = c.NumCPU
 		}
 
 		fmt.Printf("── Phase %d: %s sweep (%s QoS) ──\n",
 			i+1, phaseMidWord(phase.label), qosName(phase.qos))
 		fmt.Printf("  Stressing %d thread(s)...", threads)
 
-		deltas := runStressPhase(sampler, threads, phase.qos, baseline)
-		results = append(results, phaseResult{spec: phase, deltas: deltas})
+		c.Phases = append(c.Phases, runStressPhase(sampler, phase, threads, baseline))
 
 		if i < len(phases)-1 {
 			fmt.Printf("\n  Inter-phase cooldown (up to %v, until temperatures settle)...\n\n",
@@ -928,8 +957,6 @@ func runGuess(_ *cobra.Command, _ []string) {
 			baseline = sampler.settledTemps(guessSettleCooldownMax)
 		}
 	}
-
-	var gpuDeltas map[string]float32
 
 	if guessGPU {
 		fmt.Printf("\n  Inter-phase cooldown (up to %v, until temperatures settle)...\n\n",
@@ -940,19 +967,15 @@ func runGuess(_ *cobra.Command, _ []string) {
 		fmt.Printf("── Phase %d: GPU sweep (Metal compute) ──\n", len(phases)+1)
 		fmt.Print("  Loading GPU...")
 
-		gpuDeltas = runGPUPhase(sampler, baseline)
+		c.GPU = runGPUPhase(sampler, baseline)
 	}
 
-	printMapping(family, numCPU, perfLevels, layout, layoutOK, product, results, baseline)
-
-	if gpuDeltas != nil {
-		printGPUPhase(family, product.CPU, gpuDeltas, baseline, results)
-	}
+	return c
 }
 
 // runGPUPhase loads the GPU for guessStressDuration, samples at peak load and
-// returns the per-sensor delta over baseline, or nil when Metal is unavailable.
-func runGPUPhase(s *tempSampler, baseline map[string]float32) map[string]float32 {
+// returns what it measured, or nil when Metal is unavailable.
+func runGPUPhase(s *tempSampler, baseline map[string]float32) *capturedPhase {
 	stop, err := stress.StartGPU()
 	if err != nil {
 		fmt.Printf("  skipped: %v\n", err)
@@ -960,13 +983,17 @@ func runGPUPhase(s *tempSampler, baseline map[string]float32) map[string]float32
 		return nil
 	}
 
-	time.Sleep(guessStressDuration)
-
+	series := s.sampleDuring(guessStressDuration, guessSave != "")
 	hot := s.avgRawTemps(guessSampleCount, guessSampleInterval)
 
 	stop()
 
-	return reportDeltas(baseline, hot)
+	reportDeltas(baseline, hot)
+
+	return &capturedPhase{
+		Label: "GPU", Baseline: baseline, Hot: hot, Series: series,
+		CPUBusy: nil, QoS: 0, Cores: 0, Threads: 0,
+	}
 }
 
 // A key is GPU-tier when its GPU-phase rise is at least gpuDominanceRatio × its

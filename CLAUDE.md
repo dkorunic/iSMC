@@ -43,7 +43,7 @@ Internal (compiler-enforced, importable only within this module):
 - `internal/output/` — `Output` interface + table/ascii/json/influx backends
 - `internal/platform/` — CPU family / SKU lookup; consumed by `smc` and `internal/output`
 - `internal/reports/` — diagnostic report bundler
-- `internal/stress/` — QoS helpers and the Metal GPU load (`StartGPU`, cgo Objective-C) used by `guess` and `guess --gpu`
+- `internal/stress/` — QoS helpers, per-CPU busy share (`ReadCPUTicks`/`BusyShare`, `host_processor_info`) and the Metal GPU load (`StartGPU`, cgo Objective-C) used by `guess` and `guess --gpu`; `guess --save`/`--replay` (`internal/cmd/guess_capture.go`) write and re-analyse a whole run as JSON
 
 Note: `smc` (public) imports `internal/platform`. Go allows this because the import sits within the same module, but anything `smc` re-exports from `platform` effectively becomes part of `smc`'s public API surface — keep that interaction narrow.
 

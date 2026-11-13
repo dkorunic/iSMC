@@ -6,10 +6,10 @@
 package platform
 
 type Product struct {
-	Name   string
-	Family string
-	CPU    string
-	Year   int
+	Name   string `json:"name"`
+	Family string `json:"family"`
+	CPU    string `json:"cpu"`
+	Year   int    `json:"year"`
 }
 
 // Pair signatures: which two core types coexist on the SKU. Tp* prefix maps to
@@ -27,12 +27,16 @@ const (
 // {Min,Max} ranges span every observed variant; zero means the type is absent.
 // Dies = 2 for UltraFusion (M1/M2/M3 Ultra).
 type SKULayout struct {
-	PairSignature            string
-	PCoresMin, PCoresMax     int
-	ECoresMin, ECoresMax     int
-	SCoresMin, SCoresMax     int
-	GPUCoresMin, GPUCoresMax int
-	Dies                     int
+	PairSignature string `json:"pairSignature"`
+	PCoresMin     int    `json:"pCoresMin"`
+	PCoresMax     int    `json:"pCoresMax"`
+	ECoresMin     int    `json:"eCoresMin"`
+	ECoresMax     int    `json:"eCoresMax"`
+	SCoresMin     int    `json:"sCoresMin"`
+	SCoresMax     int    `json:"sCoresMax"`
+	GPUCoresMin   int    `json:"gpuCoresMin"`
+	GPUCoresMax   int    `json:"gpuCoresMax"`
+	Dies          int    `json:"dies"`
 }
 
 // skuLayouts maps Product.CPU to known core composition. Authoritative source

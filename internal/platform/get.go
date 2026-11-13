@@ -62,9 +62,9 @@ func ThermalPressure() (string, bool) {
 // PerfLevel describes one CPU performance tier as reported by the macOS sysctl
 // hw.perflevel{N}.* hierarchy.
 type PerfLevel struct {
-	Name        string
-	PhysicalCPU int
-	LogicalCPU  int
+	Name        string `json:"name"`
+	PhysicalCPU int    `json:"physicalCpu"`
+	LogicalCPU  int    `json:"logicalCpu"`
 }
 
 // sysctlString returns the string value of the named sysctl, or "" on failure.
