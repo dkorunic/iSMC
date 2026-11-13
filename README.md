@@ -64,7 +64,7 @@ Available Commands:
 Flags:
   -h, --help            help for iSMC
   -o, --output string   Output format (ascii, table, json, influx) (default "table")
-  -w, --watch duration  Re-read sensors every interval (e.g. 2s); the table view refreshes in place, other outputs re-print
+  -w, --watch duration  Re-read sensors every interval (e.g. 5s); the table view refreshes in place (default 2s, 0 turns it off), other outputs re-print
 
 Use "iSMC [command] --help" for more information about a command.
 ```
@@ -80,7 +80,7 @@ Each command also accepts short and long aliases: `bat`/`batt`/`battery`, `cur`/
 | `json`   | JSON                                                            |
 | `influx` | InfluxDB line protocol                                          |
 
-When `table` output is longer than the terminal, it opens a scrollable view that fills the terminal and flows rows into as many side-by-side columns as the terminal width fits: `↑`/`↓` (or `j`/`k`) scroll, `PgUp`/`PgDn` page, `g`/`G` jump to top/bottom, `←`/`→` or `Tab` switch category, `q` quits and leaves the last screen in your scrollback. Piped or short output prints plain tables instead; use `-o ascii` or pipe the output for unattended runs.
+When `table` output is longer than the terminal, it opens a scrollable view that fills the terminal and flows rows into as many side-by-side columns as the terminal width fits: `↑`/`↓` (or `j`/`k`) scroll, `PgUp`/`PgDn` page, `g`/`G` jump to top/bottom, `←`/`→` or `Tab` switch category, `q` quits and leaves the last screen in your scrollback. The view re-reads sensors every 2 seconds: `p` pauses and resumes, `-w <interval>` sets another interval and `-w 0` turns refreshing off. Piped or short output prints plain tables instead; use `-o ascii` or pipe the output for unattended runs.
 
 In a terminal, `table` colours values by how high they are: temperatures turn yellow from 80 °C and red from 95 °C; fan speeds turn yellow from 60% and red from 85% of that fan's maximum. No single temperature is shown as critical, because Apple Silicon hotspot sensors routinely read 96–113 °C under sustained load while macOS considers the machine fine. Instead, the `Thermal Pressure` row (in `temp` and `all`) shows macOS's own verdict, read without root: `Nominal` stays plain, `Moderate` is yellow, `Heavy` red, and `Trapping` or `Sleeping` (macOS is throttling hard or about to sleep the machine) bold bright red. Power, voltage and current have no generic limit and stay uncoloured.
 

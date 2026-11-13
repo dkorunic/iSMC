@@ -265,9 +265,19 @@ func (to TableOutput) interactive() bool {
 	return !to.isASCII && ok && term.IsTerminal(f.Fd()) && term.IsTerminal(os.Stdin.Fd())
 }
 
+// tuiRefresh is how often the scrollable view re-reads sensors when --watch
+// is not given.
+const tuiRefresh = 2 * time.Second
+
+// NoRefresh is the interval for an explicit --watch 0: the scrollable view
+// stays static instead of falling back to tuiRefresh.
+const NoRefresh time.Duration = -1
+
 // show prints the sections build reads statically, or opens the scrollable
 // view when interactive and the static form would not fit on screen. With a
-// refresh interval the view always opens and re-reads sensors through build.
+// refresh interval the view always opens and re-reads sensors through build;
+// without one, an opened view still refreshes every tuiRefresh, unless the
+// interval is NoRefresh.
 func (to TableOutput) show(build func() []section) {
 	load := func() []section {
 		secs := build()
@@ -300,7 +310,12 @@ func (to TableOutput) show(build func() []section) {
 		return
 	}
 
-	_, err = tea.NewProgram(newTUIModel(secs, load, to.every), tea.WithOutput(f)).Run()
+	every := to.every
+	if every == 0 {
+		every = tuiRefresh
+	}
+
+	_, err = tea.NewProgram(newTUIModel(secs, load, every), tea.WithOutput(f)).Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "interactive table: %v\n", err)
 

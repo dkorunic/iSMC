@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dkorunic/iSMC/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,12 @@ var rootCmd = &cobra.Command{
 	Short: "Apple SMC information tool",
 	Long: `Apple SMC CLI tool that can decode and display temperature, fans, battery, power, voltage and current
 information for various hardware in your Apple Mac hardware.`,
+	// An explicit --watch 0 turns off the table view's default refresh.
+	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
+		if WatchFlag == 0 && cmd.Flags().Changed("watch") {
+			WatchFlag = output.NoRefresh
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		allCmd.Run(cmd, args)
 	},
@@ -43,5 +50,5 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&OutputFlag, "output", "o", "table", "Output format (ascii, table, json, influx)")
 	rootCmd.PersistentFlags().DurationVarP(&WatchFlag, "watch", "w", 0,
-		"Re-read sensors every interval (e.g. 2s); the table view refreshes in place, other outputs re-print")
+		"Re-read sensors every interval (e.g. 5s); the table view refreshes in place (default 2s, 0 turns it off), other outputs re-print")
 }

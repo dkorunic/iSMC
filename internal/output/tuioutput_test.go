@@ -236,7 +236,7 @@ func TestTUIModel_Refresh(t *testing.T) {
 
 	assert.NotNil(t, m.Init(), "a refresh interval must schedule a tick")
 
-	next, cmd := m.Update(refreshMsg(m.load()))
+	next, cmd := m.Update(refreshMsg{secs: m.load(), gen: m.gen})
 	r, ok := next.(tuiModel)
 	assert.True(t, ok)
 
@@ -247,4 +247,44 @@ func TestTUIModel_Refresh(t *testing.T) {
 	assert.Contains(t, r.secs[0].rows[0][2], "50.0 °C", "new reading shown")
 
 	assert.Nil(t, newTUIModel(read("1 °C"), nil, 0).Init(), "no refresh without an interval")
+	assert.Nil(t, newTUIModel(read("1 °C"), m.load, NoRefresh).Init(), "--watch 0 disables refresh")
+}
+
+func TestTUIModel_PauseToggle(t *testing.T) {
+	read := func(v string) []section {
+		return appendSection(nil, "Temperature", map[string]any{"CPU": sensor("Tp01", v)})
+	}
+
+	update := func(m tuiModel, msg tea.Msg) (tuiModel, tea.Cmd) {
+		next, cmd := m.Update(msg)
+		r, ok := next.(tuiModel)
+		assert.True(t, ok)
+
+		return r, cmd
+	}
+
+	p := tea.KeyPressMsg{Code: 'p', Text: "p"}
+	m := newTUIModel(read("40.0 °C"), func() []section { return read("50.0 °C") }, time.Second)
+	m.width, m.height = 200, 20
+	inflight := refreshMsg{secs: m.load(), gen: m.gen}
+
+	m, cmd := update(m, p)
+	assert.True(t, m.paused)
+	assert.Nil(t, cmd, "pausing schedules nothing")
+	assert.Contains(t, m.View().Content, "p resume")
+
+	m, cmd = update(m, inflight)
+	assert.Nil(t, cmd, "a read in flight at pause time is dropped")
+	assert.Contains(t, m.secs[0].rows[0][2], "40.0 °C", "paused view keeps its values")
+
+	m, cmd = update(m, p)
+	assert.False(t, m.paused)
+	assert.NotNil(t, cmd, "resuming schedules a tick")
+
+	_, cmd = update(m, inflight)
+	assert.Nil(t, cmd, "a pre-pause read must not start a second tick chain")
+
+	off, cmd := update(newTUIModel(read("40.0 °C"), nil, 0), p)
+	assert.False(t, off.paused, "p is a no-op without refresh")
+	assert.Nil(t, cmd)
 }

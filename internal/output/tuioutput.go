@@ -43,11 +43,17 @@ type tuiModel struct {
 	active  int
 	width   int
 	height  int
-	every   time.Duration // refresh interval; 0 disables refresh
+	every   time.Duration // refresh interval; <= 0 disables refresh
+	paused  bool          // refresh toggled off with "p"
+	gen     int           // bumped on every toggle so in-flight reads are dropped
 }
 
-// refreshMsg carries a fresh sensor read into the model.
-type refreshMsg []section
+// refreshMsg carries a fresh sensor read into the model, tagged with the
+// generation of the tick that produced it.
+type refreshMsg struct {
+	secs []section
+	gen  int
+}
 
 func newTUIModel(secs []section, load func() []section, every time.Duration) tuiModel {
 	m := tuiModel{
@@ -59,6 +65,8 @@ func newTUIModel(secs []section, load func() []section, every time.Duration) tui
 		height:  0,
 		load:    load,
 		every:   every,
+		paused:  false,
+		gen:     0,
 	}
 
 	for i, s := range secs {
@@ -87,7 +95,13 @@ func (m tuiModel) Init() tea.Cmd { return m.tick() }
 func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case refreshMsg:
-		m = m.refreshed(msg)
+		// A read started before the last pause/resume is stale: drop it
+		// without rescheduling, or resuming would run two tick chains.
+		if msg.gen != m.gen || m.paused {
+			return m, nil
+		}
+
+		m = m.refreshed(msg.secs)
 
 		return m, m.tick()
 	case tea.WindowSizeMsg:
@@ -99,6 +113,15 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "esc", "ctrl+c":
 			return m, tea.Quit
+		case "p":
+			if m.load == nil || m.every <= 0 {
+				break
+			}
+
+			m.paused = !m.paused
+			m.gen++
+
+			return m, m.tick()
 		case "tab", "right", "l":
 			m.active = (m.active + 1) % len(m.secs)
 		case "shift+tab", "left", "h":
@@ -168,7 +191,11 @@ func (m tuiModel) View() tea.View {
 	}
 
 	if m.load != nil && m.every > 0 {
-		help += " · every " + m.every.String()
+		if m.paused {
+			help += " · paused · p resume"
+		} else {
+			help += " · every " + m.every.String() + " · p pause"
+		}
 	}
 
 	// Narrow windows truncate the tab bar and help line instead of wrapping.
@@ -184,13 +211,13 @@ func (m tuiModel) View() tea.View {
 // tick schedules the next refresh. The read runs in the timer's goroutine, so a
 // slow SMC sweep (about 0.5 s for all sensors) never stalls key handling.
 func (m tuiModel) tick() tea.Cmd {
-	if m.load == nil || m.every <= 0 {
+	if m.load == nil || m.every <= 0 || m.paused {
 		return nil
 	}
 
-	load := m.load
+	load, gen := m.load, m.gen
 
-	return tea.Tick(m.every, func(time.Time) tea.Msg { return refreshMsg(load()) })
+	return tea.Tick(m.every, func(time.Time) tea.Msg { return refreshMsg{secs: load(), gen: gen} })
 }
 
 // refreshed returns m showing secs, keeping each category's tab, scroll
@@ -208,6 +235,7 @@ func (m tuiModel) refreshed(secs []section) tuiModel {
 
 	n := newTUIModel(secs, m.load, m.every)
 	n.width, n.height = m.width, m.height
+	n.paused, n.gen = m.paused, m.gen
 
 	for i, s := range secs {
 		j, ok := prev[s.title]
