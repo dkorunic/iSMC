@@ -3,7 +3,7 @@
 
 //go:build darwin
 
-// Package stress provides CPU affinity helpers for macOS.
+// Package stress provides CPU placement and GPU load helpers for macOS.
 package stress
 
 /*

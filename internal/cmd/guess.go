@@ -87,11 +87,21 @@ Mac Pro), E-core self-heating under a background-QoS sweep is below the SMC
 noise floor, so E-cores cannot be told apart from P-cores thermally and are
 listed in the Performance phase with a count warning. Cross-check those lines
 against src/temp.txt (the ⚠ annotations) before pasting. Laptops, with tighter
-thermal budgets, separate the tiers much more reliably.`,
+thermal budgets, separate the tiers much more reliably.
+
+--gpu adds a final phase that loads the GPU with a compute-bound Metal kernel
+and lists the sensors that respond, comparing each key's GPU rise with its
+largest CPU-phase rise. It tells GPU-tier keys from package-wide ones and flags
+src/temp.txt labels that disagree; it cannot number GPU cores, because the
+kernel loads every core evenly.`,
 	Run: runGuess,
 }
 
+// guessGPU enables the Metal GPU phase (--gpu).
+var guessGPU bool
+
 func init() {
+	guessCmd.Flags().BoolVar(&guessGPU, "gpu", false, "add a GPU load phase to classify GPU-tier sensors")
 	rootCmd.AddCommand(guessCmd)
 }
 
@@ -758,7 +768,145 @@ func runGuess(_ *cobra.Command, _ []string) {
 		}
 	}
 
+	var gpuDeltas map[string]float32
+
+	if guessGPU {
+		fmt.Printf("\n  Inter-phase cooldown (up to %v, until temperatures settle)...\n\n",
+			guessSettleCooldownMax)
+
+		baseline = sampler.settledTemps(guessSettleCooldownMax)
+
+		fmt.Printf("── Phase %d: GPU sweep (Metal compute) ──\n", len(phases)+1)
+		fmt.Print("  Loading GPU...")
+
+		gpuDeltas = runGPUPhase(sampler, baseline)
+	}
+
 	printMapping(family, numCPU, perfLevels, layout, layoutOK, product, results)
+
+	if gpuDeltas != nil {
+		printGPUPhase(family, product.CPU, gpuDeltas, baseline, results)
+	}
+}
+
+// runGPUPhase loads the GPU for guessStressDuration, samples at peak load and
+// returns the per-sensor delta over baseline, or nil when Metal is unavailable.
+func runGPUPhase(s *tempSampler, baseline map[string]float32) map[string]float32 {
+	stop, err := stress.StartGPU()
+	if err != nil {
+		fmt.Printf("  skipped: %v\n", err)
+
+		return nil
+	}
+
+	time.Sleep(guessStressDuration)
+
+	hot := s.avgRawTemps(guessSampleCount, guessSampleInterval)
+
+	stop()
+
+	deltas := deltaTemps(baseline, hot)
+
+	fmt.Printf("  →  %d sensor(s) responded\n", len(deltas))
+
+	return deltas
+}
+
+// A key is GPU-tier when its GPU-phase rise is at least gpuDominanceRatio × its
+// largest CPU-phase rise AND at least gpuTierFloor × the run's largest GPU rise.
+// The ratio alone is not enough: keys the CPU phases never warm (memory, RF and
+// power delivery near the GPU) pass it with a 1–3 °C GPU rise. On an M1 Ultra
+// run the floor split cleanly: Tg* and GPU-side TC* groups rose 5.8–11 °C,
+// everything else at most 4.9 °C.
+// ponytail: calibrated on one M1 Ultra run; retune with runs from other SKUs.
+const (
+	gpuDominanceRatio = float32(2.0)
+	gpuTierFloor      = float32(0.5)
+)
+
+// isGPUTier reports whether a key's GPU rise marks it as sitting on the GPU.
+func isGPUTier(gpuDelta, maxCPUDelta, maxGPUDelta float32) bool {
+	return gpuDelta >= gpuDominanceRatio*maxCPUDelta && gpuDelta >= gpuTierFloor*maxGPUDelta
+}
+
+// printGPUPhase lists GPU-tier and GPU-labelled responders by GPU rise and flags
+// src/temp.txt labels that disagree: a GPU-tier key whose label lacks "GPU", a
+// "GPU" key that is not GPU-tier, and mapped "GPU" keys this machine reads that
+// did not respond at all. Other responders are only counted.
+func printGPUPhase(family, sku string, gpuDeltas, visible map[string]float32, results []phaseResult) {
+	keys := make([]string, 0, len(gpuDeltas))
+
+	var maxGPU float32
+
+	for k, d := range gpuDeltas {
+		keys = append(keys, k)
+		maxGPU = max(maxGPU, d)
+	}
+
+	slices.SortFunc(keys, func(a, b string) int {
+		return cmp.Or(cmp.Compare(gpuDeltas[b], gpuDeltas[a]), cmp.Compare(a, b))
+	})
+
+	fmt.Println()
+	fmt.Printf("// %s\n", strings.Repeat("─", 72))
+	fmt.Printf("// GPU phase (reference only; GPU-tier = rise ≥ %.0f× max CPU rise and ≥ %.1f°C):\n",
+		gpuDominanceRatio, gpuTierFloor*maxGPU)
+
+	others := 0
+
+	for _, k := range keys {
+		var maxCPU float32
+		for _, r := range results {
+			maxCPU = max(maxCPU, r.deltas[k])
+		}
+
+		tier := isGPUTier(gpuDeltas[k], maxCPU, maxGPU)
+		desc, mapped := smc.LookupTempDesc(k, family, sku)
+		gpuLabel := strings.Contains(desc, "GPU")
+
+		if !tier && !gpuLabel {
+			others++
+
+			continue
+		}
+
+		class, note := "GPU-tier", ""
+
+		switch {
+		case !tier:
+			class, note = "shared  ", "  ⚠ GPU label but not GPU-tier"
+		case !mapped:
+			desc = "(unmapped)"
+		case !gpuLabel:
+			note = "  ⚠ GPU-tier but label is not GPU"
+		}
+
+		if mapped {
+			desc = strconv.Quote(desc)
+		}
+
+		fmt.Printf("//   %-6s GPU +%4.1f°C  CPU +%4.1f°C  %s  %s%s\n",
+			k, gpuDeltas[k], maxCPU, class, desc, note)
+	}
+
+	fmt.Printf("// %d other responder(s) warmed through the package (not listed).\n", others)
+
+	silent := make([]string, 0)
+
+	for k, desc := range smc.MappedTempKeys(family, sku) {
+		if _, seen := visible[k]; seen && gpuDeltas[k] == 0 && strings.Contains(desc, "GPU") {
+			silent = append(silent, k)
+		}
+	}
+
+	if len(silent) == 0 {
+		return
+	}
+
+	slices.Sort(silent)
+
+	fmt.Printf("// GPU-labelled in src/temp.txt but silent under GPU load (%d): %s\n",
+		len(silent), strings.Join(silent, " "))
 }
 
 // layoutSummary returns a one-line human-readable description of the SKU's
