@@ -341,11 +341,12 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 }
 
 // Test_MappedTempKeys_M5 exercises the wildcard expansion path: every Tp0?
-// slot from AppleTemp's M5 rows must appear as a concrete key in the result.
+// slot from AppleTemp's M5 Pro rows must appear as a concrete key in the result
+// (Tp08/Tp0C are SKU-scoped: base M5 has no Tp08 and Tp0C is its Super Core 3).
 func Test_MappedTempKeys_M5(t *testing.T) {
 	t.Parallel()
 
-	got := MappedTempKeys("M5", "")
+	got := MappedTempKeys("M5", "M5 Pro")
 
 	for _, k := range []string{"Tp00", "Tp04", "Tp08", "Tp0C"} {
 		if _, ok := got[k]; !ok {

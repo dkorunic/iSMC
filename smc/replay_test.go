@@ -393,6 +393,10 @@ var replayAllow = map[string][]string{
 	// report-m4-pro.txt is the dump that verifies the M4 Pro P-core mapping.
 	"m4-pro-2": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVXm TVxx"},
 	"m4-pro-3": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVxx"},
+	// Only four Te keys exist; E-cores 5-6 are among the generic "CPU Probe" Tp
+	// slots, which the only (idle) base M5 dump cannot place. TVNS ≡ TVN0 and
+	// TVC0 ≡ TVD0 byte-for-byte; TVMS is unknown, as on M4.
+	"m5":       {"cores E=4", "unmapped TVC0 TVMS TVNS"},
 	"m5-max":   {m5Aliases},
 	"m5-max-2": {m5Aliases},
 	"m5-pro":   {m5Aliases},

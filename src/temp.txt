@@ -1015,10 +1015,32 @@ Fabric Sensor 2:TF2S:M4
 // M5
 CPU Super Core 1:Tp00:M5
 CPU Super Core 2:Tp04:M5
-CPU Super Core 3:Tp08:M5
-CPU Super Core 4:Tp0C:M5
-// Super Cores 5-6, P-cores and P-clusters exist on M5 Pro/Max only; base M5
-// is 4S+6E (no dump yet), so these must not load there.
+CPU Super Core 3:Tp08:M5 Pro
+CPU Super Core 4:Tp0C:M5 Pro
+CPU Super Core 3:Tp08:M5 Max
+CPU Super Core 4:Tp0C:M5 Max
+// Base M5 (4S+6E; report-m5.txt, idle, every core key ~37 °C): Tp08 is absent,
+// so the four S-cores sit at Tp00/04/0C/0G. Te04/08/0C/0R are the only Te keys
+// (M4 E-core slot names); E-cores 5-6 hide among the Tp probes below, which an
+// idle dump cannot place, hence the generic labels. Unverified until a loaded
+// base M5 dump exists.
+CPU Super Core 3:Tp0C:M5 Base
+CPU Super Core 4:Tp0G:M5 Base
+CPU Efficiency Core 1:Te04:M5 Base
+CPU Efficiency Core 2:Te08:M5 Base
+CPU Efficiency Core 3:Te0C:M5 Base
+CPU Efficiency Core 4:Te0R:M5 Base
+CPU Probe 1:Tp0O:M5 Base
+CPU Probe 2:Tp0R:M5 Base
+CPU Probe 3:Tp0X:M5 Base
+CPU Probe 4:Tp0a:M5 Base
+CPU Probe 5:Tp0p:M5 Base
+CPU Probe 6:Tp0u:M5 Base
+CPU Probe 7:Tp0y:M5 Base
+CPU Probe 8:Tp12:M5 Base
+CPU Probe 9:Tp16:M5 Base
+CPU Probe 10:Tp1E:M5 Base
+// Super Cores 5-6, P-cores and P-clusters exist on M5 Pro/Max only.
 CPU Super Core 5:Tp0G:M5 Pro
 CPU Super Core 6:Tp0K:M5 Pro
 CPU Performance Core 1:Tp0O:M5 Pro
@@ -1033,7 +1055,7 @@ CPU Performance Core 9:Tp0m:M5 Pro
 CPU Performance Core 10:Tp0p:M5 Pro
 CPU Performance Core 11:Tp0u:M5 Pro
 CPU Performance Core 12:Tp0y:M5 Pro
-// Tp12/Tp16 removed: absent in every dump.
+// Tp12/Tp16 are absent on M5 Pro/Max; base M5 rows above.
 // 5th cluster (M5 Pro/Max has no E-cores).
 CPU Performance Cluster Aggregate:Tp1E:M5 Pro
 // M5 P-core cluster companion sensors.
@@ -1087,7 +1109,7 @@ GPU 15:Tg1Q:M5
 GPU 16:Tg1U:M5
 GPU 17:Tg1Y:M5
 GPU 18:Tg1c:M5
-// Tg1g removed: absent in dumps; 20..43 → 19..42.
+// Tg1g absent on M5 Pro/Max (base M5 row below); 20..43 → 19..42.
 GPU 19:Tg1k:M5
 GPU 20:Tg1o:M5
 GPU 21:Tg1x:M5
@@ -1155,6 +1177,15 @@ GPU 81:Tg76:M5
 GPU 82:Tg7C:M5
 GPU 83:Tg7F:M5
 GPU 84:Tg7L:M5
+// Base M5 only (report-m5.txt); same scheme, numbering continues.
+GPU 85:Tg04:M5 Base
+GPU 86:Tg0G:M5 Base
+GPU 87:Tg0K:M5 Base
+GPU 88:Tg0m:M5 Base
+GPU 89:Tg0p:M5 Base
+GPU 90:Tg1A:M5 Base
+GPU 91:Tg1g:M5 Base
+GPU 92:Tg1s:M5 Base
 // Tf?6 is a static ~64°C threshold.
 GPU Fabric Block 0:Tf04:M5
 GPU Fabric Block 0 Max:Tf06:M5
@@ -1242,6 +1273,10 @@ SSD 11:Ts0d:M5
 SSD 12:Ts0g:M5
 SSD Controller 1:Ts0P:M5
 SSD Controller 2:Ts1P:M5
+// Base M5 only: Ts0G reads inside the Ts band (37.17 °C vs Ta00 37.44 °C), so
+// unlike Pro/Max it is not the thermal-headroom alias.
+SSD 13:Ts0G:M5 Base
+SSD Controller 3:TsOP:M5 Base
 // M5 Max also populates TN04-TN07.
 Package 1:TN00:M5
 Package 2:TN01:M5
@@ -1279,6 +1314,11 @@ Uncore Die 16:TUDf:M5
 // Board-level probes shared with M4 Pro; live on both M5 Pro dumps.
 Power Heatsink 3:TPH3:M5
 Fabric Sensor 2:TF2S:M5
+// Base M5 only; TVA% is digits-only, so its letter slots need rows.
+Virtual Ambient C:TVAC:M5 Base
+Virtual Ambient O:TVAO:M5 Base
+Virtual Sensor G0:TVG0:M5 Base
+Airflow Left Rear:TaLR:M5 Base
 // A18 Pro (2P+4E); M1-style P-core triplets.
 CPU Performance Core 1:Tp00:A18
 CPU Performance Core 1:Tp01:A18
