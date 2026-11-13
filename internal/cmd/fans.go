@@ -16,7 +16,7 @@ var fansCmd = &cobra.Command{
 	Aliases: []string{"fan"},
 	Short:   "Display fans status",
 	Run: func(_ *cobra.Command, _ []string) {
-		output.Factory(OutputFlag).Fans()
+		output.Run(OutputFlag, WatchFlag, output.Output.Fans)
 	},
 }
 

@@ -16,7 +16,7 @@ var tempCmd = &cobra.Command{
 	Aliases: []string{"temperature", "tmp"},
 	Short:   "Display temperature sensors",
 	Run: func(_ *cobra.Command, _ []string) {
-		output.Factory(OutputFlag).Temperature()
+		output.Run(OutputFlag, WatchFlag, output.Output.Temperature)
 	},
 }
 

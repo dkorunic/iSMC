@@ -8,11 +8,16 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
-var OutputFlag string
+var (
+	OutputFlag string
+	// WatchFlag, when positive, keeps re-reading sensors at this interval.
+	WatchFlag time.Duration
+)
 
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
@@ -34,7 +39,9 @@ func Execute() {
 	}
 }
 
-// init registers the persistent --output flag on the root command.
+// init registers the persistent --output and --watch flags on the root command.
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&OutputFlag, "output", "o", "table", "Output format (ascii, table, json, influx)")
+	rootCmd.PersistentFlags().DurationVarP(&WatchFlag, "watch", "w", 0,
+		"Re-read sensors every interval (e.g. 2s); the table view refreshes in place, other outputs re-print")
 }

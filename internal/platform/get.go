@@ -8,6 +8,18 @@ package platform
 /*
 #include <stdlib.h>
 #include <sys/sysctl.h>
+#include <notify.h>
+#include <libkern/OSThermalNotification.h>
+
+// thermal_pressure reads the macOS thermal pressure level (no root needed).
+static int thermal_pressure(uint64_t *state) {
+    int token;
+    if (notify_register_check(kOSThermalNotificationPressureLevelName, &token) != NOTIFY_STATUS_OK)
+        return -1;
+    uint32_t st = notify_get_state(token, state);
+    notify_cancel(token);
+    return st == NOTIFY_STATUS_OK ? 0 : -1;
+}
 
 static int32_t sysctl_int32(const char *name) {
     int32_t val = 0;
@@ -26,6 +38,26 @@ import (
 	"sync"
 	"unsafe"
 )
+
+// thermalPressureNames are the macOS OSThermalPressureLevel values in order
+// (libkern/OSThermalNotification.h); iOS uses a different, sparse scale.
+var thermalPressureNames = []string{"Nominal", "Moderate", "Heavy", "Trapping", "Sleeping"}
+
+// ThermalPressure returns the macOS thermal pressure level name, the system's
+// own judgement of how hot the Mac is (it already discounts hotspot sensors
+// that routinely exceed 100 °C), or false when it cannot be read.
+func ThermalPressure() (string, bool) {
+	var state C.uint64_t
+	if C.thermal_pressure(&state) != 0 {
+		return "", false
+	}
+
+	if int(state) < len(thermalPressureNames) {
+		return thermalPressureNames[state], true
+	}
+
+	return fmt.Sprintf("Unknown (%d)", uint64(state)), true
+}
 
 // PerfLevel describes one CPU performance tier as reported by the macOS sysctl
 // hw.perflevel{N}.* hierarchy.

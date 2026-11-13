@@ -64,6 +64,7 @@ Available Commands:
 Flags:
   -h, --help            help for iSMC
   -o, --output string   Output format (ascii, table, json, influx) (default "table")
+  -w, --watch duration  Re-read sensors every interval (e.g. 2s); the table view refreshes in place, other outputs re-print
 
 Use "iSMC [command] --help" for more information about a command.
 ```
@@ -81,7 +82,13 @@ Each command also accepts short and long aliases: `bat`/`batt`/`battery`, `cur`/
 
 When `table` output is longer than the terminal, it opens a scrollable view that fills the terminal and flows rows into as many side-by-side columns as the terminal width fits: `↑`/`↓` (or `j`/`k`) scroll, `PgUp`/`PgDn` page, `g`/`G` jump to top/bottom, `←`/`→` or `Tab` switch category, `q` quits and leaves the last screen in your scrollback. Piped or short output prints plain tables instead; use `-o ascii` or pipe the output for unattended runs.
 
-In a terminal, `table` colours values by how high they are: temperatures turn yellow from 70 °C, red from 85 °C and bold bright red from 100 °C (around where CPUs throttle); fan speeds turn yellow from 60% and red from 85% of that fan's maximum. Power, voltage and current have no generic limit and stay uncoloured.
+In a terminal, `table` colours values by how high they are: temperatures turn yellow from 80 °C and red from 95 °C; fan speeds turn yellow from 60% and red from 85% of that fan's maximum. No single temperature is shown as critical, because Apple Silicon hotspot sensors routinely read 96–113 °C under sustained load while macOS considers the machine fine. Instead, the `Thermal Pressure` row (in `temp` and `all`) shows macOS's own verdict, read without root: `Nominal` stays plain, `Moderate` is yellow, `Heavy` red, and `Trapping` or `Sleeping` (macOS is throttling hard or about to sleep the machine) bold bright red. Power, voltage and current have no generic limit and stay uncoloured.
+
+`-w`/`--watch <interval>` keeps reading: in a terminal, `table` opens the scrollable view and refreshes it in place (keeping your tab and scroll position), while `ascii`, `json`, `influx` and piped output print a fresh reading every interval until interrupted. For example, `iSMC -w 2s temp` or `iSMC -o influx -w 10s` as a long-running Telegraf input.
+
+`batt` (and `all`) adds MacBook battery details read from the IORegistry without root: cycle count, charge, design and full-charge capacity, health (full-charge share of design capacity, yellow below Apple's 80% service level), voltage, amperage and charge state. Desktops show none, even though some publish an empty battery entry.
+
+`fans` also shows each fan's mode (`auto`, `manual` or `system`), which tells you whether macOS or a fan-control tool is driving the fans, and the `Ftst` force-test switch on Macs that have it.
 
 ## Architecture
 

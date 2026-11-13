@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -51,13 +52,17 @@ var (
 	criticalStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("9")) // bright red
 )
 
-// Temperature levels in °C. Apple Silicon and Intel CPUs throttle around
-// 100–105 °C, so "critical" means at or near the throttle point.
+// Temperature levels in °C. Apple Silicon hotspot keys legitimately read
+// 96–113 °C under sustained load while macOS stays at Nominal pressure, so no
+// single temperature is "critical": that level comes from Thermal Pressure.
 const (
-	tempWarm     = 70.0
-	tempHot      = 85.0
-	tempCritical = 100.0
+	tempWarm = 80.0
+	tempHot  = 95.0
 )
+
+// batteryHealthService is the full-charge share of design capacity (%) below
+// which Apple recommends battery service.
+const batteryHealthService = 80.0
 
 // Fan levels as a fraction of the same fan's maximum speed. A fan at maximum
 // is working hard, not failing, so fans never reach "critical".
@@ -80,14 +85,18 @@ type section struct {
 type TableOutput struct {
 	writer  io.Writer
 	isASCII bool
+	every   time.Duration // >0: the scrollable view re-reads sensors at this interval
 }
 
 // NewTableOutput returns a TableOutput that writes to stdout.
 func NewTableOutput(isASCII bool) Output {
-	return TableOutput{writer: os.Stdout, isASCII: isASCII}
+	return TableOutput{writer: os.Stdout, isASCII: isASCII, every: 0}
 }
 
-func (to TableOutput) All() {
+func (to TableOutput) All() { to.show(allSections) }
+
+// allSections reads every category, ordered by categoryOrder.
+func allSections() []section {
 	all := GetAll()
 	secs := make([]section, 0, len(all))
 	keys := sortedKeys(all)
@@ -100,16 +109,21 @@ func (to TableOutput) All() {
 		}
 	}
 
-	to.show(secs)
+	return secs
 }
 
-func (to TableOutput) Battery()     { to.show(appendSection(nil, "Battery", GetBattery())) }
-func (to TableOutput) Current()     { to.show(appendSection(nil, "Current", GetCurrent())) }
-func (to TableOutput) Fans()        { to.show(appendSection(nil, "Fans", GetFans())) }
-func (to TableOutput) Hardware()    { to.show(appendSection(nil, "Hardware", GetHardware())) }
-func (to TableOutput) Power()       { to.show(appendSection(nil, "Power", GetPower())) }
-func (to TableOutput) Temperature() { to.show(appendSection(nil, "Temperature", GetTemperature())) }
-func (to TableOutput) Voltage()     { to.show(appendSection(nil, "Voltage", GetVoltage())) }
+// one returns a reader for the single category name, fetched by get.
+func one(name string, get func() map[string]any) func() []section {
+	return func() []section { return appendSection(nil, name, get()) }
+}
+
+func (to TableOutput) Battery()     { to.show(one("Battery", GetBattery)) }
+func (to TableOutput) Current()     { to.show(one("Current", GetCurrent)) }
+func (to TableOutput) Fans()        { to.show(one("Fans", GetFans)) }
+func (to TableOutput) Hardware()    { to.show(one("Hardware", GetHardware)) }
+func (to TableOutput) Power()       { to.show(one("Power", GetPower)) }
+func (to TableOutput) Temperature() { to.show(one("Temperature", GetTemperature)) }
+func (to TableOutput) Voltage()     { to.show(one("Voltage", GetVoltage)) }
 
 // appendSection appends smcdata as a section titled name, in natural key order,
 // skipping it when it holds no rows. Numeric values (readings) are right-aligned
@@ -172,14 +186,22 @@ func colorize(secs []section) {
 // severity returns the style for one reading, or false when it is normal or
 // has no known limit. byDesc maps the section's descriptions to their values.
 func severity(desc, value string, byDesc map[string]string) (lipgloss.Style, bool) {
+	if desc == thermalPressureDesc {
+		return pressureStyle(value)
+	}
+
 	v, unit, ok := reading(value)
 	if !ok {
 		return lipgloss.Style{}, false
 	}
 
+	if desc == "Battery Health" && v < batteryHealthService {
+		return warmStyle, true
+	}
+
 	switch unit {
 	case "°C":
-		return levelStyle(v, tempWarm, tempHot, tempCritical)
+		return levelStyle(v, tempWarm, tempHot, math.Inf(1))
 	case "rpm":
 		for _, sfx := range []string{" Current Speed", " Target Speed"} {
 			if fan, found := strings.CutSuffix(desc, sfx); found {
@@ -191,6 +213,22 @@ func severity(desc, value string, byDesc map[string]string) (lipgloss.Style, boo
 	}
 
 	return lipgloss.Style{}, false
+}
+
+// pressureStyle colours the macOS thermal pressure level: Moderate is warm,
+// Heavy hot, and Trapping or Sleeping (macOS is throttling hard or about to
+// sleep the machine) critical. Nominal stays plain.
+func pressureStyle(level string) (lipgloss.Style, bool) {
+	switch level {
+	case "Moderate":
+		return warmStyle, true
+	case "Heavy":
+		return hotStyle, true
+	case "Trapping", "Sleeping":
+		return criticalStyle, true
+	default:
+		return lipgloss.Style{}, false
+	}
 }
 
 // levelStyle maps v onto the warm/hot/critical styles by its thresholds.
@@ -219,34 +257,50 @@ func reading(value string) (float64, string, bool) {
 	return v, f[1], err == nil
 }
 
-// show prints secs statically, or opens the scrollable view when the writer and
-// stdin are a terminal and the static form would not fit on screen.
-func (to TableOutput) show(secs []section) {
+// interactive reports whether the coloured view can run: the writer and stdin
+// are a terminal and the mode is not ASCII.
+func (to TableOutput) interactive() bool {
+	f, ok := to.writer.(*os.File)
+
+	return !to.isASCII && ok && term.IsTerminal(f.Fd()) && term.IsTerminal(os.Stdin.Fd())
+}
+
+// show prints the sections build reads statically, or opens the scrollable
+// view when interactive and the static form would not fit on screen. With a
+// refresh interval the view always opens and re-reads sensors through build.
+func (to TableOutput) show(build func() []section) {
+	load := func() []section {
+		secs := build()
+		if !to.isASCII {
+			colorize(secs)
+		}
+
+		return secs
+	}
+
+	secs := load()
 	if len(secs) == 0 {
 		return
 	}
 
-	if !to.isASCII {
-		colorize(secs)
-	}
-
 	static := to.renderStatic(secs)
 
-	f, ok := to.writer.(*os.File)
-	if to.isASCII || !ok || !term.IsTerminal(f.Fd()) || !term.IsTerminal(os.Stdin.Fd()) {
+	if !to.interactive() {
 		_, _ = lipgloss.Fprint(to.writer, static)
 
 		return
 	}
+
+	f, _ := to.writer.(*os.File)
 
 	_, h, err := term.GetSize(f.Fd())
-	if err != nil || lipgloss.Height(static) < h {
+	if to.every <= 0 && (err != nil || lipgloss.Height(static) < h) {
 		_, _ = lipgloss.Fprint(to.writer, static)
 
 		return
 	}
 
-	_, err = tea.NewProgram(newTUIModel(secs), tea.WithOutput(f)).Run()
+	_, err = tea.NewProgram(newTUIModel(secs, load, to.every), tea.WithOutput(f)).Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "interactive table: %v\n", err)
 

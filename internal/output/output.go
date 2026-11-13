@@ -49,12 +49,13 @@ type Output interface {
 
 // getAll returns all sensor data by merging SMC and HID results.
 func getAll() map[string]any {
-	return merge(smc.GetAll(), hid.GetAll())
+	return merge(merge(smc.GetAll(), hid.GetAll()),
+		map[string]any{"Temperature": thermalPressure(), "Battery": platform.Battery()})
 }
 
 // getBattery returns battery sensor data from SMC.
 func getBattery() map[string]any {
-	return smc.GetBattery()
+	return merge(smc.GetBattery(), platform.Battery())
 }
 
 // getCurrent returns current sensor data merged from SMC and HID sources.
@@ -69,7 +70,25 @@ func getFans() map[string]any {
 
 // getTemperature returns temperature sensor data merged from SMC and HID sources.
 func getTemperature() map[string]any {
-	return merge(smc.GetTemperature(), hid.GetTemperature())
+	return merge(merge(smc.GetTemperature(), hid.GetTemperature()), thermalPressure())
+}
+
+// thermalPressureDesc labels the macOS thermal pressure row.
+const thermalPressureDesc = "Thermal Pressure"
+
+// thermalPressure returns the macOS thermal pressure level as a Temperature
+// entry, or nothing when it cannot be read.
+func thermalPressure() map[string]any {
+	level, ok := platform.ThermalPressure()
+	if !ok {
+		return map[string]any{}
+	}
+
+	return map[string]any{thermalPressureDesc: map[string]any{
+		"key":   "thermalpressurelevel",
+		"value": level,
+		"type":  "notify",
+	}}
 }
 
 // getPower returns power sensor data from SMC.

@@ -147,7 +147,7 @@ func TestTableOutput_ASCII(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.monkeyPatch()
 
-			to := TableOutput{isASCII: true, writer: io.Writer(&out)}
+			to := TableOutput{isASCII: true, writer: io.Writer(&out), every: 0}
 			tt.method(to)
 
 			actual := out.String()
@@ -179,10 +179,18 @@ func TestSeverity(t *testing.T) {
 		desc, value string
 		want        any // nil means no colour
 	}{
-		{"CPU", "69.9 °C", nil},
-		{"CPU", "70 °C", warmStyle},
-		{"CPU", "85.0 °C", hotStyle},
-		{"CPU", "100.0 °C", criticalStyle},
+		{"CPU", "79.9 °C", nil},
+		{"CPU", "80 °C", warmStyle},
+		{"CPU", "95.0 °C", hotStyle},
+		{"CPU", "113.0 °C", hotStyle}, // hotspot keys under load; never critical
+		{thermalPressureDesc, "Nominal", nil},
+		{thermalPressureDesc, "Moderate", warmStyle},
+		{thermalPressureDesc, "Heavy", hotStyle},
+		{thermalPressureDesc, "Trapping", criticalStyle},
+		{thermalPressureDesc, "Sleeping", criticalStyle},
+		{"Battery Health", "80 %", nil},
+		{"Battery Health", "79 %", warmStyle}, // below Apple's service level
+		{"Battery Charge", "15 %", nil},
 		{"Fan 1 Current Speed", "1100 rpm", nil},
 		{"Fan 1 Current Speed", "1200 rpm", warmStyle},
 		{"Fan 1 Target Speed", "1900 rpm", hotStyle},

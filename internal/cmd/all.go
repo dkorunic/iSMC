@@ -16,7 +16,7 @@ var allCmd = &cobra.Command{
 	Aliases: []string{"everything", "*"},
 	Short:   "Display all known sensors, fans and battery status",
 	Run: func(_ *cobra.Command, _ []string) {
-		output.Factory(OutputFlag).All()
+		output.Run(OutputFlag, WatchFlag, output.Output.All)
 	},
 }
 

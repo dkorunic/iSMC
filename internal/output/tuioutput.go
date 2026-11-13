@@ -8,6 +8,7 @@ package output
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -35,15 +36,20 @@ const fieldGap = "  "
 // the terminal width fits, so wide terminals show more rows at once; each
 // category keeps its own scroll offset.
 type tuiModel struct {
+	load    func() []section // re-reads the sensors; nil disables refresh
 	secs    []section
 	widths  [][]int // per section: fixed column widths, so scrolling never reflows them
 	offsets []int   // per section: index of the first visible row
 	active  int
 	width   int
 	height  int
+	every   time.Duration // refresh interval; 0 disables refresh
 }
 
-func newTUIModel(secs []section) tuiModel {
+// refreshMsg carries a fresh sensor read into the model.
+type refreshMsg []section
+
+func newTUIModel(secs []section, load func() []section, every time.Duration) tuiModel {
 	m := tuiModel{
 		secs:    secs,
 		widths:  make([][]int, len(secs)),
@@ -51,6 +57,8 @@ func newTUIModel(secs []section) tuiModel {
 		active:  0,
 		width:   0,
 		height:  0,
+		load:    load,
+		every:   every,
 	}
 
 	for i, s := range secs {
@@ -74,10 +82,14 @@ func columnWidths(rows [][]string) []int {
 	return w
 }
 
-func (m tuiModel) Init() tea.Cmd { return nil }
+func (m tuiModel) Init() tea.Cmd { return m.tick() }
 
 func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case refreshMsg:
+		m = m.refreshed(msg)
+
+		return m, m.tick()
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 	case tea.KeyPressMsg:
@@ -155,6 +167,10 @@ func (m tuiModel) View() tea.View {
 		help += " · ←/→ category"
 	}
 
+	if m.load != nil && m.every > 0 {
+		help += " · every " + m.every.String()
+	}
+
 	// Narrow windows truncate the tab bar and help line instead of wrapping.
 	v := tea.NewView(lipgloss.NewStyle().MaxWidth(max(m.width, 1)).Render(lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Top, tabs...),
@@ -163,6 +179,53 @@ func (m tuiModel) View() tea.View {
 	)))
 
 	return v
+}
+
+// tick schedules the next refresh. The read runs in the timer's goroutine, so a
+// slow SMC sweep (about 0.5 s for all sensors) never stalls key handling.
+func (m tuiModel) tick() tea.Cmd {
+	if m.load == nil || m.every <= 0 {
+		return nil
+	}
+
+	load := m.load
+
+	return tea.Tick(m.every, func(time.Time) tea.Msg { return refreshMsg(load()) })
+}
+
+// refreshed returns m showing secs, keeping each category's tab, scroll
+// offset and column widths by title. Widths only grow, so changing values never
+// make the columns jitter.
+func (m tuiModel) refreshed(secs []section) tuiModel {
+	if len(secs) == 0 {
+		return m
+	}
+
+	prev := make(map[string]int, len(m.secs))
+	for i, s := range m.secs {
+		prev[s.title] = i
+	}
+
+	n := newTUIModel(secs, m.load, m.every)
+	n.width, n.height = m.width, m.height
+
+	for i, s := range secs {
+		j, ok := prev[s.title]
+		if !ok {
+			continue
+		}
+
+		n.offsets[i] = m.offsets[j]
+		for c := range n.widths[i] {
+			n.widths[i][c] = max(n.widths[i][c], m.widths[j][c])
+		}
+
+		if j == m.active {
+			n.active = i
+		}
+	}
+
+	return n
 }
 
 // layout returns how many row columns fit side by side and how many rows each

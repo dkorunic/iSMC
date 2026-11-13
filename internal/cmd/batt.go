@@ -16,7 +16,7 @@ var battCmd = &cobra.Command{
 	Aliases: []string{"battery", "bat"},
 	Short:   "Display battery status",
 	Run: func(_ *cobra.Command, _ []string) {
-		output.Factory(OutputFlag).Battery()
+		output.Run(OutputFlag, WatchFlag, output.Output.Battery)
 	},
 }
 

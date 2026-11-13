@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -79,7 +80,7 @@ func press(m tea.Model, code rune) tea.Model {
 func sized(t *testing.T, secs []section, width, height int) tea.Model {
 	t.Helper()
 
-	m, _ := tea.Model(newTUIModel(secs)).Update(tea.WindowSizeMsg{Width: width, Height: height})
+	m, _ := tea.Model(newTUIModel(secs, nil, 0)).Update(tea.WindowSizeMsg{Width: width, Height: height})
 	lines := strings.Split(m.View().Content, "\n")
 
 	assert.Len(t, lines, height-1, "view must fill the window but its last line")
@@ -210,11 +211,40 @@ func TestTUIModel_ColoredAlignment(t *testing.T) {
 	assert.Contains(t, secs[0].rows[0][2], "\x1b[", "112.25 °C must be coloured")
 	assert.NotContains(t, secs[0].rows[1][2], "\x1b[", "45.5 °C must stay plain")
 
-	m, _ := newTUIModel(secs).Update(tea.WindowSizeMsg{Width: 80, Height: 12})
+	m, _ := newTUIModel(secs, nil, 0).Update(tea.WindowSizeMsg{Width: 80, Height: 12})
 	lines := strings.Split(m.View().Content, "\n")
 	table := lines[1 : len(lines)-1] // between the tab bar and the help line
 
 	for _, l := range table {
 		assert.Equal(t, lipgloss.Width(table[0]), lipgloss.Width(l), "misaligned line %q", l)
 	}
+}
+
+// A refresh shows the new reading and keeps the active tab, its scroll offset
+// and its column widths (which only grow, so values never make columns jitter).
+func TestTUIModel_Refresh(t *testing.T) {
+	read := func(cpu string) []section {
+		secs := appendSection(nil, "Temperature", map[string]any{"CPU": sensor("Tp01", cpu), "GPU": sensor("Tg05", "40.0 °C")})
+
+		return appendSection(secs, "Fans", map[string]any{"Fan 1": sensor("F0Ac", "1200 rpm")})
+	}
+
+	m := newTUIModel(read("100.25 °C"), func() []section { return read("50.0 °C") }, time.Second)
+	m.active, m.offsets[1] = 1, 0
+	m.offsets[0] = 1
+	wide := m.widths[0][2]
+
+	assert.NotNil(t, m.Init(), "a refresh interval must schedule a tick")
+
+	next, cmd := m.Update(refreshMsg(m.load()))
+	r, ok := next.(tuiModel)
+	assert.True(t, ok)
+
+	assert.NotNil(t, cmd, "each refresh schedules the next")
+	assert.Equal(t, 1, r.active, "active tab kept")
+	assert.Equal(t, 1, r.offsets[0], "scroll offset kept")
+	assert.Equal(t, wide, r.widths[0][2], "value column must not shrink")
+	assert.Contains(t, r.secs[0].rows[0][2], "50.0 °C", "new reading shown")
+
+	assert.Nil(t, newTUIModel(read("1 °C"), nil, 0).Init(), "no refresh without an interval")
 }

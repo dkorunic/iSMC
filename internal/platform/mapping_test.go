@@ -309,3 +309,13 @@ func Test_LookupSKULayout_unknown(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, SKULayout{}, got)
 }
+
+// Test_ThermalPressure reads the live macOS level; any Mac reports one of the
+// known names (CI and idle machines are Nominal).
+func Test_ThermalPressure(t *testing.T) {
+	t.Parallel()
+
+	level, ok := ThermalPressure()
+	assert.True(t, ok, "thermal pressure must be readable without root")
+	assert.Contains(t, thermalPressureNames, level)
+}

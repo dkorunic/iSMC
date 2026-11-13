@@ -16,7 +16,7 @@ var voltCmd = &cobra.Command{
 	Aliases: []string{"voltage", "vol"},
 	Short:   "Display voltage sensors",
 	Run: func(_ *cobra.Command, _ []string) {
-		output.Factory(OutputFlag).Voltage()
+		output.Run(OutputFlag, WatchFlag, output.Output.Voltage)
 	},
 }
 
