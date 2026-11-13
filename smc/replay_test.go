@@ -309,7 +309,8 @@ const (
 	m3MaxGated = "unmapped Tp1g Tp1h Tp1i Tp1o Tp1p Tp1q Tp1x Tp1y Tp1z Tp25 Tp26 Tp27 Tp29 Tp2A " +
 		"Tp2B Tp2H Tp2I Tp2J Tp2P Tp2Q Tp2R Tp2X Tp2Y Tp2Z Tp2f Tp2g Tp2h Tp2j Tp2k Tp2l " +
 		"Tp2r Tp2s Tp2t Tp2z Tp30 Tp31 Tp33 Tp34 Tp35 Tp3B Tp3C Tp3D Tp3a Tp3b Tp3e Tp3f Tp3i Tp3j"
-	// Tp0u/v/w alias Tp0y/z/10 and Te0V aliases Te0T (dropped per src/temp.txt).
+	// Tp0u/v/w track Tp0y/z/10 within ~0.7 °C (never byte-equal); Te0V aliases
+	// Te0T. Both dropped per src/temp.txt.
 	m3Aliases    = "unmapped Tp0u Tp0v Tp0w"
 	m3ProAliases = m3Aliases + " Te0V"
 	// Virtual TV* channels with no known meaning.

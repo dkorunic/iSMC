@@ -569,7 +569,8 @@ CPU Performance Cluster 2:Tp1J:M3
 CPU Performance Cluster 2:Tp1K:M3
 CPU Performance Cluster 2:Tp3W:M3
 CPU Performance Cluster 2:Tp3X:M3
-// Tp0u/v/w alias Tp0y/z/10; dropped to avoid double-counting Core 9.
+// Tp0u/v/w track Tp0y/z/10 within ~0.7 C in all six M3 dumps (never byte-equal);
+// dropped to avoid double-counting Core 9.
 CPU Performance Core 9:Tp0y:M3
 CPU Performance Core 9:Tp0z:M3
 CPU Performance Core 9:Tp10:M3
