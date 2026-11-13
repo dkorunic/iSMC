@@ -18,6 +18,9 @@ const (
 	PairSignaturePE = "P+E" // M1–M4, A18.
 	PairSignatureSE = "S+E" // M5 base.
 	PairSignatureSP = "S+P" // M5 Pro / M5 Max.
+	// PairSignatureSPE is the first three-tier layout: super, performance and
+	// efficiency cores coexist, so it is not strictly a pair.
+	PairSignatureSPE = "S+P+E" // M6.
 )
 
 // SKULayout describes per-SKU core/GPU composition for an Apple Silicon variant.
@@ -63,6 +66,9 @@ var skuLayouts = map[string]SKULayout{
 	"M5 Pro": {SCoresMin: 5, SCoresMax: 6, PCoresMin: 10, PCoresMax: 12, GPUCoresMin: 16, GPUCoresMax: 20, PairSignature: PairSignatureSP, Dies: 1},
 	"M5 Max": {SCoresMin: 6, SCoresMax: 6, PCoresMin: 12, PCoresMax: 12, GPUCoresMin: 32, GPUCoresMax: 40, PairSignature: PairSignatureSP, Dies: 1},
 
+	// M6: S+P+E. 10-core is 2S+3P+5E (base iMac), 12-core 2S+4P+6E.
+	"M6": {SCoresMin: 2, SCoresMax: 2, PCoresMin: 3, PCoresMax: 4, ECoresMin: 5, ECoresMax: 6, GPUCoresMin: 10, GPUCoresMax: 12, PairSignature: PairSignatureSPE, Dies: 1},
+
 	// A-series
 	"A18 Pro": {PCoresMin: 2, PCoresMax: 2, ECoresMin: 4, ECoresMax: 4, GPUCoresMin: 5, GPUCoresMax: 5, PairSignature: PairSignaturePE, Dies: 1},
 }
@@ -87,6 +93,8 @@ var products = map[string]Product{
 	"Mac14,12":   {Name: "Mac mini (M2 Pro)", Year: 2023, Family: "M2", CPU: "M2 Pro"},
 	"Mac16,10":   {Name: "Mac mini (M4)", Year: 2024, Family: "M4", CPU: "M4"},
 	"Mac16,11":   {Name: "Mac mini (M4 Pro)", Year: 2024, Family: "M4", CPU: "M4 Pro"},
+	"Mac17,16":   {Name: "Mac mini (M5 Pro)", Year: 2026, Family: "M5", CPU: "M5 Pro"},
+	"Mac18,5":    {Name: "Mac mini (M6)", Year: 2026, Family: "M6", CPU: "M6"},
 
 	// Mac Studio
 	"Mac13,1":  {Name: "Mac Studio (M1 Max)", Year: 2022, Family: "M1", CPU: "M1 Max"},
@@ -135,6 +143,7 @@ var products = map[string]Product{
 	"Mac15,5":  {Name: "iMac 24-Inch (M3, 8 CPU/10 GPU)", Year: 2023, Family: "M3", CPU: "M3"},
 	"Mac16,2":  {Name: "iMac 24-Inch (M4, 8 CPU/8 GPU)", Year: 2024, Family: "M4", CPU: "M4"},
 	"Mac16,3":  {Name: "iMac 24-Inch (M4, 10 CPU/10 GPU)", Year: 2024, Family: "M4", CPU: "M4"},
+	"Mac18,2":  {Name: "iMac 24-Inch (M6)", Year: 2026, Family: "M6", CPU: "M6"},
 
 	// iMac Pro
 	"iMacPro1,1": {Name: "iMac Pro", Year: 2017, Family: "Intel", CPU: "Xeon W-2140B"},
@@ -241,4 +250,5 @@ var products = map[string]Product{
 	"Mac17,7":        {Name: "MacBook Pro 14 (M5 Max)", Year: 2026, Family: "M5", CPU: "M5 Max"},
 	"Mac17,8":        {Name: "MacBook Pro 16 (M5 Pro)", Year: 2026, Family: "M5", CPU: "M5 Pro"},
 	"Mac17,9":        {Name: "MacBook Pro 14 (M5 Pro)", Year: 2026, Family: "M5", CPU: "M5 Pro"},
+	"Mac18,1":        {Name: "MacBook Pro 14 (M6)", Year: 2026, Family: "M6", CPU: "M6"},
 }

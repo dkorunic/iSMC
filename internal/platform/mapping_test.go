@@ -201,7 +201,7 @@ func Test_skuLayoutsIntegrity(t *testing.T) {
 				"%s: GPUCoresMin > GPUCoresMax", sku)
 
 			assert.Contains(t,
-				[]string{PairSignaturePE, PairSignatureSE, PairSignatureSP},
+				[]string{PairSignaturePE, PairSignatureSE, PairSignatureSP, PairSignatureSPE},
 				layout.PairSignature,
 				"%s: PairSignature %q is not one of the known constants", sku, layout.PairSignature)
 
@@ -218,6 +218,10 @@ func Test_skuLayoutsIntegrity(t *testing.T) {
 				assert.Zero(t, layout.ECoresMax, "%s: S+P SKU must have no E-cores", sku)
 				assert.Positive(t, layout.SCoresMax, "%s: S+P SKU must have S-cores", sku)
 				assert.Positive(t, layout.PCoresMax, "%s: S+P SKU must have P-cores", sku)
+			case PairSignatureSPE:
+				assert.Positive(t, layout.SCoresMax, "%s: S+P+E SKU must have S-cores", sku)
+				assert.Positive(t, layout.PCoresMax, "%s: S+P+E SKU must have P-cores", sku)
+				assert.Positive(t, layout.ECoresMax, "%s: S+P+E SKU must have E-cores", sku)
 			}
 
 			assert.Contains(t, []int{1, 2}, layout.Dies,
@@ -272,6 +276,8 @@ func Test_LookupSKULayout_known(t *testing.T) {
 		{"M5 Pro", PairSignatureSP, 10, 12, 0, 0, 5, 6, 1, 16, 20},
 		// A18 Pro: P+E.
 		{"A18 Pro", PairSignaturePE, 2, 2, 4, 4, 0, 0, 1, 5, 5},
+		// M6: first three-tier SKU (S+P+E).
+		{"M6", PairSignatureSPE, 3, 4, 5, 6, 2, 2, 1, 10, 12},
 	}
 
 	for _, tt := range tests {

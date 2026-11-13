@@ -356,6 +356,7 @@ func TestLayoutSummary(t *testing.T) {
 		{"M5 Pro", "5–6S + 10–12P, 16–20 GPU cores"},
 		{"M5 Max", "6S + 12P, 32–40 GPU cores"},
 		{"A18 Pro", "2P + 4E, 5 GPU cores"},
+		{"M6", "2S + 3–4P + 5–6E, 10–12 GPU cores"},
 	}
 
 	for _, tt := range tests {
