@@ -36,7 +36,7 @@ linters:
       # misattributes the guard-clause returns (the reported lines point at
       # defer/if statements, not the returns). Identical guard clauses in non-cgo
       # files are not flagged.
-      - path: (internal/platform|hid)/get\.go
+      - path: (internal/platform|hid)/get\.go|internal/platform/battery\.go
         linters:
           - nlreturn
 formatters:
