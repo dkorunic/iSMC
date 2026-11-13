@@ -8,6 +8,7 @@ package cmd
 import (
 	"cmp"
 	"fmt"
+	"maps"
 	"math"
 	"os"
 	"runtime"
@@ -48,6 +49,13 @@ const (
 
 	// Sensor is cluster-level if min/max phase delta ≥ (1 − this).
 	guessClusterRatio = float32(0.20)
+
+	// A phase competes for a core group only if the group's summed delta there
+	// is at least this share of its largest phase delta. Laptop E-cores
+	// self-heat about half as much as the P-phase warms them, so they pass; a
+	// desktop's 1 °C noise on one key of a P-core (5% of its P-phase rise on an
+	// M1 Ultra) does not.
+	guessMinPhaseShare = float32(0.25)
 )
 
 var guessCmd = &cobra.Command{
@@ -82,12 +90,13 @@ pasting into src/temp.txt.
 Baselines wait for thermal steady state, so total runtime varies (roughly one
 to three minutes). Run on an otherwise-idle machine for best results.
 
-Known limitation: on desktop-class machines with large coolers (Mac Studio,
-Mac Pro), E-core self-heating under a background-QoS sweep is below the SMC
-noise floor, so E-cores cannot be told apart from P-cores thermally and are
-listed in the Performance phase with a count warning. Cross-check those lines
-against src/temp.txt (the ⚠ annotations) before pasting. Laptops, with tighter
-thermal budgets, separate the tiers much more reliably.
+On desktop-class machines with large coolers (Mac Studio, Mac Pro), E-core
+self-heating under a background-QoS sweep is below the SMC noise floor, so
+E-cores show up only as the weakest responders of the Performance sweep. When
+one tier then exceeds the SKU's core count and another falls short, the weakest
+surplus groups are moved to the short tier and a NOTE says so; verify those
+lines. Annotations: ✓ matches src/temp.txt, ~ same tier but another core
+number, ✗ a different tier, ⚠ a non-core label, ★ unmapped.
 
 --gpu adds a final phase that loads the GPU with a compute-bound Metal kernel
 and lists the sensors that respond, comparing each key's GPU rise with its
@@ -458,10 +467,16 @@ func classifyCoreGroups(groups [][]string, results []phaseResult) ([][][]string,
 	for g, group := range groups {
 		best, second := -1, float32(0)
 
-		var bestScore float32
+		var bestScore, peak float32
 
 		for i := range results {
-			if medians[i] <= 0 || sums[i][g] <= 0 {
+			peak = max(peak, sums[i][g])
+		}
+
+		for i := range results {
+			// A phase that barely warmed this group is noise, not a competing
+			// response: normalizing it by a median of other noise scores ~1.0.
+			if medians[i] <= 0 || sums[i][g] < guessMinPhaseShare*peak {
 				continue
 			}
 
@@ -487,6 +502,97 @@ func classifyCoreGroups(groups [][]string, results []phaseResult) ([][][]string,
 	}
 
 	return perPhase, clusters
+}
+
+// rebalanceToLayout moves surplus groups from the one phase above its SKU
+// maximum into the one phase below its SKU minimum, weakest first by the
+// source phase's mean per-key delta, and returns the moved groups (nil when
+// nothing moved) with the source and destination phase indices.
+//
+// On desktop coolers E-core self-heating under a background sweep sits below
+// the noise floor, so E-cores only show up as weak responders in the P sweep
+// (M1 Ultra: E groups ~3.7–4.2 °C per key against ~7.6–9.6 °C for P-cores).
+// The SKU's core counts say how many of them are surplus. Moved groups keep
+// their original order (groups) so core numbering stays positional.
+// ponytail: only the unambiguous one-over/one-under case; 3-tier SKUs where
+// several tiers miss would need per-tier affinity scores.
+func rebalanceToLayout(perPhase [][][]string, results []phaseResult, layout platform.SKULayout,
+	groups [][]string,
+) ([][]string, int, int) {
+	src, dst := -1, -1
+
+	for i, r := range results {
+		expMin, expMax := expectedCores(layout, r.spec.label)
+
+		switch {
+		case expMax > 0 && len(perPhase[i]) > expMax:
+			if src >= 0 {
+				return nil, 0, 0
+			}
+
+			src = i
+		case len(perPhase[i]) < expMin:
+			if dst >= 0 {
+				return nil, 0, 0
+			}
+
+			dst = i
+		}
+	}
+
+	if src < 0 || dst < 0 {
+		return nil, 0, 0
+	}
+
+	_, srcMax := expectedCores(layout, results[src].spec.label)
+	dstMin, _ := expectedCores(layout, results[dst].spec.label)
+	n := min(len(perPhase[src])-srcMax, dstMin-len(perPhase[dst])) //nolint:gosec // G602: src/dst index results, and perPhase has one entry per result
+
+	weakest := slices.Clone(perPhase[src])
+	slices.SortStableFunc(weakest, func(a, b []string) int {
+		return cmp.Compare(groupMeanDelta(a, results[src].deltas), groupMeanDelta(b, results[src].deltas))
+	})
+
+	moved := make(map[string]bool, n)
+	for _, g := range weakest[:n] {
+		moved[g[0]] = true
+	}
+
+	perPhase[src] = slices.DeleteFunc(perPhase[src], func(g []string) bool { return moved[g[0]] })
+	perPhase[dst] = append(perPhase[dst], weakest[:n]...) //nolint:gosec // G602: src/dst index results, and perPhase has one entry per result
+
+	order := make(map[string]int, len(groups))
+	for i, g := range groups {
+		order[g[0]] = i
+	}
+
+	slices.SortFunc(perPhase[dst], func(a, b []string) int { //nolint:gosec // G602: see above
+		return cmp.Compare(order[a[0]], order[b[0]])
+	})
+
+	return weakest[:n], src, dst
+}
+
+// groupMeanDelta returns the mean delta of a group's keys that responded in
+// one phase. Unlike the sum it does not penalise a core whose third key
+// stayed under guessOutputThreshold (M1 Ultra: Tp04/Tp05 without Tp06).
+func groupMeanDelta(group []string, deltas map[string]float32) float32 {
+	var sum float32
+
+	n := 0
+
+	for _, k := range group {
+		if d, ok := deltas[k]; ok {
+			sum += d
+			n++
+		}
+	}
+
+	if n == 0 {
+		return 0
+	}
+
+	return sum / float32(n)
 }
 
 // Phase label prefixes; must match descriptions emitted in src/temp.txt.
@@ -782,7 +888,7 @@ func runGuess(_ *cobra.Command, _ []string) {
 		gpuDeltas = runGPUPhase(sampler, baseline)
 	}
 
-	printMapping(family, numCPU, perfLevels, layout, layoutOK, product, results)
+	printMapping(family, numCPU, perfLevels, layout, layoutOK, product, results, baseline)
 
 	if gpuDeltas != nil {
 		printGPUPhase(family, product.CPU, gpuDeltas, baseline, results)
@@ -1048,7 +1154,9 @@ func printNonCoreResponders(family, sku string, r phaseResult, keys []string) {
 // whether the key already has a canonical description in the AppleTemp table:
 //
 //	✓ when src/temp.txt's description matches the guessed label exactly
-//	⚠ when the key is mapped but to a different description (likely mis-label)
+//	~ when it is the same core tier under a different core number
+//	✗ when it is a core of a different tier (a real classification conflict)
+//	⚠ when the key is mapped to some other, non-core description
 //	★ when the key is not yet mapped for this family
 //
 // The fixed alignment column (45) keeps annotations readable even with
@@ -1065,6 +1173,12 @@ func annotateLine(line, label, key, family, sku string, coreIdx int) string {
 			annotationCol, line, family)
 	case existing == guessed:
 		return fmt.Sprintf("%-*s // ✓ matches src/temp.txt", annotationCol, line)
+	case strings.HasPrefix(existing, label+" "):
+		return fmt.Sprintf("%-*s // ~ same tier, src/temp.txt numbers it %q",
+			annotationCol, line, existing)
+	case strings.Contains(existing, " Core "):
+		return fmt.Sprintf("%-*s // ✗ tier mismatch: src/temp.txt has %q",
+			annotationCol, line, existing)
 	default:
 		return fmt.Sprintf("%-*s // ⚠ src/temp.txt has %q",
 			annotationCol, line, existing)
@@ -1133,6 +1247,7 @@ func warnAbsentTypes(l platform.SKULayout, results []phaseResult, perPhase [][][
 // into src/temp.txt.
 func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	layout platform.SKULayout, layoutOK bool, product platform.Product, results []phaseResult,
+	visible map[string]float32,
 ) {
 	appleSilicon := family != "Intel"
 	tePerCore := family != "M1" && family != "M2"
@@ -1164,6 +1279,15 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	}
 
 	perPhase, clusterGroups := classifyCoreGroups(groups, results)
+
+	var (
+		moved              [][]string
+		movedSrc, movedDst int
+	)
+
+	if layoutOK {
+		moved, movedSrc, movedDst = rebalanceToLayout(perPhase, results, layout, groups)
+	}
 
 	clusterKeys := make([]string, 0, len(clusterGroups))
 
@@ -1203,6 +1327,22 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	}
 
 	fmt.Println("// WARNING: automated correlation is approximate; always verify on real hardware.")
+
+	if len(moved) > 0 {
+		src := results[movedSrc]
+		parts := make([]string, 0, len(moved))
+
+		for _, g := range moved {
+			parts = append(parts, fmt.Sprintf("%s +%.1f°C", g[0], groupMeanDelta(g, src.deltas)))
+		}
+
+		fmt.Printf("// NOTE: moved the %d weakest %s group(s) to %s to match the SKU layout "+
+			"(their own heating was below the noise floor); verify those lines.\n"+
+			"//       moved (mean %s-sweep rise per key): %s\n",
+			len(moved), phaseMidWord(src.spec.label), phaseMidWord(results[movedDst].spec.label),
+			phaseMidWord(src.spec.label), strings.Join(parts, ", "))
+	}
+
 	fmt.Printf("// %s\n", strings.Repeat("─", 72))
 
 	// Per-phase sensor sections.
@@ -1240,7 +1380,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	}
 
 	detected := allDetectedKeys(results, clusterKeys)
-	printTempTxtCrosscheck(family, product.CPU, detected)
+	printTempTxtCrosscheck(family, product.CPU, detected, visible)
 	printReportsCrosscheck(family, product.CPU, detected)
 }
 
@@ -1265,7 +1405,7 @@ func allDetectedKeys(results []phaseResult, clusterKeys []string) map[string]str
 }
 
 // printTempTxtCrosscheck emits a summary of the diff between detected SMC keys
-// and the set of keys already mapped in src/temp.txt for the family. The
+// and the keys mapped in src/temp.txt for the family that this machine reads. The
 // summary line reports four cardinalities:
 //
 //	matched: in temp.txt AND detected this run
@@ -1276,8 +1416,16 @@ func allDetectedKeys(results []phaseResult, clusterKeys []string) map[string]str
 // When silent keys exist, the first few are listed with their canonical
 // descriptions so the operator can spot-check whether they belong to a
 // no-longer-present sensor or simply did not fire in this run.
-func printTempTxtCrosscheck(family, sku string, detected map[string]struct{}) {
+func printTempTxtCrosscheck(family, sku string, detected map[string]struct{}, visible map[string]float32) {
+	// Only keys this machine reads: the table also holds rows for other SKUs
+	// and Intel-era All rows, which would otherwise swamp the silent list.
 	mapped := smc.MappedTempKeys(family, sku)
+	maps.DeleteFunc(mapped, func(k, _ string) bool {
+		_, ok := visible[k]
+
+		return !ok
+	})
+
 	if len(mapped) == 0 {
 		return
 	}

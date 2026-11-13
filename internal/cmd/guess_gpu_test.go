@@ -12,6 +12,29 @@ import (
 	"testing"
 )
 
+// captureStdout returns what fn prints to stdout.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stdout := os.Stdout
+	os.Stdout = w
+
+	fn()
+
+	os.Stdout = stdout
+
+	w.Close()
+
+	b, _ := io.ReadAll(r)
+
+	return string(b)
+}
+
 // TestPrintGPUPhase checks GPU-tier classification and the src/temp.txt label
 // flags against real M1 Pro rows (Tg05/Tg0C/Tg0D are GPU, Tp01 a P-core, Tm06
 // memory). Max GPU rise is 9, so the floor is 4.5 °C.
@@ -25,22 +48,7 @@ func TestPrintGPUPhase(t *testing.T) {
 	cpu := []phaseResult{{deltas: map[string]float32{"Tg05": 2, "Tp01": 1, "Tg0D": 4}}}
 	visible := map[string]float32{"Tg05": 40, "Tp01": 40, "Tg0D": 40, "Tg0C": 40}
 
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	stdout := os.Stdout
-	os.Stdout = w
-
-	printGPUPhase("M1", "M1 Pro", gpu, visible, cpu)
-
-	os.Stdout = stdout
-
-	w.Close()
-
-	b, _ := io.ReadAll(r)
-	out := string(b)
+	out := captureStdout(t, func() { printGPUPhase("M1", "M1 Pro", gpu, visible, cpu) })
 
 	line := func(key string) string {
 		for l := range strings.SplitSeq(out, "\n") {
