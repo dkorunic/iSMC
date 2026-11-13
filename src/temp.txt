@@ -391,18 +391,22 @@ RF Delivery Die 2 19:TrDi:M1
 RF Delivery Die 2 20:TrDj:M1
 // Power-voltage probe (M1 Pro/Max and wider Apple Silicon).
 Power Probe Voltage Diode:TPVD:Apple
-// TCn0-3: groups of four die probes; 3 groups on M1 Pro, 5 on Max, 10 on Ultra.
-// TCDX tracks their max. Physical placement unknown, hence generic labels.
+// TCn0-3: groups of four die probes; 3 groups on M1 Pro, 5 on Max, 10 on Ultra
+// (die 2 repeats groups 1-5 as 6-10). TCDX tracks their max. Group N keeps its
+// number so the label maps back to its key. Classified by `guess --gpu` on an M1
+// Ultra: groups 1/6 rose +9-11 °C under CPU load and ~2 under GPU; 2/3/7/8 rose
+// +7.5-11 under GPU and 0-1.8 under CPU; 4/5/9/10 rose at most +4.9 under either,
+// so they are not CPU and too weak to call GPU. Pro/Max inherit the Max die layout.
 CPU Die Group 1 Probe %:TC1%:M1
-CPU Die Group 2 Probe %:TC2%:M1
-CPU Die Group 3 Probe %:TC3%:M1
-CPU Die Group 4 Probe %:TC4%:M1
-CPU Die Group 5 Probe %:TC5%:M1
+GPU Die Group 2 Probe %:TC2%:M1
+GPU Die Group 3 Probe %:TC3%:M1
+SoC Die Group 4 Probe %:TC4%:M1
+SoC Die Group 5 Probe %:TC5%:M1
 CPU Die Group 6 Probe %:TC6%:M1
-CPU Die Group 7 Probe %:TC7%:M1
-CPU Die Group 8 Probe %:TC8%:M1
-CPU Die Group 9 Probe %:TC9%:M1
-CPU Die Group 10 Probe %:TCA%:M1
+GPU Die Group 7 Probe %:TC7%:M1
+GPU Die Group 8 Probe %:TC8%:M1
+SoC Die Group 9 Probe %:TC9%:M1
+SoC Die Group 10 Probe %:TCA%:M1
 // Td triplets: probe A ≡ probe B byte-for-byte, third is max (M1 Pro/Max/Ultra).
 SoC Diode Group 1:Td00:M1
 SoC Diode Group 1:Td01:M1
