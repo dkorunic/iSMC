@@ -403,6 +403,7 @@ var replayAllow = map[string][]string{
 	"m4-2": {"unmapped TVMS TVMh"},
 	"m4-4": {"unmapped T5SP TH0T TVMh TVMm"},
 	"m4-5": {"unmapped T5SP TH0T TVMh TVMm"},
+	"m4-7": {"unmapped T5SP TH0T TVMh TVMm"},
 	// Tg2I/Tg3K read exactly 4.00 °C below Tg2H/Tg3J in the only M4 Max dump
 	// (Tg0K/L too); cannot tell which of each pair is the max. Every P-core
 	// triplet, TCMb and TCMz are pinned at gatedTemp: the P-core mapping is
