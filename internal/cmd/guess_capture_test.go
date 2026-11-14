@@ -103,8 +103,9 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //   - m1-ultra-run (Mac Studio M1 Ultra): 16 threads busied all 20 CPUs;
 //     the E-cores are moved out of the Performance tier by rebalancing.
 //   - m4-air-run (MacBook Air M4, Mac16,12, fanless): known gap, every
-//     P-core triplet lands among the cluster sensors because E load warms
-//     their third probe almost as much as P load. Fixing it changes this file.
+//     P-core triplet lands among the cluster sensors. E load warms the whole
+//     die 3-4 °C, so median-normalized scores flatten to ~1.0 in both phases
+//     (see CLAUDE.md). Fixing it changes this file.
 func TestReplayRuns(t *testing.T) {
 	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run"} {
 		t.Run(name, func(t *testing.T) {
