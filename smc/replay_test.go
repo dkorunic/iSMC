@@ -398,7 +398,11 @@ var replayAllow = map[string][]string{
 		"collide CPU Performance Core 5", "collide CPU Performance Core 6",
 		"collide CPU Performance Core 7",
 	},
-	// Virtual-memory and misc keys with no known meaning.
+	// Virtual-memory selectors and misc keys. TVMh/TVMm copy another TV* key
+	// byte-for-byte, but which one varies by machine (Mac16,12 guess run:
+	// TVMh ≡ TVh0, TVMm ≡ TVM0 over 51 samples; m4-4/m4-5: TVMh ≡ TVM0).
+	// TH0T ≡ TH0x in m4-4/5/7. T5SP stays within 0.5 °C under full CPU and GPU
+	// load: a board/ambient probe of unknown placement.
 	"m4":   {"unmapped TVMS TVMh TVMm"},
 	"m4-2": {"unmapped TVMS TVMh"},
 	"m4-4": {"unmapped T5SP TH0T TVMh TVMm"},

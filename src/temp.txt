@@ -854,8 +854,10 @@ CPU Performance Core 10:Tp0b:M4 Max
 CPU Performance Core 10:Tp0c:M4 Max
 // M4 base (4 P-cores) shows eight Tp triplets with the same B = A + 8.8 °C
 // shape: Tp00-Tp0E above plus (0U,0V,0W)(0X,0Y,0Z)(0a,0b,0c)(0d,0e,0f), all live
-// in the six m4* dumps. Which core the extra ones sample is unknown, so they are
-// groups, not cores; Tp0d-f stays Fabric 1 below. Tp3P = max(Tp0W, Tp0Z).
+// in the m4* dumps. A Mac16,12 guess --gpu run puts P-cores 1-2 and 3-4 in two
+// thermal halves (series RMS 0.3 °C within, 1.4 °C across); groups 1-2 track
+// the 1-2 half and groups 3-4 the 3-4 half, but which core within a half is not
+// resolvable, so they stay groups. Tp3P = max(Tp0W, Tp0Z).
 CPU Performance Group 1:Tp0U:M4 Base
 CPU Performance Group 1:Tp0V:M4 Base
 CPU Performance Group 1:Tp0W:M4 Base
@@ -865,10 +867,16 @@ CPU Performance Group 2:Tp0Z:M4 Base
 CPU Performance Group 3:Tp0a:M4 Base
 CPU Performance Group 3:Tp0b:M4 Base
 CPU Performance Group 3:Tp0c:M4 Base
+CPU Performance Group 4:Tp0d:M4 Base
+CPU Performance Group 4:Tp0e:M4 Base
+CPU Performance Group 4:Tp0f:M4 Base
 // Die-fabric probes (not cores).
-CPU Performance Fabric 1:Tp0d:M4
-CPU Performance Fabric 1:Tp0e:M4
-CPU Performance Fabric 1:Tp0f:M4
+CPU Performance Fabric 1:Tp0d:M4 Pro
+CPU Performance Fabric 1:Tp0e:M4 Pro
+CPU Performance Fabric 1:Tp0f:M4 Pro
+CPU Performance Fabric 1:Tp0d:M4 Max
+CPU Performance Fabric 1:Tp0e:M4 Max
+CPU Performance Fabric 1:Tp0f:M4 Max
 CPU Performance Fabric 2:Tp0g:M4
 CPU Performance Fabric 2:Tp0i:M4
 CPU Performance Fabric 2:Tp0k:M4
