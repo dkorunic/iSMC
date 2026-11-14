@@ -130,8 +130,11 @@ expected layout (e.g. M5 Pro: 5–6 Super + 10–12 Performance), and deviations
 are flagged inline so the operator knows which lines need manual review before
 pasting into src/temp.txt.
 
-Baselines wait for thermal steady state, so total runtime varies (roughly one
-to three minutes). Run on an otherwise-idle machine for best results.
+Phases run lowest tier first, so the faint E-core self-heating is measured
+from the idle baseline rather than from a die still cooling after a hotter
+phase. Baselines wait for thermal steady state, so total runtime varies
+(roughly one to three minutes). Run on an otherwise-idle machine for best
+results.
 
 On desktop-class machines with large coolers (Mac Studio, Mac Pro), E-core
 self-heating under a background-QoS sweep is below the SMC noise floor, so
@@ -909,6 +912,50 @@ func trimToLayout(perPhase [][][]string, results []phaseResult, layout platform.
 	return cut
 }
 
+// assignTeByPrefix moves Te* groups into the Efficiency phase when that phase
+// holds fewer groups than the SKU minimum, i.e. its load did not warm the
+// E-cores above the noise floor. On M3/M4 the Te* series are the per-core E
+// sensors (tePerCore), so the key name is better evidence than leaving them in
+// the tier that warmed the whole die: on the M4 Pro Mac16,8 run (iSMC#28)
+// every E key fell 0.1-0.7 °C under E load and Te04-06/Te0R-T landed among the
+// P-cores. It returns a NOTE naming the moved groups.
+func assignTeByPrefix(perPhase [][][]string, results []phaseResult, layout platform.SKULayout) []string {
+	e := slices.IndexFunc(results, func(r phaseResult) bool { return r.spec.label == labelEfficiencyCore })
+	if e < 0 {
+		return nil
+	}
+
+	if expMin, _ := expectedCores(layout, labelEfficiencyCore); len(perPhase[e]) >= expMin {
+		return nil
+	}
+
+	var moved []string
+
+	for i := range perPhase {
+		if i == e {
+			continue
+		}
+
+		perPhase[i] = slices.DeleteFunc(perPhase[i], func(g []string) bool {
+			if !slices.ContainsFunc(g, func(k string) bool { return !strings.HasPrefix(k, "Te") }) {
+				perPhase[e] = append(perPhase[e], g)
+				moved = append(moved, strings.Join(g, "/"))
+
+				return true
+			}
+
+			return false
+		})
+	}
+
+	if len(moved) == 0 {
+		return nil
+	}
+
+	return []string{fmt.Sprintf("// NOTE: the Efficiency phase did not warm its cores above the noise floor; "+
+		"assigned %s to it by key name (Te*), not by measurement.\n", strings.Join(moved, ", "))}
+}
+
 // mergeLockstep merges groups of a tier that still holds more groups than its
 // SKU maximum when they move in lockstep during that tier's load, i.e. when
 // they are several probes of one core (M6: two per Super core). Only
@@ -1308,7 +1355,19 @@ func collectGuess() *guessCapture {
 
 	fmt.Printf("%d sensors visible.\n\n", len(baseline))
 
-	for i, phase := range phases {
+	// Lowest tier first: an E phase run after the P phase starts from a die
+	// still cooling, and four E-cores' self-heating cannot beat that drift
+	// (M4 Pro Mac16,8, iSMC#28: every E key fell 0.1-0.7 °C under E load).
+	// Results keep tier order, so labels and analysis are unchanged.
+	c.Phases = make([]capturedPhase, len(phases))
+
+	if len(phases) > 1 {
+		fmt.Printf("Running the lowest tier first (phase %d), from the idle baseline.\n\n", len(phases))
+	}
+
+	for i := len(phases) - 1; i >= 0; i-- {
+		phase := phases[i]
+
 		threads := phase.threads
 		if threads <= 0 {
 			threads = c.NumCPU
@@ -1318,9 +1377,9 @@ func collectGuess() *guessCapture {
 			i+1, phaseMidWord(phase.label), qosName(phase.qos))
 		fmt.Printf("  Stressing %d thread(s)...", threads)
 
-		c.Phases = append(c.Phases, runStressPhase(sampler, phase, threads, baseline))
+		c.Phases[i] = runStressPhase(sampler, phase, threads, baseline)
 
-		if i < len(phases)-1 {
+		if i > 0 {
 			fmt.Printf("\n  Inter-phase cooldown (up to %v, until temperatures settle)...\n\n",
 				guessSettleCooldownMax)
 
@@ -1759,6 +1818,10 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 		moved, movedSrc, movedDst = rebalanceToLayout(perPhase, results, layout, groups)
 		clusterGroups = append(clusterGroups, trimToLayout(perPhase, results, layout)...)
 		notes = mergeLockstep(perPhase, results, layout)
+
+		if tePerCore {
+			notes = append(notes, assignTeByPrefix(perPhase, results, layout)...)
+		}
 	}
 
 	clusterKeys := make([]string, 0, len(clusterGroups))

@@ -116,8 +116,9 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     parked at exactly 40.0 °C, which the sampler drops. Bank B lands in the
 //     P tier; bank A has no rise because it was parked in the baseline. Its
 //     triplets straddle index gaps (Tp1q/Tp1t/Tp1u) and are grouped by their
-//     constant A/B offset (anchoredTriplets). Known gap: the E phase has no
-//     responders, so the E triplets stay in the P tier.
+//     constant A/B offset (anchoredTriplets). Its E phase ran last and found
+//     the die cooling, so no E key responded; assignTeByPrefix moves the Te*
+//     groups to the E tier by key name (newer runs measure E first).
 func TestReplayRuns(t *testing.T) {
 	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run"} {
 		t.Run(name, func(t *testing.T) {
