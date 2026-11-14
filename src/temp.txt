@@ -1401,23 +1401,24 @@ Virtual Die A:TVDA:M6
 Virtual Die E:TVDE:M6
 Virtual Die G:TVDG:M6
 Virtual Die P:TVDP:M6
-// P-cores 1-4 = Tp0E/0G/0I/0L: both owner `iSMC guess` runs (v0.18.1) put them
-// in the Performance phase (Tp0I as a P-leaning cluster in one). S-cores (Tp07,
-// Tp09, Tp0g, Tp0j all candidates) and E-cores (E phase got 0 responders) are
-// still unplaced, so the remaining Tp/Te keys keep generic labels; probe
-// numbers 5-8 are left unused so the other rows keep their names.
+// Cores from the owner's saved `iSMC guess --gpu --save` run (v0.18.2), whose
+// per-CPU load shows E = CPUs 0-5, S = 6-7, P = 8-11. Super phase: Tp07/09/0g/0j
+// rise ~18 °C, every other key <= 8.6 °C; Tp07/Tp09 and Tp0g/Tp0j move in
+// lockstep pairs (two probes per S-core; hotter key last). The P phase also
+// kept both S-cores busy, so P-cores are the keys whose P rise exceeds the S
+// rise: Tp0E/0G/0I/0L by 4.5-6.1 °C, every other key by <= 2.2 °C.
+CPU Super Core 1:Tp07:M6
+CPU Super Core 1:Tp09:M6
+CPU Super Core 2:Tp0j:M6
+CPU Super Core 2:Tp0g:M6
 CPU Performance Core 1:Tp0E:M6
 CPU Performance Core 2:Tp0G:M6
 CPU Performance Core 3:Tp0I:M6
 CPU Performance Core 4:Tp0L:M6
 CPU Probe 1:Tp05:M6
-CPU Probe 2:Tp07:M6
-CPU Probe 3:Tp09:M6
 CPU Probe 4:Tp0A:M6
 CPU Probe 9:Tp0b:M6
 CPU Probe 10:Tp0d:M6
-CPU Probe 11:Tp0g:M6
-CPU Probe 12:Tp0j:M6
 CPU Probe 13:Tp0m:M6
 CPU Probe 14:Tp0o:M6
 CPU Probe 15:Tp0r:M6
@@ -1427,15 +1428,20 @@ CPU Probe 18:Tp0w:M6
 CPU Probe 19:Tp0x:M6
 CPU Probe 20:Tp0y:M6
 CPU Probe 21:Tp0z:M6
+// No per-core E sensors: with CPUs 0-5 all busy only Te07/08/09 rose clearly
+// (+0.35-0.86 °C), so they are E-cluster probes. CPU Probe numbers above keep
+// gaps where keys became cores, so the other rows keep their names.
 CPU Efficiency Probe 1:Te07:M6
 CPU Efficiency Probe 2:Te08:M6
 CPU Efficiency Probe 3:Te09:M6
-CPU Efficiency Probe 4:Te0c:M6
-CPU Efficiency Probe 5:Te0e:M6
-CPU Efficiency Probe 6:Te0f:M6
-CPU Efficiency Probe 7:Te0g:M6
-CPU Efficiency Probe 8:Te0h:M6
-CPU Efficiency Probe 9:Te0i:M6
+// Te0c-Te0i and Ts00-Ts08 rise +2-5 °C under S, P and GPU load alike (Ts02/03/06
+// +9-10.5 °C under GPU load) but not under E load, and Ts05 ≡ Te0f ≡ Te0g in
+// every snapshot of the saved run: SoC die probes, not E-cores or NAND.
+SoC Die Probe 1:Te0c:M6
+SoC Die Probe 2:Te0e:M6
+SoC Die Probe 3:Te0f:M6
+SoC Die Probe 4:Te0h:M6
+SoC Die Probe 5:Te0i:M6
 // Ta0O-Ta0h read one value byte-for-byte, as the M5 Ta band does.
 CPU Die Thermal Headroom:Ta0O:M6
 CPU Die Thermal Headroom:Ta0P:M6
@@ -1458,16 +1464,14 @@ Voltage Probe Summary:TVNS:M5 Base
 Drive Bay Proximity S:THSP:M6
 Uncore Voltage S:TUVS:M6
 System Controller B:TSCB:M6
-// Ts00-Ts08 are contiguous on M6, unlike the stride-4 M5 slots.
-SSD 1:Ts00:M6
-SSD 2:Ts01:M6
-SSD 3:Ts02:M6
-SSD 4:Ts03:M6
-SSD 5:Ts04:M6
-SSD 6:Ts05:M6
-SSD 7:Ts06:M6
-SSD 8:Ts07:M6
-SSD 9:Ts08:M6
+SoC Die Probe 6:Ts00:M6
+SoC Die Probe 7:Ts01:M6
+SoC Die Probe 8:Ts02:M6
+SoC Die Probe 9:Ts03:M6
+SoC Die Probe 10:Ts04:M6
+SoC Die Probe 11:Ts06:M6
+SoC Die Probe 12:Ts07:M6
+SoC Die Probe 13:Ts08:M6
 // One row per Tg key, as on M5: the number is a slot, not a GPU core.
 GPU 1:Tg01:M6
 GPU 2:Tg07:M6

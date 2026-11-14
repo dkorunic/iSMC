@@ -426,7 +426,8 @@ var replayAllow = map[string][]string{
 	"m5-max-2": {m5Aliases},
 	"m5-pro":   {m5Aliases},
 	"m5-pro-2": {m5Aliases},
-	// S- and E-cores still carry generic probe labels: `iSMC guess` placed the
-	// four P-cores only (see src/temp.txt). TVDC ≡ TVD0 byte-for-byte.
-	"m6": {"cores S=0", noECores, "unmapped TVDC"},
+	// M6 E-cores have no per-core sensors (see src/temp.txt). TVDC ≡ TVD0
+	// byte-for-byte; Te0g and Ts05 ≡ Te0f in every snapshot of the owner's
+	// saved guess run.
+	"m6": {noECores, "unmapped TVDC Te0g Ts05"},
 }
