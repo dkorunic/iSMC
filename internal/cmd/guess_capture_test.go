@@ -97,9 +97,11 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 // core lines with testdata/<run>.cores (refresh with -update after checking
 // the diff). Each run catches a different failure:
 //
-//   - m6-run (Mac mini M6, v0.18.2): the Performance phase also kept both
-//     Super cores busy, Super cores have two lockstep probes each, and the
-//     E-cores warm under 1 °C. Every line matches src/temp.txt.
+//   - m6-run (Mac mini M6, v0.18.2): the 4-thread Performance phase also kept
+//     both Super cores busy, Super cores have two lockstep probes each, and
+//     the E-cores warm under 1 °C. Its four P "cores" are really two P-cores
+//     with two probes each (only CPUs 8-9 were well loaded); src/temp.txt maps
+//     all four P-cores from other data, and buildPhases now spins S+P threads.
 //   - m1-ultra-run (Mac Studio M1 Ultra): 16 threads busied all 20 CPUs;
 //     the E-cores are moved out of the Performance tier by rebalancing.
 //   - m4-air-run (MacBook Air M4, Mac16,12, fanless): known gap, every

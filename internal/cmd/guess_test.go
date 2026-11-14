@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -539,5 +540,28 @@ func TestAllDetectedKeys(t *testing.T) {
 		if _, ok := got[k]; !ok {
 			t.Errorf("allDetectedKeys missing %q (got %v)", k, got)
 		}
+	}
+}
+
+// TestBuildPhases_ThreeLevelThreads: on S+P+E (M6) the Performance phase spins
+// S+P threads so every P-core is loaded even though the scheduler fills the
+// Super cores first; the other phases spin their own tier's count.
+func TestBuildPhases_ThreeLevelThreads(t *testing.T) {
+	t.Parallel()
+
+	m6, _ := platform.LookupSKULayout("M6")
+	levels := []platform.PerfLevel{
+		{Name: "Super", PhysicalCPU: 2, LogicalCPU: 2},
+		{Name: "Performance", PhysicalCPU: 4, LogicalCPU: 4},
+		{Name: "Efficiency", PhysicalCPU: 6, LogicalCPU: 6},
+	}
+
+	got := make([]int, 0, len(levels))
+	for _, p := range buildPhases(levels, m6) {
+		got = append(got, p.threads)
+	}
+
+	if want := []int{2, 6, 6}; !slices.Equal(got, want) {
+		t.Errorf("threads = %v, want %v", got, want)
 	}
 }

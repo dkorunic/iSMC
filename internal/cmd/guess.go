@@ -89,8 +89,11 @@ var guessCmd = &cobra.Command{
 	Long: `guess stresses one CPU tier per phase — two or three phases depending on the
 chip's pair signature — and correlates the resulting temperature rise in
 T-prefixed SMC sensors to produce a sensor mapping list in the format used by
-src/temp.txt. Each phase spins exactly the target tier's logical-CPU count so
-the scheduler keeps the load on that tier instead of spilling onto the other.
+src/temp.txt. Each phase spins the target tier's logical-CPU count so the
+scheduler keeps the load on that tier instead of spilling onto the other. On
+three-tier chips (S+P+E) the Performance phase spins S+P threads instead,
+because the scheduler fills the idle Super cores first; its Super share is
+subtracted again.
 
 Phase labels and QoS hints are driven by the SKU's pair signature (from the
 validate-temp-mappings family roster):
@@ -926,8 +929,14 @@ func buildPhases(perfLevels []platform.PerfLevel, layout platform.SKULayout) []p
 				cores: perfLevels[0].PhysicalCPU, threads: perfLevels[0].LogicalCPU,
 			},
 			{
+				// S+P threads, not P: the scheduler puts UserInitiated work on
+				// idle Super cores first. With 4 threads an M6 kept both Super
+				// cores and only 2 of 4 P-cores busy (CPUs 8-11 at 76/70/33/21%).
+				// Saturating S+P loads every P-core, and subtractNestedPhases
+				// removes the Super share again.
 				label: labelPerformanceCore, qos: stress.QoSUserInitiated,
-				cores: perfLevels[1].PhysicalCPU, threads: perfLevels[1].LogicalCPU,
+				cores:   perfLevels[1].PhysicalCPU,
+				threads: perfLevels[0].LogicalCPU + perfLevels[1].LogicalCPU,
 			},
 			{
 				label: labelEfficiencyCore, qos: stress.QoSBackground,
