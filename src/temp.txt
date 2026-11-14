@@ -1415,22 +1415,27 @@ Virtual Die P:TVDP:M6
 // Cores from the owner's saved `iSMC guess --gpu --save` run (v0.18.2), whose
 // per-CPU load shows E = CPUs 0-5, S = 6-7, P = 8-11. Super phase: Tp07/09/0g/0j
 // rise ~18 °C, every other key <= 8.6 °C; Tp07/Tp09 and Tp0g/Tp0j move in
-// lockstep pairs (two probes per S-core; hotter key last). The P phase also
-// kept both S-cores busy, so P-cores are the keys whose P rise exceeds the S
-// rise: Tp0E/0G/0I/0L by 4.5-6.1 °C, every other key by <= 2.2 °C.
+// lockstep pairs (two probes per S-core; hotter key last).
+// P-cores have two probes each too. With all four P-cores at 100% (othyn's
+// 120 s run in exelban/stats#3668) eight keys rise 13-29 °C: Tp0E/0G/0I/0L
+// and Tp0m/0d/0b/05; every other Tp key <= 5.7 °C. The saved run loaded only
+// CPUs 8-9 well (76/70%), so only Tp0E/0G/0I/0L stood out there, pairing as
+// Tp0E+Tp0I and Tp0G+Tp0L (r = 0.99-1.00 in S and P phases). Cores 3-4 pair as
+// in its P phase (Tp0d+Tp05 r=1.00, Tp0m+Tp0b r=0.99), but other pairings
+// reach 0.98 there: unverified. Within a pair the key hotter at idle is last.
 CPU Super Core 1:Tp07:M6
 CPU Super Core 1:Tp09:M6
 CPU Super Core 2:Tp0j:M6
 CPU Super Core 2:Tp0g:M6
+CPU Performance Core 1:Tp0I:M6
 CPU Performance Core 1:Tp0E:M6
+CPU Performance Core 2:Tp0L:M6
 CPU Performance Core 2:Tp0G:M6
-CPU Performance Core 3:Tp0I:M6
-CPU Performance Core 4:Tp0L:M6
-CPU Probe 1:Tp05:M6
+CPU Performance Core 3:Tp0d:M6
+CPU Performance Core 3:Tp05:M6
+CPU Performance Core 4:Tp0m:M6
+CPU Performance Core 4:Tp0b:M6
 CPU Probe 4:Tp0A:M6
-CPU Probe 9:Tp0b:M6
-CPU Probe 10:Tp0d:M6
-CPU Probe 13:Tp0m:M6
 CPU Probe 14:Tp0o:M6
 CPU Probe 15:Tp0r:M6
 CPU Probe 16:Tp0t:M6
