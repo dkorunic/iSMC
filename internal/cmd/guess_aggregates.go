@@ -34,7 +34,7 @@ const (
 	// A maximum's member must have been the hottest in this many snapshots.
 	aggMinHits = 2
 	// Exactly 40.00 °C is the clock-gated placeholder (idle M3/M4 P-cores).
-	aggGatedTemp = float32(40)
+	aggGatedTemp = float32(smc.GatedTempCelsius)
 	// Lines listed per section.
 	aggMaxLines = 30
 )

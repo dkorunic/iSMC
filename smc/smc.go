@@ -45,6 +45,12 @@ const (
 	// Ceiling rejecting decoder/firmware garbage (issue #39); matches
 	// rawTempMax in rawtemp.go.
 	maxTempCelsius = 200.0
+
+	// GatedTempCelsius is the exact value clock-gated or parked temperature
+	// slots read: inside the valid window, meaningless as data. M4 Pro/Max
+	// report P-cores through two key banks (Tp00..Tp0c, Tp1i..Tp2E) that
+	// alternate every few seconds, the idle bank parked at exactly 40.0 °C.
+	GatedTempCelsius = 40.0
 )
 
 // Platform tag and CPU family sentinels used by filterForPlatform and platformMatches.
@@ -329,6 +335,25 @@ func isValidReading(val float32, unit string) bool {
 	return true
 }
 
+// keepReading reports whether val may be stored under desc: it must be valid,
+// and a temperature parked at exactly GatedTempCelsius must not overwrite a
+// value another key of desc already stored. Last-write-wins otherwise showed
+// 40 °C for every M4 Pro/Max P-core whenever the bank listed last was parked
+// (iSMC#28, Mac16,8). A row whose keys are all parked still shows 40 °C.
+func keepReading(generic map[string]any, desc string, val float32, unit string) bool {
+	if !isValidReading(val, unit) {
+		return false
+	}
+
+	if unit == TempUnit && val == GatedTempCelsius {
+		_, stored := generic[desc]
+
+		return !stored
+	}
+
+	return true
+}
+
 // addGeneric reads key over conn and stores a valid reading under desc in generic.
 func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 	val, smcType, err := getKeyFloat32(conn, key)
@@ -336,7 +361,7 @@ func addGeneric(generic map[string]any, conn uint, key, desc, unit string) {
 		return
 	}
 
-	if isValidReading(val, unit) {
+	if keepReading(generic, desc, val, unit) {
 		generic[desc] = map[string]any{
 			"key":   key,
 			"value": fmt.Sprintf("%g %s", val, unit),

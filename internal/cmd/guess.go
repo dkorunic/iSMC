@@ -198,8 +198,12 @@ func (s *tempSampler) rawTemps() map[string]float32 {
 			continue
 		}
 
+		// Exactly 40.0 °C is a parked slot, not a reading: M4 Pro/Max P-core
+		// banks alternate, and averaging the parked bank's placeholder into a
+		// baseline or peak made one bank look like an E-core response
+		// (iSMC#28, Mac16,8).
 		v, ok := smc.RawKeyToFloat32(rk)
-		if !ok || v < guessTempMin || v > guessTempMax {
+		if !ok || v < guessTempMin || v > guessTempMax || v == smc.GatedTempCelsius {
 			continue
 		}
 

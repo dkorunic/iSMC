@@ -136,9 +136,8 @@ func Test_DumpReplay(t *testing.T) {
 	}
 }
 
-// gatedTemp is the exact value clock-gated slots are pinned at: inside the
-// isValidReading window, meaningless as data.
-const gatedTemp = 40.0
+// gatedTemp is the exact value clock-gated slots are pinned at.
+const gatedTemp = GatedTempCelsius
 
 // dump is one internal/reports file: its platform, taken from the filename
 // (the only label a dump has), and its live temperature keys.
