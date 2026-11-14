@@ -468,6 +468,52 @@ func sortedSeriesKeys(groups map[string][]string) []string {
 	return keys
 }
 
+// dropAliasGroups moves out every core group holding a key that copies a key
+// of an earlier group (alwaysEqual over the load snapshots): it is an
+// aggregate, not a core. M4 Pro Tex1 = Te06 and Tex3 = Te0T made the E-cluster
+// die keys a third "E-core"; M4 Air Te0X = Te0T, M4 Pro TpxB = Tp2R likewise.
+// The earlier group (lower series and index) is kept as the source. Without
+// load snapshots nothing moves.
+func dropAliasGroups(groups [][]string, results []phaseResult) ([][]string, [][]string) {
+	var snaps []map[string]float32
+
+	for _, r := range results {
+		for _, sn := range r.series {
+			live := make(map[string]float32, len(sn.Temps))
+
+			for k, v := range sn.Temps {
+				if v != smc.GatedTempCelsius {
+					live[k] = v
+				}
+			}
+
+			snaps = append(snaps, live)
+		}
+	}
+
+	if len(snaps) < aggMinShared {
+		return groups, nil
+	}
+
+	var kept, dropped [][]string
+
+	for _, g := range groups {
+		copies := slices.ContainsFunc(kept, func(h []string) bool {
+			return slices.ContainsFunc(g, func(a string) bool {
+				return slices.ContainsFunc(h, func(b string) bool { return alwaysEqual(snaps, a, b) })
+			})
+		})
+
+		if copies {
+			dropped = append(dropped, g)
+		} else {
+			kept = append(kept, g)
+		}
+	}
+
+	return kept, dropped
+}
+
 // offsetPairs returns a test for M1-M4 triplet probe pairs: probe B reads
 // probe A plus a constant offset, exactly (spread < 1e-5 °C over every load
 // snapshot on M1 Ultra, M4 Air and M4 Pro), while neighbouring keys of
@@ -1807,6 +1853,20 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	}
 
 	perPhase, clusterGroups := classifyCoreGroups(groups, results)
+
+	// After scoring, so the alias groups still count towards each phase's
+	// median and no other group's classification shifts.
+	if _, aliasGroups := dropAliasGroups(groups, results); len(aliasGroups) > 0 {
+		isAlias := func(g []string) bool {
+			return slices.ContainsFunc(aliasGroups, func(a []string) bool { return slices.Equal(a, g) })
+		}
+
+		for i := range perPhase {
+			perPhase[i] = slices.DeleteFunc(perPhase[i], isAlias)
+		}
+
+		clusterGroups = append(slices.DeleteFunc(clusterGroups, isAlias), aliasGroups...)
+	}
 
 	var (
 		moved              [][]string

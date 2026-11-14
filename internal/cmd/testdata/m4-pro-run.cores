@@ -46,16 +46,9 @@ CPU Performance Core 15:Tp2X:M4
 CPU Performance Core 16:Tpx8:M4
 CPU Performance Core 16:Tpx9:M4
 CPU Performance Core 16:TpxA:M4
-CPU Performance Core 17:TpxB:M4
-CPU Performance Core 17:TpxC:M4
-CPU Performance Core 17:TpxD:M4
 CPU Efficiency Core 1:Te04:M4
 CPU Efficiency Core 1:Te05:M4
 CPU Efficiency Core 1:Te06:M4
 CPU Efficiency Core 2:Te0R:M4
 CPU Efficiency Core 2:Te0S:M4
 CPU Efficiency Core 2:Te0T:M4
-CPU Efficiency Core 3:Tex0:M4
-CPU Efficiency Core 3:Tex1:M4
-CPU Efficiency Core 3:Tex2:M4
-CPU Efficiency Core 3:Tex3:M4

@@ -118,7 +118,9 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     triplets straddle index gaps (Tp1q/Tp1t/Tp1u) and are grouped by their
 //     constant A/B offset (anchoredTriplets). Its E phase ran last and found
 //     the die cooling, so no E key responded; assignTeByPrefix moves the Te*
-//     groups to the E tier by key name (newer runs measure E first).
+//     groups to the E tier by key name (newer runs measure E first). Tex0-3
+//     and TpxB-D copy keys of earlier groups (Tex1 = Te06, TpxB = Tp2R), so
+//     dropAliasGroups lists them as cluster sensors, not cores.
 func TestReplayRuns(t *testing.T) {
 	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run"} {
 		t.Run(name, func(t *testing.T) {

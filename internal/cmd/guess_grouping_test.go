@@ -373,3 +373,29 @@ func TestAnchoredTriplets(t *testing.T) {
 		t.Errorf("got %v, want [[Tp1m Tp1n] [Tp1o Tp1q]]", g)
 	}
 }
+
+// TestDropAliasGroups: a group holding a copy of an earlier group's key (M4 Pro
+// Tex1 = Te06) is an aggregate, not a core; distinct groups stay.
+func TestDropAliasGroups(t *testing.T) {
+	t.Parallel()
+
+	series := make([]capturedSample, 0, 8)
+
+	for i := range 8 {
+		v := float32(60 + i)
+		series = append(series, capturedSample{T: float32(i), Temps: map[string]float32{
+			"Te04": v, "Te05": v + 5.8, "Te06": v + 9 + float32(i%3),
+			"Tex0": v + 2, "Tex1": v + 9 + float32(i%3),
+			"Tp00": v + 20,
+		}})
+	}
+
+	results := []phaseResult{{spec: phaseSpec{label: labelEfficiencyCore}, series: series, deltas: nil}}
+	groups := [][]string{{"Te04", "Te05", "Te06"}, {"Tex0", "Tex1"}, {"Tp00"}}
+
+	kept, dropped := dropAliasGroups(groups, results)
+
+	if len(kept) != 2 || len(dropped) != 1 || !slices.Equal(dropped[0], groups[1]) {
+		t.Errorf("kept %v dropped %v, want the Tex group dropped", kept, dropped)
+	}
+}
