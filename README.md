@@ -149,6 +149,29 @@ Planned features:
 - generate and probe random SMC keys,
 - persist discovered SMC keys to a configuration file.
 
+## Contributing sensor data
+
+Sensor names differ between chip generations and even between SKUs of one generation, so every
+new Mac needs real data before iSMC can label its sensors. If your Mac shows unlabelled sensors,
+generic "Probe" rows or wrong core numbers, the two files below are everything needed to fix it.
+Close other apps first, and keep a laptop on its charger.
+
+```shell
+iSMC raw > report.txt                     # every SMC key with its raw bytes, a few seconds
+iSMC guess --gpu --save run.json          # CPU and GPU load phases, about 3-5 minutes
+```
+
+`guess` loads one CPU tier at a time (and then the GPU), records how every temperature sensor
+reacts and which CPUs actually carried the load, and saves the whole run. The run can then be
+re-analysed offline with `iSMC guess --replay run.json` and becomes a test case, so you only need
+to run it once. Attach both files to a [new issue](https://github.com/dkorunic/iSMC/issues) with
+your Mac's model (Apple menu → About This Mac) and its model identifier (`sysctl hw.model`).
+
+`run.json` holds only sensor keys and readings, CPU busy shares, the model identifier and the iSMC
+version. `report.txt` holds every SMC key, which includes a few hardware identifiers (for example
+the board platform ID); only its temperature (`T*`) lines are imported into this repository. If you
+would rather not post it publicly, send `grep '^  T' report.txt` instead.
+
 ## Bugs, feature requests, etc.
 
 Please open an issue or submit a pull request.
