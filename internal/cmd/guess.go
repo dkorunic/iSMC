@@ -150,6 +150,13 @@ largest CPU-phase rise. It tells GPU-tier keys from package-wide ones and flags
 src/temp.txt labels that disagree; it cannot number GPU cores, because the
 kernel loads every core evenly.
 
+guess places sensors into tiers, not onto individual cores. Apple Silicon has
+no thread affinity, a lone thread migrates between the cores of its cluster
+many times a second, and the SMC refreshes about once a second, so which
+physical core a probe group belongs to cannot be measured. Core numbers in the
+output follow key order; extra groups in a tier (fabric, second probe sets)
+can remain.
+
 After the mapping, a CPU-load section lists the logical CPUs each phase kept
 busy (host_processor_info), and flags phases that shared CPUs (QoS did not
 separate the tiers) or whose busy-CPU count differs from the thread count. A
