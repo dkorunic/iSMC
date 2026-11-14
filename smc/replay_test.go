@@ -72,7 +72,12 @@ func Test_DumpReplay(t *testing.T) {
 				descOf[key] = desc
 
 				if v, ok := live[key]; ok {
-					last[desc] = key
+					// Mirror keepReading: a parked 40.0 °C slot does not
+					// overwrite a value the row already holds.
+					if _, stored := last[desc]; !stored || v != gatedTemp {
+						last[desc] = key
+					}
+
 					hottest[desc] = max(hottest[desc], v)
 					ungated[desc] = ungated[desc] || v != gatedTemp
 				}
@@ -188,10 +193,17 @@ var deadRowAllow = slices.Concat(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4
 	strings.Fields("Tp1A:M2 Tp1B:M2 Tp1C:M2 Tp1E:M2 Tp1F:M2 Tp1G:M2 Tp1I:M2 Tp1J:M2 Tp1K:M2 "+
 		"Tp1M:M2 Tp1N:M2 Tp1O:M2 Tp1g:M2 Tp1h:M2 Tp1i:M2 Tp1k:M2 Tp1l:M2 Tp1m:M2 "+
 		"Tp1o:M2 Tp1p:M2 Tp1q:M2 Tp1s:M2 Tp1t:M2 Tp1u:M2 Tp2G:M2 Tp2H:M2 Tp2I:M2"),
-	// M4 Tp1i-scheme fabric triplets: live only in the iSMC#28 JSON run
-	// (Mac16,8), which has no raw dump yet.
+	// M4 Tp1i-scheme (bank B) fabric triplets: live only in the iSMC#28 JSON
+	// runs (Mac16,8); its raw dump, report-m4-pro-4, caught bank B parked.
 	strings.Fields("Tp2I:M4 Tp2J:M4 Tp2K:M4 Tp2L:M4 Tp2M:M4 Tp2N:M4 Tp2O:M4 Tp2Q:M4 Tp2R:M4 "+
-		"Tp2S:M4 Tp2T:M4 Tp2U:M4 Tp2V:M4 Tp2W:M4 Tp2X:M4"))
+		"Tp2S:M4 Tp2T:M4 Tp2U:M4 Tp2V:M4 Tp2W:M4 Tp2X:M4"),
+	// M4 Max P-cores 8-10 and Fabric 1: the only M4 Max dump has every P-core
+	// parked at gatedTemp; the rows mirror the M4 Pro rows that report-m4-pro
+	// and report-m4-pro-4 read live. SKU tags contain a space.
+	[]string{
+		"Tp0S:M4 Max", "Tp0T:M4 Max", "Tp0U:M4 Max", "Tp0W:M4 Max", "Tp0X:M4 Max", "Tp0Y:M4 Max",
+		"Tp0a:M4 Max", "Tp0b:M4 Max", "Tp0c:M4 Max", "Tp0d:M4 Max", "Tp0e:M4 Max", "Tp0f:M4 Max",
+	})
 
 // Test_DumpLiveRows checks that every Apple-Silicon-tagged row reads live in at
 // least one dump its tag matches, so rows nothing supports cannot accumulate.
@@ -219,8 +231,10 @@ func Test_DumpLiveRows(t *testing.T) {
 
 			matched = true
 
+			// A slot parked at gatedTemp is not evidence that the row is live:
+			// M4 Pro/Max park one of two alternating P-core banks there.
 			forEachKey([]SensorStat{s}, func(key, _ string) {
-				if _, ok := d.live[key]; ok {
+				if v, ok := d.live[key]; ok && v != gatedTemp {
 					liveAny = true
 				}
 			})
@@ -430,6 +444,8 @@ var replayAllow = map[string][]string{
 	// report-m4-pro.txt is the dump that verifies the M4 Pro P-core mapping.
 	"m4-pro-2": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVXm TVxx"},
 	"m4-pro-3": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVxx"},
+	// Mac16,8 (iSMC#28), 14-core: bank A (Tp00..Tp0c) live, bank B parked.
+	"m4-pro-4": {m4ProMaxE, "unmapped TVMx TVXX TVXh TVXm TVxx"},
 	// Only four Te keys exist; E-cores 5-6 are among the generic "CPU Probe" Tp
 	// slots, which the only (idle) base M5 dump cannot place. TVC0 ≡ TVD0
 	// byte-for-byte; TVMS is unknown, as on M4.
