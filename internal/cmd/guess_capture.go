@@ -178,6 +178,10 @@ func analyzeCapture(c *guessCapture) {
 		})
 	}
 
+	for _, note := range subtractNestedPhases(c, results) {
+		fmt.Println(note)
+	}
+
 	// The last settled baseline stands for "what this machine reads".
 	visible := c.Phases[len(c.Phases)-1].Baseline
 	if c.GPU != nil {
@@ -190,6 +194,69 @@ func analyzeCapture(c *guessCapture) {
 	if c.GPU != nil {
 		printGPUPhase(c.Family, c.Product.CPU, deltaTemps(c.GPU.Baseline, c.GPU.Hot), visible, results)
 	}
+}
+
+// subtractNestedPhases makes the per-CPU load count in classification. When a
+// phase kept busy every CPU another phase did, plus more, its rises include
+// that other phase's load (M6: the 4-thread Performance phase also kept both
+// Super cores at 100%), so the larger phase is scored on its rise minus the
+// smaller phase's. With several nested phases the largest one is subtracted.
+// It returns a NOTE line per adjusted phase.
+func subtractNestedPhases(c *guessCapture, results []phaseResult) []string {
+	busy := make([][]int, len(c.Phases))
+	for i, p := range c.Phases {
+		busy[i] = busyCPUs(p.CPUBusy, busyCPUShare)
+	}
+
+	var notes []string
+
+	for j, pj := range c.Phases {
+		sub := -1
+
+		for i := range c.Phases {
+			if i != j && len(busy[i]) > 0 && len(busy[i]) < len(busy[j]) &&
+				isSubset(busy[i], busy[j]) && (sub < 0 || len(busy[i]) > len(busy[sub])) {
+				sub = i
+			}
+		}
+
+		if sub < 0 {
+			continue
+		}
+
+		pi := c.Phases[sub]
+		thr := noiseThreshold(pj.Baseline, pj.Hot)
+		d := make(map[string]float32)
+
+		for k, b := range pj.Baseline {
+			h, ok := pj.Hot[k]
+			if !ok {
+				continue
+			}
+
+			if v := (h - b) - (pi.Hot[k] - pi.Baseline[k]); v >= thr {
+				d[k] = v
+			}
+		}
+
+		results[j].deltas = d
+		notes = append(notes, fmt.Sprintf("// NOTE: phase %d (%s) also kept phase %d's CPUs busy (%s); "+
+			"it is scored on its rise minus phase %d's.", j+1, phaseMidWord(pj.Label), sub+1,
+			strings.Trim(fmt.Sprint(busy[sub]), "[]"), sub+1))
+	}
+
+	return notes
+}
+
+// isSubset reports whether every element of a is in b.
+func isSubset(a, b []int) bool {
+	for _, x := range a {
+		if !slices.Contains(b, x) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // printCPULoad reports which logical CPUs each phase actually kept busy. QoS is

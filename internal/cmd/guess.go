@@ -43,12 +43,22 @@ const (
 	guessTempMin = float32(25.0)
 	guessTempMax = float32(150.0)
 
-	// ≈5 σ above the noise of a delta between two 3-sample averages (sp78
-	// per-read noise ~0.25 °C). Kept low so the small self-heating deltas of
-	// E-cores under a background-QoS sweep are retained; classification
-	// quality is enforced by median-normalized group scoring, not by this
-	// floor.
+	// A sensor responds when its rise is at least guessNoiseSigmas × the
+	// phase's noise, clamped to [guessOutputFloor, guessOutputThreshold]. The
+	// noise is the RMS of the keys that cooled during the load, which only
+	// noise and drift can do: ~0.15 °C on M6 flt keys (cutoff 0.45 °C, so its
+	// +0.6-0.9 °C E-cluster rise counts), 0.4-0.8 °C on M1 Ultra sp78 keys
+	// (cutoff stays 1.0 °C). Fewer than guessNoiseMinKeys cooling keys leave
+	// no noise evidence and fall back to the ceiling.
 	guessOutputThreshold = float32(1.0)
+	guessOutputFloor     = float32(0.3)
+	guessNoiseSigmas     = float32(3)
+	guessNoiseMinKeys    = 3
+
+	// A phase above its SKU core maximum is cut at the largest drop between
+	// consecutive groups ranked by mean rise, if that drop is at least this
+	// ratio: M6 Super cores rise ~18 °C, the next group 8.6 °C (2.1×).
+	guessTrimGapRatio = float32(1.5)
 
 	// Sensor is cluster-level if min/max phase delta ≥ (1 − this).
 	guessClusterRatio = float32(0.20)
@@ -109,7 +119,11 @@ kernel loads every core evenly.
 
 After the mapping, a CPU-load section lists the logical CPUs each phase kept
 busy (host_processor_info), and flags phases that shared CPUs (QoS did not
-separate the tiers) or whose busy-CPU count differs from the thread count.
+separate the tiers) or whose busy-CPU count differs from the thread count. A
+phase that kept another phase's CPUs busy too is scored on its rise minus that
+phase's, and a tier left above its SKU core count is cut at the largest drop
+in rise. A sensor responds when it rises by 3× the phase's noise (the RMS of
+keys that cooled), between 0.3 and 1.0 °C.
 
 --save FILE writes the whole run (baselines, peak samples, per-CPU load, and
 snapshots every 0.5 s while each load runs) as JSON; --replay FILE re-analyses
@@ -283,19 +297,44 @@ func deltaRange(base, hot map[string]float32) (keyDelta, keyDelta, bool) {
 }
 
 // deltaTemps returns sensors in hot that exceed the corresponding baseline value
-// by at least guessOutputThreshold.
+// by at least the phase's noise threshold (see noiseThreshold).
 func deltaTemps(base, hot map[string]float32) map[string]float32 {
+	thr := noiseThreshold(base, hot)
 	d := make(map[string]float32)
 
 	for k, b := range base {
 		if h, ok := hot[k]; ok {
-			if delta := h - b; delta >= guessOutputThreshold {
+			if delta := h - b; delta >= thr {
 				d[k] = delta
 			}
 		}
 	}
 
 	return d
+}
+
+// noiseThreshold returns the response cutoff for one phase: guessNoiseSigmas ×
+// the RMS change of the keys that cooled, clamped to [guessOutputFloor,
+// guessOutputThreshold].
+func noiseThreshold(base, hot map[string]float32) float32 {
+	var sum float64
+
+	n := 0
+
+	for k, b := range base {
+		if h, ok := hot[k]; ok && h < b {
+			sum += float64((h - b) * (h - b))
+			n++
+		}
+	}
+
+	if n < guessNoiseMinKeys {
+		return guessOutputThreshold
+	}
+
+	rms := float32(math.Sqrt(sum / float64(n)))
+
+	return min(max(guessNoiseSigmas*rms, guessOutputFloor), guessOutputThreshold)
 }
 
 // charValue returns the positional value of an SMC index char in the 0-9<A-Z<a-z
@@ -640,6 +679,51 @@ func rebalanceToLayout(perPhase [][][]string, results []phaseResult, layout plat
 	})
 
 	return weakest[:n], src, dst
+}
+
+// trimToLayout cuts each phase that still holds more groups than its SKU
+// maximum at the largest drop in mean rise (at least guessTrimGapRatio, never
+// below the SKU minimum) and returns the cut groups as cluster sensors. Median
+// normalization alone lets package-wide keys that warm slightly more in one
+// phase win it: M6 put Te07-Te0e and Tp0b among its Super cores.
+func trimToLayout(perPhase [][][]string, results []phaseResult, layout platform.SKULayout) [][]string {
+	var cut [][]string
+
+	for i, r := range results {
+		expMin, expMax := expectedCores(layout, r.spec.label)
+		if expMax == 0 || len(perPhase[i]) <= expMax {
+			continue
+		}
+
+		ranked := slices.Clone(perPhase[i])
+		slices.SortStableFunc(ranked, func(a, b []string) int {
+			return cmp.Compare(groupMeanDelta(b, r.deltas), groupMeanDelta(a, r.deltas))
+		})
+
+		at, best := 0, guessTrimGapRatio
+
+		for j := max(expMin, 1); j < len(ranked); j++ {
+			lo := groupMeanDelta(ranked[j], r.deltas)
+			if lo > 0 && groupMeanDelta(ranked[j-1], r.deltas)/lo >= best {
+				at, best = j, groupMeanDelta(ranked[j-1], r.deltas)/lo
+			}
+		}
+
+		if at == 0 {
+			continue
+		}
+
+		drop := make(map[string]bool, len(ranked)-at)
+		for _, g := range ranked[at:] {
+			drop[g[0]] = true
+		}
+
+		perPhase[i] = slices.DeleteFunc(perPhase[i], func(g []string) bool { return drop[g[0]] })
+
+		cut = append(cut, ranked[at:]...)
+	}
+
+	return cut
 }
 
 // groupMeanDelta returns the mean delta of a group's keys that responded in
@@ -1375,6 +1459,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 
 	if layoutOK {
 		moved, movedSrc, movedDst = rebalanceToLayout(perPhase, results, layout, groups)
+		clusterGroups = append(clusterGroups, trimToLayout(perPhase, results, layout)...)
 	}
 
 	clusterKeys := make([]string, 0, len(clusterGroups))
@@ -1446,8 +1531,8 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	if len(clusterKeys) > 0 {
 		fmt.Println()
 		fmt.Printf("// %s\n", strings.Repeat("─", 72))
-		fmt.Printf("// Cluster/package sensors (top two phases within %.0f%% of each other):\n",
-			guessClusterRatio*100)
+		fmt.Printf("// Cluster/package sensors (top two phases within %.0f%% of each other, "+
+			"or cut from a tier above its SKU core count):\n", guessClusterRatio*100)
 
 		for _, k := range clusterKeys {
 			parts := make([]string, 0, len(results))

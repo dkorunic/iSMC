@@ -7,7 +7,10 @@ package cmd
 
 import (
 	"errors"
+	"math"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -83,6 +86,58 @@ func TestPrintCPULoad(t *testing.T) {
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
+// TestReplayM6Run replays a real `iSMC guess --gpu --save` run from a Mac mini
+// M6 (v0.18.2). Its per-CPU load shows the 4-thread Performance phase also
+// kept both Super cores busy, and its E-cores warmed by under 1 °C.
+func TestReplayM6Run(t *testing.T) {
+	c, err := loadCapture("testdata/m6-run.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out := captureStdout(t, func() { analyzeCapture(c) })
+
+	got := map[string][]string{}
+
+	for _, m := range regexp.MustCompile(`(?m)^CPU (\w+) Core \d+:(\w+):`).FindAllStringSubmatch(out, -1) {
+		got[m[1]] = append(got[m[1]], m[2])
+	}
+
+	want := map[string][]string{
+		phaseMidWord(labelSuperCore):       {"Tp07", "Tp09", "Tp0g", "Tp0j"},
+		phaseMidWord(labelPerformanceCore): {"Tp0E", "Tp0G", "Tp0I", "Tp0L"},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("core lines = %v, want %v\n%s", got, want, out)
+	}
+
+	// The E phase's +0.6-0.9 °C rise passes the noise-scaled cutoff.
+	if e := deltaTemps(c.Phases[2].Baseline, c.Phases[2].Hot); e["Te08"] == 0 {
+		t.Errorf("E phase lost Te08 (+0.86 °C); responders %v", e)
+	}
+}
+
+func TestNoiseThreshold(t *testing.T) {
+	t.Parallel()
+
+	base := map[string]float32{"a": 30, "b": 30, "c": 30, "d": 30}
+
+	for _, tc := range []struct {
+		hot  map[string]float32
+		want float32
+	}{
+		{map[string]float32{"a": 29.9, "b": 29.9, "c": 29.9, "d": 31}, guessOutputFloor}, // quiet keys
+		{map[string]float32{"a": 29.8, "b": 29.8, "c": 29.8, "d": 31}, 0.6},              // 3 × 0.2
+		{map[string]float32{"a": 29, "b": 29, "c": 29, "d": 31}, guessOutputThreshold},   // noisy: ceiling
+		{map[string]float32{"a": 29.9, "b": 31, "c": 31, "d": 31}, guessOutputThreshold}, // no evidence
+	} {
+		if got := noiseThreshold(base, tc.hot); math.Abs(float64(got-tc.want)) > 1e-4 {
+			t.Errorf("noiseThreshold(%v) = %v, want %v", tc.hot, got, tc.want)
 		}
 	}
 }
