@@ -110,8 +110,14 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     1 s onset tie-break (onsetPhase) puts them in the P tier. P-cores 1-4
 //     match src/temp.txt; the four P groups and Tp3W/X still show up as extra
 //     P "cores" (see CLAUDE.md).
+//   - m4-pro-run (MacBook Pro 14 M4 Pro 10P+4E, Mac16,8, v0.18.3, iSMC#28):
+//     the P-cores are reported through two key banks (Tp00..Tp0c + Tpx0-5,
+//     Tp1i..Tp2E + Tpx8-D) that alternate every few seconds, the idle bank
+//     parked at exactly 40.0 °C. This v0.18.3 run averaged the placeholders
+//     into its baselines and peaks, so bank B lands in the E tier; the sampler
+//     now drops 40.0 readings, but a replay cannot undo the saved averages.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {
