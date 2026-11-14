@@ -503,10 +503,44 @@ CPU Performance Core 7:Tp0g:M2 Ultra
 CPU Performance Core 8:Tp0i:M2 Ultra
 CPU Performance Core 8:Tp0j:M2 Ultra
 CPU Performance Core 8:Tp0k:M2 Ultra
-// M2 Pro/Max P-cluster aggregate: odd B - A offset (6.033).
-CPU Performance Cluster Aggregate 1:Tp16:M2
-CPU Performance Cluster Aggregate 1:Tp17:M2
-CPU Performance Cluster Aggregate 1:Tp18:M2
+// M2 Pro/Max: odd B - A offset (6.033), but not a P aggregate. In an M2 Max
+// Cinebench dump (exelban/stats#1286) Tp16/17/18 read 82/88/90 °C and Tp2G/H/I
+// 83/89/91 °C, the E-cluster level (Te04-06 82/88/90 °C), while the P triplets
+// read 96-109 °C. Both gate with the P domain at idle, so not E-cores either.
+CPU Cluster Probe 1:Tp16:M2
+CPU Cluster Probe 1:Tp17:M2
+CPU Cluster Probe 1:Tp18:M2
+CPU Cluster Probe 2:Tp2G:M2
+CPU Cluster Probe 2:Tp2H:M2
+CPU Cluster Probe 2:Tp2I:M2
+// Eight more P-level triplets on M2 Pro/Max (absent on base M2): 96-109 °C in
+// the same Cinebench dump, gated at idle with the P-cores. That makes 16 P-level
+// triplets for 6-8 P-cores, so which triplet belongs to which core (including
+// P-cores 1-8 above) is unverified; generic labels.
+CPU Performance Probe Group 1:Tp1A:M2
+CPU Performance Probe Group 1:Tp1B:M2
+CPU Performance Probe Group 1:Tp1C:M2
+CPU Performance Probe Group 2:Tp1E:M2
+CPU Performance Probe Group 2:Tp1F:M2
+CPU Performance Probe Group 2:Tp1G:M2
+CPU Performance Probe Group 3:Tp1I:M2
+CPU Performance Probe Group 3:Tp1J:M2
+CPU Performance Probe Group 3:Tp1K:M2
+CPU Performance Probe Group 4:Tp1M:M2
+CPU Performance Probe Group 4:Tp1N:M2
+CPU Performance Probe Group 4:Tp1O:M2
+CPU Performance Probe Group 5:Tp1g:M2
+CPU Performance Probe Group 5:Tp1h:M2
+CPU Performance Probe Group 5:Tp1i:M2
+CPU Performance Probe Group 6:Tp1k:M2
+CPU Performance Probe Group 6:Tp1l:M2
+CPU Performance Probe Group 6:Tp1m:M2
+CPU Performance Probe Group 7:Tp1o:M2
+CPU Performance Probe Group 7:Tp1p:M2
+CPU Performance Probe Group 7:Tp1q:M2
+CPU Performance Probe Group 8:Tp1s:M2
+CPU Performance Probe Group 8:Tp1t:M2
+CPU Performance Probe Group 8:Tp1u:M2
 // 4 E-cores share a single cluster-aggregate triplet on every M2 dump.
 CPU Efficiency Cluster Aggregate 1:Te04:M2
 CPU Efficiency Cluster Aggregate 1:Te05:M2
@@ -689,9 +723,11 @@ GPU 3:Tg0L:M3
 // M3 Pro secondary Tg* pairs.
 GPU 4:Tg00:M3
 GPU 4:Tg01:M3
+// Tg0V = Tg0U + 6.1 °C and Tg0v = Tg0u + 6.1 °C in every M3 Pro dump, the
+// probe + offset shape of Tg0C/Tg0D: U/V and u/v are the pairs.
 GPU 5:Tg0U:M3
-GPU 5:Tg0u:M3
-GPU 6:Tg0V:M3
+GPU 5:Tg0V:M3
+GPU 6:Tg0u:M3
 GPU 6:Tg0v:M3
 GPU 7:Tg12:M3
 GPU 7:Tg13:M3
@@ -889,6 +925,24 @@ CPU Performance Fabric 4:Tp0t:M4
 CPU Performance Fabric 5:Tp0u:M4
 CPU Performance Fabric 5:Tp0v:M4
 CPU Performance Fabric 5:Tp0w:M4
+// Tp1i-scheme fabric triplets (M4 Pro 14-core): in the iSMC#28 run (Mac16,8,
+// both schemes live) Tp2R = TpxB and Tp0n = Tpx3, so each scheme's third fabric
+// triplet feeds the same fabric-max key and the order matches Fabric 1-5.
+CPU Performance Fabric 1:Tp2I:M4
+CPU Performance Fabric 1:Tp2J:M4
+CPU Performance Fabric 1:Tp2K:M4
+CPU Performance Fabric 2:Tp2L:M4
+CPU Performance Fabric 2:Tp2M:M4
+CPU Performance Fabric 2:Tp2N:M4
+CPU Performance Fabric 3:Tp2O:M4
+CPU Performance Fabric 3:Tp2Q:M4
+CPU Performance Fabric 3:Tp2R:M4
+CPU Performance Fabric 4:Tp2S:M4
+CPU Performance Fabric 4:Tp2T:M4
+CPU Performance Fabric 4:Tp2U:M4
+CPU Performance Fabric 5:Tp2V:M4
+CPU Performance Fabric 5:Tp2W:M4
+CPU Performance Fabric 5:Tp2X:M4
 // One Tpx (probe, max) doublet per P-cluster. Tpx8-TpxD are the same doublets
 // on the Tp1i-scheme M4 Pro 14-core, not E-cores: in m4Pro14CoreReport Tpx9 =
 // Tp1o (hottest third key of P-cores 1-5) and TpxD = Tp29 (cores 6-10), and they
@@ -1406,8 +1460,10 @@ RF Delivery 24:TRDF:M6
 RF Delivery 25:TRDG:M6
 Package 1:TN00:M6
 Package 2:TN01:M6
-GPU Fabric 2:TfC1:M6
-GPU Fabric 5:TfCD:M6
+// Not GPU-only: both rise under CPU and GPU load (othyn's exelban/stats#3668
+// run: TfCD +56.9 °C over idle with S+P cores busy, +17.1 under GPU load).
+SoC Fabric 2:TfC1:M6
+SoC Fabric 5:TfCD:M6
 Virtual Die A:TVDA:M6
 Virtual Die E:TVDE:M6
 // TVDG rises with the Tg* keys under GPU load (+12.1/+12.5 °C in both owner runs).

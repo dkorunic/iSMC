@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -171,15 +172,27 @@ func loadDumps(t *testing.T) []dump {
 // other evidence supports. The M4 rows are the alternate P-core and cluster-die
 // scheme of the M4 Pro 14-core (m4Pro14CoreReport in mapping_test.go); every M4
 // dump here uses the Tp00-Tp0c scheme and reads these as 0 or -4.
-var deadRowAllow = append(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4 TpxC:M4 TpxD:M4 "+
+var deadRowAllow = slices.Concat(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4 TpxC:M4 TpxD:M4 "+
 	"Tp1i:M4 Tp1j:M4 Tp1k:M4 Tp1m:M4 Tp1n:M4 Tp1o:M4 Tp1q:M4 Tp1t:M4 Tp1u:M4 Tp1v:M4 "+
 	"Tp1w:M4 Tp1x:M4 Tp1y:M4 Tp1z:M4 Tp20:M4 Tp21:M4 Tp22:M4 Tp23:M4 Tp24:M4 Tp25:M4 "+
 	"Tp26:M4 Tp27:M4 Tp28:M4 Tp29:M4 Tp2A:M4 Tp2B:M4 Tp2C:M4 Tp2D:M4 Tp2E:M4 Tp2G:M4"),
 	// M2 Max P-cores 6-8: the only M2 Max dump reads sentinels on every Tp key;
 	// the rows follow report-m2-pro.txt, whose keys are a subset of the Max dump.
 	// SKU tags contain a space, so these are separate elements.
-	"Tp0a:M2 Max", "Tp0b:M2 Max", "Tp0c:M2 Max", "Tp0e:M2 Max", "Tp0f:M2 Max",
-	"Tp0g:M2 Max", "Tp0i:M2 Max", "Tp0j:M2 Max", "Tp0k:M2 Max")
+	[]string{
+		"Tp0a:M2 Max", "Tp0b:M2 Max", "Tp0c:M2 Max", "Tp0e:M2 Max", "Tp0f:M2 Max",
+		"Tp0g:M2 Max", "Tp0i:M2 Max", "Tp0j:M2 Max", "Tp0k:M2 Max",
+	},
+	// M2 Pro/Max second P-level triplets and cluster probe 2: gated in the idle
+	// report-m2-pro/m2-max, live at 96-109 °C (Tp2G-I 83-91 °C) in an M2 Max
+	// Cinebench dump in exelban/stats#1286.
+	strings.Fields("Tp1A:M2 Tp1B:M2 Tp1C:M2 Tp1E:M2 Tp1F:M2 Tp1G:M2 Tp1I:M2 Tp1J:M2 Tp1K:M2 "+
+		"Tp1M:M2 Tp1N:M2 Tp1O:M2 Tp1g:M2 Tp1h:M2 Tp1i:M2 Tp1k:M2 Tp1l:M2 Tp1m:M2 "+
+		"Tp1o:M2 Tp1p:M2 Tp1q:M2 Tp1s:M2 Tp1t:M2 Tp1u:M2 Tp2G:M2 Tp2H:M2 Tp2I:M2"),
+	// M4 Tp1i-scheme fabric triplets: live only in the iSMC#28 JSON run
+	// (Mac16,8), which has no raw dump yet.
+	strings.Fields("Tp2I:M4 Tp2J:M4 Tp2K:M4 Tp2L:M4 Tp2M:M4 Tp2N:M4 Tp2O:M4 Tp2Q:M4 Tp2R:M4 "+
+		"Tp2S:M4 Tp2T:M4 Tp2U:M4 Tp2V:M4 Tp2W:M4 Tp2X:M4"))
 
 // Test_DumpLiveRows checks that every Apple-Silicon-tagged row reads live in at
 // least one dump its tag matches, so rows nothing supports cannot accumulate.
