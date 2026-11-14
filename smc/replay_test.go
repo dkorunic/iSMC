@@ -171,10 +171,15 @@ func loadDumps(t *testing.T) []dump {
 // other evidence supports. The M4 rows are the alternate P-core and E-core 3/4
 // scheme of the M4 Pro 14-core (m4Pro14CoreReport in mapping_test.go); every M4
 // dump here uses the Tp00-Tp0c scheme and reads these as 0 or -4.
-var deadRowAllow = "Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4 TpxC:M4 TpxD:M4 " +
-	"Tp1i:M4 Tp1j:M4 Tp1k:M4 Tp1m:M4 Tp1n:M4 Tp1o:M4 Tp1q:M4 Tp1t:M4 Tp1u:M4 Tp1v:M4 " +
-	"Tp1w:M4 Tp1x:M4 Tp1y:M4 Tp1z:M4 Tp20:M4 Tp21:M4 Tp22:M4 Tp23:M4 Tp24:M4 Tp25:M4 " +
-	"Tp26:M4 Tp27:M4 Tp28:M4 Tp29:M4 Tp2A:M4 Tp2B:M4 Tp2C:M4 Tp2D:M4 Tp2E:M4 Tp2G:M4"
+var deadRowAllow = append(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4 TpxC:M4 TpxD:M4 "+
+	"Tp1i:M4 Tp1j:M4 Tp1k:M4 Tp1m:M4 Tp1n:M4 Tp1o:M4 Tp1q:M4 Tp1t:M4 Tp1u:M4 Tp1v:M4 "+
+	"Tp1w:M4 Tp1x:M4 Tp1y:M4 Tp1z:M4 Tp20:M4 Tp21:M4 Tp22:M4 Tp23:M4 Tp24:M4 Tp25:M4 "+
+	"Tp26:M4 Tp27:M4 Tp28:M4 Tp29:M4 Tp2A:M4 Tp2B:M4 Tp2C:M4 Tp2D:M4 Tp2E:M4 Tp2G:M4"),
+	// M2 Max P-cores 6-8: the only M2 Max dump reads sentinels on every Tp key;
+	// the rows follow report-m2-pro.txt, whose keys are a subset of the Max dump.
+	// SKU tags contain a space, so these are separate elements.
+	"Tp0a:M2 Max", "Tp0b:M2 Max", "Tp0c:M2 Max", "Tp0e:M2 Max", "Tp0f:M2 Max",
+	"Tp0g:M2 Max", "Tp0i:M2 Max", "Tp0j:M2 Max", "Tp0k:M2 Max")
 
 // Test_DumpLiveRows checks that every Apple-Silicon-tagged row reads live in at
 // least one dump its tag matches, so rows nothing supports cannot accumulate.
@@ -184,7 +189,7 @@ func Test_DumpLiveRows(t *testing.T) {
 	dumps := loadDumps(t)
 	allow := map[string]bool{}
 
-	for e := range strings.FieldsSeq(deadRowAllow) {
+	for _, e := range deadRowAllow {
 		allow[e] = true
 	}
 
@@ -303,7 +308,7 @@ func liveTemps(t *testing.T, path string) map[string]float32 {
 // Shared allowlist fragments; each names keys a dump exposes but that cannot be
 // labelled honestly from the dumps alone.
 const (
-	// No live, ungated E-core row: M2 Pro/Max (no E mapping) and M6 (generic labels).
+	// No live, ungated E-core row: M2 (no E mapping) and M6 (generic labels).
 	noECores = "cores E=0"
 	// Clock-gated placeholders pinned at exactly 40.00 °C in both M3 Max dumps.
 	m3MaxGated = "unmapped Tp1g Tp1h Tp1i Tp1o Tp1p Tp1q Tp1x Tp1y Tp1z Tp25 Tp26 Tp27 Tp29 Tp2A " +
@@ -362,9 +367,11 @@ var replayAllow = map[string][]string{
 	// Every Tp0* key reads a sentinel (0-8.4 °C) in the only dump; Te04-06 is a
 	// single E-cluster aggregate.
 	"m2-max": {noECores, "cores P=0"},
-	// Four E-cores share the Te04-06 cluster aggregate; Tp0a/b/c third < probe B
-	// (documented cluster aggregate); TaMP/Th1H unknown, single dump.
-	"m2-pro": {noECores, "collide CPU Performance Cluster Aggregate 1", "unmapped TaMP Th1H"},
+	// Base M2: four E-cores share the Te04-06 cluster aggregate; Tp0a/b/c third <
+	// probe B (idle cluster aggregate); TaMP/Th1H unknown, single dump.
+	"m2": {noECores, "collide CPU Performance Cluster Aggregate 1", "unmapped TaMP Th1H"},
+	// Mac14,10, loaded: E-cores only as the Te04-06 cluster aggregate.
+	"m2-pro": {noECores},
 	// Loaded dump: cluster 3 mixes Tp16-18 with Tp3S/T where Tp3T ≡ Tp10.
 	"m3-max": {m3MaxP, m3Core9, "collide CPU Performance Cluster 3", m3Aliases, m3MaxVirtual, m3MaxGated},
 	// Idle dump: third-of-triplet < probe B on most P triplets, so last-write

@@ -406,18 +406,19 @@ func Test_A18ProMapping(t *testing.T) {
 	}
 }
 
-// m2ProReport is a representative key→value snapshot captured from report-m2-pro.txt
-// (M2 Pro, 8 P-cores + 4 E-cores). Per-E-core sensors are not exposed individually
-// on this SKU; the four E-cores share one Te04/05/06 cluster-aggregate triplet.
+// m2BaseReport is a representative key→value snapshot captured from report-m2.txt
+// (base M2, 4 P-cores + 4 E-cores; misnamed report-m2-pro.txt until the Mac14,10
+// M2 Pro dump showed the Pro/Max key layout). The four E-cores share one
+// Te04/05/06 cluster-aggregate triplet; Tp0e/0i/0m/0q are generic core groups.
 // Tp0a/0b/0c violates third-is-max (third value 35.77 < probe-B 37.02) and is
 // mapped as a cluster aggregate rather than a per-core triplet.
-var m2ProReport = map[string]float32{
+var m2BaseReport = map[string]float32{
 	// ── P-Cores 1-4 (capital Tp triplets, M1-style) ───────────────────────
 	"Tp00": 31.821533, "Tp01": 37.92153, "Tp02": 40.415627,
 	"Tp04": 31.96039, "Tp05": 37.04739, "Tp06": 38.72475,
 	"Tp08": 31.56863, "Tp09": 37.66863, "Tp0A": 39.99375,
 	"Tp0C": 31.724152, "Tp0D": 36.81115, "Tp0E": 38.302876,
-	// ── P-Cores 5-8 (lowercase Tp triplets) ───────────────────────────────
+	// ── Core groups 1-4 (lowercase Tp triplets, P or E unknown) ──────────
 	"Tp0e": 31.713661, "Tp0f": 37.81366, "Tp0g": 39.853127,
 	"Tp0i": 31.820509, "Tp0j": 36.90751, "Tp0k": 38.521626,
 	"Tp0m": 30.874327, "Tp0n": 36.974327, "Tp0o": 38.7125,
@@ -440,21 +441,21 @@ var m2ProReport = map[string]float32{
 	"Ts1P": 26.125, "TsOP": 27.375,
 }
 
-// Test_M2ProMapping verifies that the M2 temperature sensor definitions in
-// AppleTemp, combined with the isValidReading filter, resolve the M2 Pro
-// SMC report snapshot to exactly 8 Performance Cores, no per-E-core rows
-// (the 4 E-cores share a cluster-aggregate triplet on this SKU), and the
-// expected GPU / SSD / cluster-aggregate counts.
-func Test_M2ProMapping(t *testing.T) {
+// Test_M2BaseMapping verifies that the base-M2 rows in AppleTemp, combined
+// with the isValidReading filter, resolve the base M2 SMC report snapshot to
+// exactly 4 Performance Cores, 4 generic core groups, no per-E-core rows (the
+// E-cores share a cluster-aggregate triplet), and the expected GPU / SSD /
+// cluster-aggregate counts.
+func Test_M2BaseMapping(t *testing.T) {
 	m2Sensors := make([]SensorStat, 0, 64)
 
 	for _, s := range AppleTemp {
-		if s.Platform == "M2" {
+		if platformMatches(s.Platform, "M2", "M2") {
 			m2Sensors = append(m2Sensors, s)
 		}
 	}
 
-	resolved := resolveM4Sensors(m2Sensors, m2ProReport)
+	resolved := resolveM4Sensors(m2Sensors, m2BaseReport)
 
 	var (
 		pCores     int
@@ -479,12 +480,12 @@ func Test_M2ProMapping(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, 8, pCores,
-		"M2 Pro must resolve to exactly 8 Performance Cores; got %v", pCoreNames)
+	assert.Equal(t, 4, pCores,
+		"base M2 must resolve to exactly 4 Performance Cores; got %v", pCoreNames)
 	assert.Equal(t, 0, eCores,
-		"M2 Pro must not resolve per-E-core rows (cluster aggregate only)")
-	assert.Equal(t, 3, gpus, "M2 Pro must resolve to exactly 3 GPU clusters")
-	assert.Equal(t, 5, ssds, "M2 Pro must resolve to exactly 5 SSD slots")
+		"base M2 must not resolve per-E-core rows (cluster aggregate only)")
+	assert.Equal(t, 3, gpus, "base M2 must resolve to exactly 3 GPU clusters")
+	assert.Equal(t, 5, ssds, "base M2 must resolve to exactly 5 SSD slots")
 
 	_, pAgg := resolved["CPU Performance Cluster Aggregate 1"]
 	_, eAgg := resolved["CPU Efficiency Cluster Aggregate 1"]
@@ -492,24 +493,24 @@ func Test_M2ProMapping(t *testing.T) {
 	assert.True(t, pAgg, "CPU Performance Cluster Aggregate 1 must resolve from Tp0a/0b/0c")
 	assert.True(t, eAgg, "CPU Efficiency Cluster Aggregate 1 must resolve from Te04/05/06")
 
-	// Guard against phantom P-cores 9+: only 8 P-cores exist on M2 Pro.
-	for i := 9; i <= 16; i++ {
+	// Guard against phantom P-cores 5+: only 4 P-cores exist on base M2.
+	for i := 5; i <= 16; i++ {
 		phantom := fmt.Sprintf("CPU Performance Core %d", i)
 		_, found := resolved[phantom]
-		assert.False(t, found, "phantom %q must not appear (M2 Pro has 8 P-cores)", phantom)
+		assert.False(t, found, "phantom %q must not appear (base M2 has 4 P-cores)", phantom)
 	}
 
-	// Each P-core's resolved value must be the triplet's max (third position),
+	// Each core's resolved value must be the triplet's max (third position),
 	// not the probe-B value — verifies the triplet last-write-wins ordering.
 	expectedMax := map[string]float32{
 		"CPU Performance Core 1": 40.415627,
 		"CPU Performance Core 2": 38.72475,
 		"CPU Performance Core 3": 39.99375,
 		"CPU Performance Core 4": 38.302876,
-		"CPU Performance Core 5": 39.853127,
-		"CPU Performance Core 6": 38.521626,
-		"CPU Performance Core 7": 38.7125,
-		"CPU Performance Core 8": 38.09975,
+		"CPU Core Group 1":       39.853127,
+		"CPU Core Group 2":       38.521626,
+		"CPU Core Group 3":       38.7125,
+		"CPU Core Group 4":       38.09975,
 	}
 	for name, want := range expectedMax {
 		got, ok := resolved[name]

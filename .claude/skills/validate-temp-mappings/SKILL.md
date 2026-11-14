@@ -61,7 +61,7 @@ Two table-wide tests sit next to it and run with `go test ./smc/`:
 
 Before trusting a dump, count its gated keys (`grep -c 'bytes 00 00 20 42' internal/reports/report-<name>.txt`) and note whether it is idle or loaded. A dump with dozens of 40.00 keys says nothing about the cores it parks; only an ungated dump verifies a per-core mapping.
 
-Coverage decides how strong a finding can be. No dumps: base M1, M2, M3; M2 Ultra, M3 Ultra. One dump: base M5 (idle), A18 Pro, Intel (T2 only), M1 Max, M1 Ultra, M2 Pro, M2 Max, M4 Max (gated). Label findings on those SKUs as unverified. Base M5 S/E-core rows are positional guesses from that idle dump.
+Coverage decides how strong a finding can be. No dumps: base M1, M3; M2 Ultra, M3 Ultra. One dump: base M2 (idle), base M5 (idle), A18 Pro, Intel (T2 only), M1 Max, M1 Ultra, M2 Pro (Mac14,10, loaded), M2 Max (sentinels only), M4 Max (gated). Base M2 and M2 Pro/Max use different key layouts. Label findings on those SKUs as unverified. Base M5 S/E-core rows are positional guesses from that idle dump.
 
 ### 2. Read the allowlist
 

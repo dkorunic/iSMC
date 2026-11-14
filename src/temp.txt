@@ -429,9 +429,12 @@ SoC Diode Group 6:Td0K:M1
 SoC Diode Group 6:Td0L:M1
 SoC Diode Group 6:Td0M:M1
 // M2
+// Two key layouts. Base M2 (report-m2.txt) differs from the M2 Pro/Max die, whose
+// report-m2-pro.txt (Mac14,10) is a strict key subset of report-m2-max.txt.
 // M1-style Tp triplets (probe A, probe B, max); last-write-wins captures the max.
-// Tp01 ≡ TCMb and Tp02 ≡ TCMz byte-for-byte on M2 — Core 1 may coincide with the
-// cluster max value when Core 1 is hottest.
+// Within a dump each core's B - A offset alternates between two values; the one
+// triplet with a third offset is the cluster aggregate (Tp0a on base, Tp16 on Pro/Max).
+// Tp01 ≡ TCMb on both layouts; TCMz is the cluster max (≠ Tp02 under load).
 CPU Performance Core 1:Tp00:M2
 CPU Performance Core 1:Tp01:M2
 CPU Performance Core 1:Tp02:M2
@@ -444,34 +447,74 @@ CPU Performance Core 3:Tp0A:M2
 CPU Performance Core 4:Tp0C:M2
 CPU Performance Core 4:Tp0D:M2
 CPU Performance Core 4:Tp0E:M2
-CPU Performance Core 5:Tp0e:M2
-CPU Performance Core 5:Tp0f:M2
-CPU Performance Core 5:Tp0g:M2
-CPU Performance Core 6:Tp0i:M2
-CPU Performance Core 6:Tp0j:M2
-CPU Performance Core 6:Tp0k:M2
-CPU Performance Core 7:Tp0m:M2
-CPU Performance Core 7:Tp0n:M2
-CPU Performance Core 7:Tp0o:M2
-CPU Performance Core 8:Tp0q:M2
-CPU Performance Core 8:Tp0r:M2
-CPU Performance Core 8:Tp0s:M2
-// Tp0a/0b/0c third position breaks third-is-max; treat as cluster aggregate.
-CPU Performance Cluster Aggregate 1:Tp0a:M2
-CPU Performance Cluster Aggregate 1:Tp0b:M2
-CPU Performance Cluster Aggregate 1:Tp0c:M2
-// 4 E-cores share a single cluster-aggregate triplet on this M2 SKU.
+// Base M2 (4P+4E): Tp0e/0i/0m/0q repeat Tp00-0C's offsets (6.1/5.087), so they
+// look like the second 4-core cluster, but the only dump is idle and cannot say
+// whether that cluster is P or E. Generic labels until a loaded base dump exists.
+CPU Core Group 1:Tp0e:M2 Base
+CPU Core Group 1:Tp0f:M2 Base
+CPU Core Group 1:Tp0g:M2 Base
+CPU Core Group 2:Tp0i:M2 Base
+CPU Core Group 2:Tp0j:M2 Base
+CPU Core Group 2:Tp0k:M2 Base
+CPU Core Group 3:Tp0m:M2 Base
+CPU Core Group 3:Tp0n:M2 Base
+CPU Core Group 3:Tp0o:M2 Base
+CPU Core Group 4:Tp0q:M2 Base
+CPU Core Group 4:Tp0r:M2 Base
+CPU Core Group 4:Tp0s:M2 Base
+// Base M2 cluster aggregate: odd B - A offset (5.45), third < probe B at idle.
+CPU Performance Cluster Aggregate 1:Tp0a:M2 Base
+CPU Performance Cluster Aggregate 1:Tp0b:M2 Base
+CPU Performance Cluster Aggregate 1:Tp0c:M2 Base
+// M2 Pro/Max/Ultra P-cores 5-8 (Tp0W/0a/0e/0i). Tp0a/0e/0i mean something else
+// on base M2, hence SKU tags. M2 Max reads sentinels here in its only dump and
+// M2 Ultra has none; both follow the shared Pro/Max die layout.
+CPU Performance Core 5:Tp0W:M2
+CPU Performance Core 5:Tp0X:M2
+CPU Performance Core 5:Tp0Y:M2
+CPU Performance Core 6:Tp0a:M2 Pro
+CPU Performance Core 6:Tp0b:M2 Pro
+CPU Performance Core 6:Tp0c:M2 Pro
+CPU Performance Core 7:Tp0e:M2 Pro
+CPU Performance Core 7:Tp0f:M2 Pro
+CPU Performance Core 7:Tp0g:M2 Pro
+CPU Performance Core 8:Tp0i:M2 Pro
+CPU Performance Core 8:Tp0j:M2 Pro
+CPU Performance Core 8:Tp0k:M2 Pro
+CPU Performance Core 6:Tp0a:M2 Max
+CPU Performance Core 6:Tp0b:M2 Max
+CPU Performance Core 6:Tp0c:M2 Max
+CPU Performance Core 7:Tp0e:M2 Max
+CPU Performance Core 7:Tp0f:M2 Max
+CPU Performance Core 7:Tp0g:M2 Max
+CPU Performance Core 8:Tp0i:M2 Max
+CPU Performance Core 8:Tp0j:M2 Max
+CPU Performance Core 8:Tp0k:M2 Max
+CPU Performance Core 6:Tp0a:M2 Ultra
+CPU Performance Core 6:Tp0b:M2 Ultra
+CPU Performance Core 6:Tp0c:M2 Ultra
+CPU Performance Core 7:Tp0e:M2 Ultra
+CPU Performance Core 7:Tp0f:M2 Ultra
+CPU Performance Core 7:Tp0g:M2 Ultra
+CPU Performance Core 8:Tp0i:M2 Ultra
+CPU Performance Core 8:Tp0j:M2 Ultra
+CPU Performance Core 8:Tp0k:M2 Ultra
+// M2 Pro/Max P-cluster aggregate: odd B - A offset (6.033).
+CPU Performance Cluster Aggregate 1:Tp16:M2
+CPU Performance Cluster Aggregate 1:Tp17:M2
+CPU Performance Cluster Aggregate 1:Tp18:M2
+// 4 E-cores share a single cluster-aggregate triplet on every M2 dump.
 CPU Efficiency Cluster Aggregate 1:Te04:M2
 CPU Efficiency Cluster Aggregate 1:Te05:M2
 CPU Efficiency Cluster Aggregate 1:Te06:M2
-// Three GPU clusters on M2 base; probe + max doublets.
+// Base M2 GPU; probe + max doublets (Tg0e is GPU 1 on every M2 layout).
 GPU 1:Tg0e:M2
 GPU 1:Tg0f:M2
 GPU 2:Tg0m:M2
 GPU 2:Tg0n:M2
 GPU 3:Tg0q:M2
 GPU 3:Tg0r:M2
-// M2 Max GPU; 8 doublets at different addresses than M2 base.
+// M2 Pro/Max GPU; Pro has GPU 1-5, Max all 8 doublets.
 GPU 2:Tg0W:M2
 GPU 2:Tg0X:M2
 GPU 3:Tg0i:M2
@@ -505,7 +548,7 @@ SSD 5:Ts0c:M2
 // TsOP uses letter O, not digit 0.
 SSD Controller 2:Ts1P:M2
 SSD Controller 3:TsOP:M2
-// M2 Max SSD; triplet convention; different addresses from M2 base.
+// M2 Pro/Max SSD; triplet convention; different addresses from base M2.
 SSD 1:Ts0C:M2
 SSD 1:Ts0D:M2
 SSD 1:Ts0E:M2
