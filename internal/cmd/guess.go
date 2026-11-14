@@ -28,6 +28,10 @@ const (
 	guessStressDuration = 8 * time.Second
 	guessSampleCount    = 3
 	guessSampleInterval = 500 * time.Millisecond
+	// --save snapshots during a load. The M6 SMC refreshes its temperature keys
+	// about once a second (0.5 s snapshots repeat in pairs), so a faster rate
+	// only adds SMC sweeps that compete with the spinners.
+	guessSeriesInterval = time.Second
 
 	// Thermal steady-state detection: the signed mean change between
 	// consecutive snapshots (~3 s apart) must be below the epsilon. Signed, not
@@ -54,6 +58,14 @@ const (
 	guessOutputFloor     = float32(0.3)
 	guessNoiseSigmas     = float32(3)
 	guessNoiseMinKeys    = 3
+
+	// Groups of a tier still above its SKU core maximum merge when their
+	// snapshot-to-snapshot changes correlate at least this well during that
+	// tier's load: M6 Super probes pair at 0.99-1.00, across pairs 0.94-0.96.
+	// ponytail: calibrated on one M6 run; retune with more saved runs.
+	guessLockstepCorr = 0.98
+	// Fewer changes than this cannot support a correlation.
+	guessLockstepMinSteps = 4
 
 	// A phase above its SKU core maximum is cut at the largest drop between
 	// consecutive groups ranked by mean rise, if that drop is at least this
@@ -726,6 +738,94 @@ func trimToLayout(perPhase [][][]string, results []phaseResult, layout platform.
 	return cut
 }
 
+// mergeLockstep merges groups of a tier that still holds more groups than its
+// SKU maximum when they move in lockstep during that tier's load, i.e. when
+// they are several probes of one core (M6: two per Super core). The most
+// correlated pair merges first, until the tier fits or no pair reaches
+// guessLockstepCorr. It returns a NOTE line per merge.
+func mergeLockstep(perPhase [][][]string, results []phaseResult, layout platform.SKULayout) []string {
+	var notes []string
+
+	for i, r := range results {
+		_, expMax := expectedCores(layout, r.spec.label)
+
+		for expMax > 0 && len(perPhase[i]) > expMax {
+			a, b, best := -1, -1, guessLockstepCorr
+
+			for x := range perPhase[i] {
+				for y := x + 1; y < len(perPhase[i]); y++ {
+					if c := lockstepCorr(perPhase[i][x], perPhase[i][y], r.series); c >= best {
+						a, b, best = x, y, c
+					}
+				}
+			}
+
+			if a < 0 {
+				break
+			}
+
+			notes = append(notes, fmt.Sprintf("// NOTE: merged %s into %s's %s group: they move in lockstep "+
+				"(r=%.2f), i.e. probes of one core.\n", strings.Join(perPhase[i][b], "/"),
+				strings.Join(perPhase[i][a], "/"), phaseMidWord(r.spec.label), best))
+			perPhase[i][a] = append(perPhase[i][a], perPhase[i][b]...)
+			perPhase[i] = slices.Delete(perPhase[i], b, b+1)
+		}
+	}
+
+	return notes
+}
+
+// lockstepCorr returns the Pearson correlation of the snapshot-to-snapshot
+// changes of two groups' mean temperature over series, or 0 when series has
+// fewer than guessLockstepMinSteps changes or either group is flat.
+func lockstepCorr(a, b []string, series []capturedSample) float64 {
+	mean := func(g []string, temps map[string]float32) float64 {
+		var s float64
+		for _, k := range g {
+			s += float64(temps[k])
+		}
+
+		return s / float64(len(g))
+	}
+
+	var da, db []float64
+
+	for j := 1; j < len(series); j++ {
+		da = append(da, mean(a, series[j].Temps)-mean(a, series[j-1].Temps))
+		db = append(db, mean(b, series[j].Temps)-mean(b, series[j-1].Temps))
+	}
+
+	if len(da) < guessLockstepMinSteps {
+		return 0
+	}
+
+	ma, mb := meanOf(da), meanOf(db)
+
+	var sab, saa, sbb float64
+
+	for j := range da {
+		sab += (da[j] - ma) * (db[j] - mb)
+		saa += (da[j] - ma) * (da[j] - ma)
+		sbb += (db[j] - mb) * (db[j] - mb)
+	}
+
+	if saa == 0 || sbb == 0 {
+		return 0
+	}
+
+	return sab / math.Sqrt(saa*sbb)
+}
+
+// meanOf returns the mean of v.
+func meanOf(v []float64) float64 {
+	var s float64
+	for _, x := range v {
+		s += x
+	}
+
+	return s / float64(len(v))
+}
+
 // groupMeanDelta returns the mean delta of a group's keys that responded in
 // one phase. Unlike the sum it does not penalise a core whose third key
 // stayed under guessOutputThreshold (M1 Ultra: Tp04/Tp05 without Tp06).
@@ -769,6 +869,7 @@ type phaseSpec struct {
 // phaseResult pairs a phase specification with the sensor deltas it produced.
 type phaseResult struct {
 	deltas map[string]float32
+	series []capturedSample // --save snapshots during the load; nil otherwise.
 	spec   phaseSpec
 }
 
@@ -1455,11 +1556,13 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	var (
 		moved              [][]string
 		movedSrc, movedDst int
+		notes              []string
 	)
 
 	if layoutOK {
 		moved, movedSrc, movedDst = rebalanceToLayout(perPhase, results, layout, groups)
 		clusterGroups = append(clusterGroups, trimToLayout(perPhase, results, layout)...)
+		notes = mergeLockstep(perPhase, results, layout)
 	}
 
 	clusterKeys := make([]string, 0, len(clusterGroups))
@@ -1500,6 +1603,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	}
 
 	fmt.Println("// WARNING: automated correlation is approximate; always verify on real hardware.")
+	fmt.Print(strings.Join(notes, ""))
 
 	if len(moved) > 0 {
 		src := results[movedSrc]

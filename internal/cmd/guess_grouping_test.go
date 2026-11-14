@@ -298,7 +298,8 @@ func TestClassifyCoreGroups(t *testing.T) {
 	// there — larger than their own self-heating delta in the E-phase.
 	// Median-normalized scoring must still assign them to the E-phase.
 	pPhase := phaseResult{
-		spec: phaseSpec{label: labelPerformanceCore},
+		spec:   phaseSpec{label: labelPerformanceCore},
+		series: nil,
 		deltas: map[string]float32{
 			"Tp00": 3, "Tp01": 3, "Tp02": 2, // P core 1: sum 8
 			"Tp04": 3, "Tp05": 3, "Tp06": 2, // P core 2: sum 8
@@ -307,7 +308,8 @@ func TestClassifyCoreGroups(t *testing.T) {
 		},
 	}
 	ePhase := phaseResult{
-		spec: phaseSpec{label: labelEfficiencyCore},
+		spec:   phaseSpec{label: labelEfficiencyCore},
+		series: nil,
 		deltas: map[string]float32{
 			"Tp08": 1, "Tp09": 1, "Tp0A": 1, // E core 1: self-heating, sum 3
 			"TCDX": 2.4, // package aggregate follows both phases

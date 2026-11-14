@@ -75,7 +75,7 @@ type capturedSample struct {
 }
 
 // sampleDuring waits d; when record is set it snapshots every
-// guessSampleInterval meanwhile. Off by default: each snapshot is an SMC sweep
+// guessSeriesInterval meanwhile. Off by default: each snapshot is an SMC sweep
 // on the sampling thread, which competes with the spinners for a core.
 func (s *tempSampler) sampleDuring(d time.Duration, record bool) []capturedSample {
 	if !record {
@@ -91,7 +91,7 @@ func (s *tempSampler) sampleDuring(d time.Duration, record bool) []capturedSampl
 	//nolint:wsl_v5 // loop header reads t; nothing to separate.
 	for t := time.Since(start); t < d; t = time.Since(start) {
 		series = append(series, capturedSample{T: float32(t.Seconds()), Temps: s.rawTemps()})
-		time.Sleep(min(guessSampleInterval, d-time.Since(start)))
+		time.Sleep(min(guessSeriesInterval, d-time.Since(start)))
 	}
 
 	return series
@@ -175,6 +175,7 @@ func analyzeCapture(c *guessCapture) {
 		results = append(results, phaseResult{
 			spec:   phaseSpec{label: p.Label, qos: p.QoS, cores: p.Cores, threads: p.Threads},
 			deltas: deltaTemps(p.Baseline, p.Hot),
+			series: p.Series,
 		})
 	}
 

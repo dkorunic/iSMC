@@ -7,9 +7,10 @@ package cmd
 
 import (
 	"errors"
+	"flag"
 	"math"
+	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -90,33 +91,59 @@ func TestPrintCPULoad(t *testing.T) {
 	}
 }
 
-// TestReplayM6Run replays a real `iSMC guess --gpu --save` run from a Mac mini
-// M6 (v0.18.2). Its per-CPU load shows the 4-thread Performance phase also
-// kept both Super cores busy, and its E-cores warmed by under 1 °C.
-func TestReplayM6Run(t *testing.T) {
+var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the current classifier")
+
+// TestReplayRuns replays real `iSMC guess --gpu --save` runs and compares the
+// core lines with testdata/<run>.cores (refresh with -update after checking
+// the diff). Each run catches a different failure:
+//
+//   - m6-run (Mac mini M6, v0.18.2): the Performance phase also kept both
+//     Super cores busy, Super cores have two lockstep probes each, and the
+//     E-cores warm under 1 °C. Every line matches src/temp.txt.
+//   - m1-ultra-run (Mac Studio M1 Ultra): 16 threads busied all 20 CPUs;
+//     the E-cores are moved out of the Performance tier by rebalancing.
+//   - m4-air-run (MacBook Air M4, Mac16,12, fanless): known gap, every
+//     P-core triplet lands among the cluster sensors because E load warms
+//     their third probe almost as much as P load. Fixing it changes this file.
+func TestReplayRuns(t *testing.T) {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run"} {
+		t.Run(name, func(t *testing.T) {
+			c, err := loadCapture("testdata/" + name + ".json")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			out := captureStdout(t, func() { analyzeCapture(c) })
+			got := strings.Join(regexp.MustCompile(`(?m)^CPU \w+ Core \d+:\w+:\w+`).FindAllString(out, -1), "\n") + "\n"
+			golden := "testdata/" + name + ".cores"
+
+			if *updateGolden {
+				err = os.WriteFile(golden, []byte(got), 0o600)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			want, err := os.ReadFile(golden)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if got != string(want) {
+				t.Errorf("core lines differ from %s:\ngot:\n%s\nwant:\n%s\nfull output:\n%s", golden, got, want, out)
+			}
+		})
+	}
+}
+
+// TestReplayM6EPhase: the M6 E phase's +0.6-0.9 °C rise passes the
+// noise-scaled cutoff (a fixed 1.0 °C cutoff dropped every E responder).
+func TestReplayM6EPhase(t *testing.T) {
 	c, err := loadCapture("testdata/m6-run.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	out := captureStdout(t, func() { analyzeCapture(c) })
-
-	got := map[string][]string{}
-
-	for _, m := range regexp.MustCompile(`(?m)^CPU (\w+) Core \d+:(\w+):`).FindAllStringSubmatch(out, -1) {
-		got[m[1]] = append(got[m[1]], m[2])
-	}
-
-	want := map[string][]string{
-		phaseMidWord(labelSuperCore):       {"Tp07", "Tp09", "Tp0g", "Tp0j"},
-		phaseMidWord(labelPerformanceCore): {"Tp0E", "Tp0G", "Tp0I", "Tp0L"},
-	}
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("core lines = %v, want %v\n%s", got, want, out)
-	}
-
-	// The E phase's +0.6-0.9 °C rise passes the noise-scaled cutoff.
 	if e := deltaTemps(c.Phases[2].Baseline, c.Phases[2].Hot); e["Te08"] == 0 {
 		t.Errorf("E phase lost Te08 (+0.86 °C); responders %v", e)
 	}

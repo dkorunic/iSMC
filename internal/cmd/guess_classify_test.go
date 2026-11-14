@@ -25,7 +25,8 @@ func m1UltraDesktopRun() ([][]string, []phaseResult) {
 	}
 	results := []phaseResult{
 		{
-			spec: phaseSpec{label: labelPerformanceCore, qos: 0, cores: 2, threads: 2},
+			spec:   phaseSpec{label: labelPerformanceCore, qos: 0, cores: 2, threads: 2},
+			series: nil,
 			deltas: map[string]float32{
 				"Tp00": 7.6, "Tp01": 7.6, "Tp02": 6.1,
 				"Tp04": 7.9, "Tp05": 7.9, "Tp06": 6.9,
@@ -34,6 +35,7 @@ func m1UltraDesktopRun() ([][]string, []phaseResult) {
 		},
 		{
 			spec:   phaseSpec{label: labelEfficiencyCore, qos: 0, cores: 1, threads: 1},
+			series: nil,
 			deltas: map[string]float32{"Tp02": 1.1, "Tp06": 1.1},
 		},
 	}

@@ -516,11 +516,13 @@ func TestAllDetectedKeys(t *testing.T) {
 	results := []phaseResult{
 		{
 			spec:   phaseSpec{label: labelPerformanceCore},
+			series: nil,
 			deltas: map[string]float32{"Tp00": 5.0, "Tp01": 4.5},
 		},
 		{
 			// Tp01 cross-phase; must dedup.
 			spec:   phaseSpec{label: labelEfficiencyCore},
+			series: nil,
 			deltas: map[string]float32{"Tp01": 2.0, "Te04": 7.0},
 		},
 	}
