@@ -469,8 +469,8 @@ func sortedSeriesKeys(groups map[string][]string) []string {
 }
 
 // dropAliasGroups moves out every core group holding a key that copies a key
-// of an earlier group (alwaysEqual over the load snapshots): it is an
-// aggregate, not a core. M4 Pro Tex1 = Te06 and Tex3 = Te0T made the E-cluster
+// of an earlier group (alwaysEqual over the load snapshots) or is the maximum
+// of keys in two or more other groups: it is an aggregate, not a core. M4 Pro Tex1 = Te06 and Tex3 = Te0T made the E-cluster
 // die keys a third "E-core"; M4 Air Te0X = Te0T, M4 Pro TpxB = Tp2R likewise.
 // The earlier group (lower series and index) is kept as the source. Without
 // load snapshots nothing moves.
@@ -495,16 +495,33 @@ func dropAliasGroups(groups [][]string, results []phaseResult) ([][]string, [][]
 		return groups, nil
 	}
 
+	// Maxima are judged among core keys only: a higher aggregate such as TCMz
+	// often equals the candidate and is hotter than it, which hides the
+	// relation (M4 Pro Tpx9).
+	coreSnaps := make([]map[string]float32, len(snaps))
+
+	for j, sn := range snaps {
+		coreSnaps[j] = map[string]float32{}
+
+		for _, g := range groups {
+			for _, k := range g {
+				if v, ok := sn[k]; ok {
+					coreSnaps[j][k] = v
+				}
+			}
+		}
+	}
+
 	var kept, dropped [][]string
 
-	for _, g := range groups {
+	for i, g := range groups {
 		copies := slices.ContainsFunc(kept, func(h []string) bool {
 			return slices.ContainsFunc(g, func(a string) bool {
 				return slices.ContainsFunc(h, func(b string) bool { return alwaysEqual(snaps, a, b) })
 			})
 		})
 
-		if copies {
+		if copies || maxOfOtherGroups(coreSnaps, g, groups, i) {
 			dropped = append(dropped, g)
 		} else {
 			kept = append(kept, g)
@@ -512,6 +529,26 @@ func dropAliasGroups(groups [][]string, results []phaseResult) ([][]string, [][]
 	}
 
 	return kept, dropped
+}
+
+// maxOfOtherGroups reports whether a key of groups[i] is the maximum (maxOf)
+// of keys spread over at least two other groups: a cluster maximum, not a
+// core. M4 Pro Tpx9 = max of the P-cores' third probes; M4 Air Tp3P =
+// max(Tp0W, Tp0Z).
+func maxOfOtherGroups(snaps []map[string]float32, g []string, groups [][]string, i int) bool {
+	return slices.ContainsFunc(g, func(k string) bool {
+		owners := map[int]bool{}
+
+		for _, m := range maxOf(snaps, k, nil) {
+			for j, h := range groups {
+				if j != i && slices.Contains(h, m) {
+					owners[j] = true
+				}
+			}
+		}
+
+		return len(owners) >= 2
+	})
 }
 
 // offsetPairs returns a test for M1-M4 triplet probe pairs: probe B reads

@@ -108,8 +108,9 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //   - m4-air-run (MacBook Air M4, Mac16,12, fanless): E load warms the whole
 //     die 3-4 °C, so the end rise ties every P group between both phases; the
 //     1 s onset tie-break (onsetPhase) puts them in the P tier. P-cores 1-4
-//     match src/temp.txt; the four P groups and Tp3W/X still show up as extra
-//     P "cores" (see CLAUDE.md).
+//     match src/temp.txt; Tp3O/Tp3P and Tp3W/X are cluster maxima and drop
+//     out. Known gap: the four P groups (Tp0U-Tp0f) rise exactly like the
+//     P-cores and feed TCMz, so whole-tier loads cannot tell them apart.
 //   - m4-pro-run (MacBook Pro 14 M4 Pro 10P+4E, Mac16,8, v0.18.4, iSMC#28):
 //     the P-cores are reported through two key banks (Tp00..Tp0c + Tpx0-5,
 //     Tp1i..Tp2E + Tpx8-D) that alternate every few seconds, the idle bank
@@ -119,8 +120,11 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     constant A/B offset (anchoredTriplets). Its E phase ran last and found
 //     the die cooling, so no E key responded; assignTeByPrefix moves the Te*
 //     groups to the E tier by key name (newer runs measure E first). Tex0-3
-//     and TpxB-D copy keys of earlier groups (Tex1 = Te06, TpxB = Tp2R), so
-//     dropAliasGroups lists them as cluster sensors, not cores.
+//     and TpxB-D copy keys of earlier groups (Tex1 = Te06, TpxB = Tp2R) and
+//     Tpx9 is the maximum of the P-cores' third probes, so dropAliasGroups
+//     lists them as cluster sensors. Known gap: the five fabric triplets
+//     (Tp2I-Tp2X) rise only ~7% less than the cores and stay as extra P
+//     groups.
 func TestReplayRuns(t *testing.T) {
 	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run"} {
 		t.Run(name, func(t *testing.T) {

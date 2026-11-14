@@ -399,3 +399,27 @@ func TestDropAliasGroups(t *testing.T) {
 		t.Errorf("kept %v dropped %v, want the Tex group dropped", kept, dropped)
 	}
 }
+
+// TestMaxOfOtherGroups: a group holding the maximum of keys spread over two
+// other groups (M4 Pro Tpx9 = max of the P-cores' third probes) is a cluster
+// sensor; the cores themselves are not.
+func TestMaxOfOtherGroups(t *testing.T) {
+	t.Parallel()
+
+	snaps := make([]map[string]float32, 0, 8)
+
+	for i := range 8 {
+		a, b := float32(70+i), float32(75-i) // the hotter core alternates
+		snaps = append(snaps, map[string]float32{"Tp1k": a, "Tp1o": b, "Tpx9": max(a, b)})
+	}
+
+	groups := [][]string{{"Tp1k"}, {"Tp1o"}, {"Tpx9"}}
+
+	if !maxOfOtherGroups(snaps, groups[2], groups, 2) {
+		t.Error("Tpx9 = max(Tp1k, Tp1o) not detected")
+	}
+
+	if maxOfOtherGroups(snaps, groups[0], groups, 0) {
+		t.Error("core Tp1k reported as a maximum")
+	}
+}
