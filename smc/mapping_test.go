@@ -89,7 +89,7 @@ func resolveM4Sensors(sensors []SensorStat, snapshot map[string]float32) map[str
 
 // Test_M4Pro14CoreMapping verifies that the M4 temperature sensor definitions in
 // AppleTemp, combined with the isValidReading filter, resolve the M4 Pro 14-core
-// SMC report snapshot to exactly 10 Performance Cores and 4 Efficiency Cores.
+// SMC report snapshot to exactly 10 Performance Cores and 2 Efficiency Cores.
 //
 // It also asserts:
 //   - every resolved core temperature is within a plausible idle/load range
@@ -131,8 +131,13 @@ func Test_M4Pro14CoreMapping(t *testing.T) {
 
 	assert.Equal(t, 10, pCores,
 		"M4 Pro 14-core must resolve to exactly 10 Performance Cores; got %v", pCoreNames)
-	assert.Equal(t, 4, eCores,
-		"M4 Pro 14-core must resolve to exactly 4 Efficiency Cores; got %v", eCoreNames)
+	// Only two E triplets (Te04-06, Te0R-T) exist, as on every M4 Pro/Max dump
+	// ("cores E=2" in replayAllow). Tpx8-TpxD, once mapped as E-cores 3-4, are
+	// P-cluster (probe, max) doublets: Tpx9 = Tp1o and TpxD = Tp29 here.
+	assert.Equal(t, 2, eCores,
+		"M4 Pro 14-core must resolve to exactly 2 Efficiency Cores; got %v", eCoreNames)
+	assert.InDelta(t, m4Pro14CoreReport["Tpx9"], resolved["CPU Performance Cluster 1 Die"], 0,
+		"Tpx8/Tpx9 must resolve as P-cluster 1 die")
 
 	// Verify each P-core has a plausible temperature (not a sentinel, not implausibly high).
 	for _, name := range pCoreNames {

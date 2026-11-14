@@ -168,7 +168,7 @@ func loadDumps(t *testing.T) []dump {
 }
 
 // deadRowAllow lists rows ("KEY:Platform") that no dump reads live but that
-// other evidence supports. The M4 rows are the alternate P-core and E-core 3/4
+// other evidence supports. The M4 rows are the alternate P-core and cluster-die
 // scheme of the M4 Pro 14-core (m4Pro14CoreReport in mapping_test.go); every M4
 // dump here uses the Tp00-Tp0c scheme and reads these as 0 or -4.
 var deadRowAllow = append(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4 TpxC:M4 TpxD:M4 "+

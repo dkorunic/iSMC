@@ -117,17 +117,11 @@ Sensor Group 1:TSG1:Apple
 Sensor Group 2:TSG2:Apple
 // CPU die/PMU peak sensors.
 CPU Die Max:TCMz:Apple
-// TCMb is per family: on M6 it tracks TVD0 within 0.6 °C and reads ~8 °C above
-// the hottest core in every phase of the owner's saved guess run, so it is not
-// an average there. On M1 Ultra it sits between the core mean and max. A new
-// family's first dump flags TCMb as unmapped in Test_DumpReplay.
-CPU Die Average:TCMb:A18
-CPU Die Average:TCMb:M1
-CPU Die Average:TCMb:M2
-CPU Die Average:TCMb:M3
-CPU Die Average:TCMb:M4
-CPU Die Average:TCMb:M5
-CPU Die Hotspot Estimate:TCMb:M6
+// TCMb equals TVD0 ("Virtual Die 1") byte-for-byte in 20 of 28 dumps and within
+// 0.2 °C in most others. It sits near the core mean on M1-M4 but above every
+// core on M5/M6 (M6: ~8 °C in every phase of the owner's saved guess run), so it
+// is the virtual-die estimate, not an average.
+CPU Virtual Die:TCMb:Apple
 // Max over the die probes; present on Pro/Max/Ultra SKUs. On M1 it reads
 // 0.03-0.3 °C above the hottest TC group, which spans CPU, GPU and SoC areas
 // (see TCn0-3 below), so it is not CPU-only. Reads below the hottest core.
@@ -572,13 +566,16 @@ CPU Efficiency Core 1:Te06:M3
 CPU Efficiency Core 2:Te0G:M3
 CPU Efficiency Core 2:Te0H:M3
 CPU Efficiency Core 2:Te0I:M3
-// Irregular: Te0P/Q→3, Te0R/S/T→4, Te0U→5; Te0V aliases Te0T (dropped).
+// Irregular: Te0P→3, Te0R/S→4, Te0U→5. Te0Q and Te0T are E-cluster maxima, not
+// core probes: Te0Q = Te06 (cluster 1 max) in 5 of 6 M3 dumps and above every
+// E key in the sixth; Te0T = Te0M on both M3 Max dumps and is the hottest E key
+// on M3 Pro, where Te0V aliases it (dropped).
 CPU Efficiency Core 3:Te0P:M3
-CPU Efficiency Core 3:Te0Q:M3
 CPU Efficiency Core 4:Te0R:M3
 CPU Efficiency Core 4:Te0S:M3
-CPU Efficiency Core 4:Te0T:M3
 CPU Efficiency Core 5:Te0U:M3
+CPU Efficiency Cluster Aggregate 1:Te0Q:M3
+CPU Efficiency Cluster Aggregate 2:Te0T:M3
 // M3 Max additional E-cores.
 CPU Efficiency Core 6:Te0K:M3
 CPU Efficiency Core 6:Te0L:M3
@@ -778,13 +775,6 @@ CPU Efficiency Cluster Aggregate 1:Te0U:M4
 CPU Efficiency Cluster Aggregate 1:Te0V:M4
 CPU Efficiency Cluster Aggregate 2:Te0W:M4
 CPU Efficiency Cluster Aggregate 2:Te0X:M4
-// M4 Pro per-core; M4 base reuses Te08/Te0G slots.
-CPU Efficiency Core 3:Tpx8:M4
-CPU Efficiency Core 3:Tpx9:M4
-CPU Efficiency Core 3:TpxA:M4
-CPU Efficiency Core 4:TpxB:M4
-CPU Efficiency Core 4:TpxC:M4
-CPU Efficiency Core 4:TpxD:M4
 // E-cluster die-level sensors.
 CPU Efficiency Cluster Die 1:Tex0:M4
 CPU Efficiency Cluster Die 1:Tex1:M4
@@ -899,13 +889,24 @@ CPU Performance Fabric 4:Tp0t:M4
 CPU Performance Fabric 5:Tp0u:M4
 CPU Performance Fabric 5:Tp0v:M4
 CPU Performance Fabric 5:Tp0w:M4
-// One Tpx doublet per P-cluster.
+// One Tpx (probe, max) doublet per P-cluster. Tpx8-TpxD are the same doublets
+// on the Tp1i-scheme M4 Pro 14-core, not E-cores: in m4Pro14CoreReport Tpx9 =
+// Tp1o (hottest third key of P-cores 1-5) and TpxD = Tp29 (cores 6-10), and they
+// read 0.0 in the loaded Tp00-scheme report-m4-pro.txt while its E-cores read
+// 52-62 °C. Per exelban/stats#2249 dumps, Tpx2/3 and TpxA/B track the fabric
+// triplets rather than a core cluster.
 CPU Performance Cluster 1 Die:Tpx0:M4
 CPU Performance Cluster 1 Die:Tpx1:M4
 CPU Performance Cluster 2 Die:Tpx2:M4
 CPU Performance Cluster 2 Die:Tpx3:M4
 CPU Performance Cluster 3 Die:Tpx4:M4
 CPU Performance Cluster 3 Die:Tpx5:M4
+CPU Performance Cluster 1 Die:Tpx8:M4
+CPU Performance Cluster 1 Die:Tpx9:M4
+CPU Performance Cluster 2 Die:TpxA:M4
+CPU Performance Cluster 2 Die:TpxB:M4
+CPU Performance Cluster 3 Die:TpxC:M4
+CPU Performance Cluster 3 Die:TpxD:M4
 // Cluster companions (M3-shared addresses).
 CPU Performance Cluster 1:Tp3O:M4
 CPU Performance Cluster 1:Tp3P:M4
@@ -1419,10 +1420,11 @@ Virtual Die P:TVDP:M6
 // P-cores have two probes each too. With all four P-cores at 100% (othyn's
 // 120 s run in exelban/stats#3668) eight keys rise 13-29 °C: Tp0E/0G/0I/0L
 // and Tp0m/0d/0b/05; every other Tp key <= 5.7 °C. The saved run loaded only
-// CPUs 8-9 well (76/70%), so only Tp0E/0G/0I/0L stood out there, pairing as
-// Tp0E+Tp0I and Tp0G+Tp0L (r = 0.99-1.00 in S and P phases). Cores 3-4 pair as
-// in its P phase (Tp0d+Tp05 r=1.00, Tp0m+Tp0b r=0.99), but other pairings
-// reach 0.98 there: unverified. Within a pair the key hotter at idle is last.
+// CPUs 8-9 well (76/70%), so only Tp0E/0G/0I/0L stood out there. All four
+// pairs are unverified: the saved run's 1 s changes favour Tp0E+Tp0I, Tp0G+Tp0L,
+// Tp0d+Tp05, Tp0m+Tp0b (r 0.99-1.00 vs 0.98-0.99 for alternatives, from only ~8
+// distinct samples), while othyn's rise sizes favour Tp0I+Tp0L, Tp0b+Tp05,
+// Tp0m+Tp0d. Within a pair the key hotter at idle is last.
 CPU Super Core 1:Tp07:M6
 CPU Super Core 1:Tp09:M6
 CPU Super Core 2:Tp0j:M6
