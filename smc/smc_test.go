@@ -181,9 +181,10 @@ func Test_filterByFamily_A18_GeneratedTable(t *testing.T) {
 		}
 	}
 
-	// 71 A18-exclusive rows expected (post-wildcard consolidation).
-	assert.Equal(t, 71, byPlatform["A18"],
-		"expected 71 A18-tagged rows in AppleTemp; got %d", byPlatform["A18"])
+	// 72 A18-exclusive rows expected (post-wildcard consolidation; TCMb moved
+	// from an Apple row to per-family rows).
+	assert.Equal(t, 72, byPlatform["A18"],
+		"expected 72 A18-tagged rows in AppleTemp; got %d", byPlatform["A18"])
 }
 
 // Test_filterForPlatform_exactFamilyMatch verifies that platform-specific sensors are

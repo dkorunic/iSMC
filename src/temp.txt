@@ -117,7 +117,17 @@ Sensor Group 1:TSG1:Apple
 Sensor Group 2:TSG2:Apple
 // CPU die/PMU peak sensors.
 CPU Die Max:TCMz:Apple
-CPU Die Average:TCMb:Apple
+// TCMb is per family: on M6 it tracks TVD0 within 0.6 °C and reads ~8 °C above
+// the hottest core in every phase of the owner's saved guess run, so it is not
+// an average there. On M1 Ultra it sits between the core mean and max. A new
+// family's first dump flags TCMb as unmapped in Test_DumpReplay.
+CPU Die Average:TCMb:A18
+CPU Die Average:TCMb:M1
+CPU Die Average:TCMb:M2
+CPU Die Average:TCMb:M3
+CPU Die Average:TCMb:M4
+CPU Die Average:TCMb:M5
+CPU Die Hotspot Estimate:TCMb:M6
 // Max over the die probes; present on Pro/Max/Ultra SKUs. On M1 it reads
 // 0.03-0.3 °C above the hottest TC group, which spans CPU, GPU and SoC areas
 // (see TCn0-3 below), so it is not CPU-only. Reads below the hottest core.
@@ -1399,7 +1409,8 @@ GPU Fabric 2:TfC1:M6
 GPU Fabric 5:TfCD:M6
 Virtual Die A:TVDA:M6
 Virtual Die E:TVDE:M6
-Virtual Die G:TVDG:M6
+// TVDG rises with the Tg* keys under GPU load (+12.1/+12.5 °C in both owner runs).
+Virtual Die GPU:TVDG:M6
 Virtual Die P:TVDP:M6
 // Cores from the owner's saved `iSMC guess --gpu --save` run (v0.18.2), whose
 // per-CPU load shows E = CPUs 0-5, S = 6-7, P = 8-11. Super phase: Tp07/09/0g/0j
