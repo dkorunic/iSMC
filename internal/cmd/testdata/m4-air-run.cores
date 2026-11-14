@@ -22,8 +22,10 @@ CPU Performance Core 7:Tp0c:M4
 CPU Performance Core 8:Tp0d:M4
 CPU Performance Core 8:Tp0e:M4
 CPU Performance Core 8:Tp0f:M4
-CPU Performance Core 9:Tp3W:M4
-CPU Performance Core 9:Tp3X:M4
+CPU Performance Core 9:Tp3O:M4
+CPU Performance Core 9:Tp3P:M4
+CPU Performance Core 10:Tp3W:M4
+CPU Performance Core 10:Tp3X:M4
 CPU Efficiency Core 1:Te04:M4
 CPU Efficiency Core 1:Te05:M4
 CPU Efficiency Core 1:Te06:M4
@@ -36,9 +38,7 @@ CPU Efficiency Core 3:Te0I:M4
 CPU Efficiency Core 4:Te0R:M4
 CPU Efficiency Core 4:Te0S:M4
 CPU Efficiency Core 4:Te0T:M4
-CPU Efficiency Core 4:Te0U:M4
-CPU Efficiency Core 4:Te0V:M4
-CPU Efficiency Core 4:Te0W:M4
-CPU Efficiency Core 4:Te0X:M4
-CPU Efficiency Core 5:Tp3O:M4
-CPU Efficiency Core 5:Tp3P:M4
+CPU Efficiency Core 5:Te0U:M4
+CPU Efficiency Core 5:Te0V:M4
+CPU Efficiency Core 5:Te0W:M4
+CPU Efficiency Core 5:Te0X:M4

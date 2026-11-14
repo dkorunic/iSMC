@@ -114,10 +114,10 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     the P-cores are reported through two key banks (Tp00..Tp0c + Tpx0-5,
 //     Tp1i..Tp2E + Tpx8-D) that alternate every few seconds, the idle bank
 //     parked at exactly 40.0 °C, which the sampler drops. Bank B lands in the
-//     P tier; bank A has no rise because it was parked in the baseline. Known
-//     gaps: bank B triplets are not index-adjacent, so Tp1t..Tp2E groups as
-//     one 22-key "core"; and the E phase has no responders, so the E triplets
-//     stay in the P tier.
+//     P tier; bank A has no rise because it was parked in the baseline. Its
+//     triplets straddle index gaps (Tp1q/Tp1t/Tp1u) and are grouped by their
+//     constant A/B offset (anchoredTriplets). Known gap: the E phase has no
+//     responders, so the E triplets stay in the P tier.
 func TestReplayRuns(t *testing.T) {
 	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run"} {
 		t.Run(name, func(t *testing.T) {

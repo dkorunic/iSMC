@@ -67,6 +67,11 @@ const (
 	// Fewer changes than this cannot support a correlation.
 	guessLockstepMinSteps = 4
 
+	// Probe pairs (offsetPairs): B - A may vary by at most guessPairSpread
+	// over the load snapshots and must be at least guessPairMinOffset.
+	guessPairSpread    = float32(0.01)
+	guessPairMinOffset = 0.5
+
 	// Onset tie-break for groups the end rise leaves in the cluster bucket:
 	// the group's mean rise guessOnsetAt into a phase must reach
 	// guessOnsetMin there and at most guessOnsetShare of that in every other
@@ -458,6 +463,83 @@ func sortedSeriesKeys(groups map[string][]string) []string {
 	slices.Sort(keys)
 
 	return keys
+}
+
+// offsetPairs returns a test for M1-M4 triplet probe pairs: probe B reads
+// probe A plus a constant offset, exactly (spread < 1e-5 °C over every load
+// snapshot on M1 Ultra, M4 Air and M4 Pro), while neighbouring keys of
+// different probes differ by 3-9 °C. It returns nil without enough snapshots.
+func offsetPairs(results []phaseResult) func(a, b string) bool {
+	var snaps []map[string]float32
+
+	for _, r := range results {
+		for _, s := range r.series {
+			snaps = append(snaps, s.Temps)
+		}
+	}
+
+	if len(snaps) < guessLockstepMinSteps {
+		return nil
+	}
+
+	return func(a, b string) bool {
+		lo, hi := float32(math.MaxFloat32), float32(-math.MaxFloat32)
+		n := 0
+
+		for _, s := range snaps {
+			va, okA := s[a]
+			vb, okB := s[b]
+
+			// Parked slots (v0.18.3 runs kept them) carry no offset.
+			if !okA || !okB || va == smc.GatedTempCelsius || vb == smc.GatedTempCelsius {
+				continue
+			}
+
+			d := vb - va
+			lo, hi = min(lo, d), max(hi, d)
+			n++
+		}
+
+		// A zero offset is an alias, not a probe pair.
+		return n >= guessLockstepMinSteps && hi-lo <= guessPairSpread &&
+			math.Abs(float64(lo)) >= guessPairMinOffset
+	}
+}
+
+// anchoredTriplets groups sorted keys of one series into M1-M4 triplets
+// anchored on (probe A, probe B) offset pairs, the next key being the third
+// probe unless it starts another pair. Index gaps do not matter: M4 Pro bank B
+// triplets straddle them (Tp1q/Tp1t/Tp1u, Tp2D/Tp2E/Tp2G), which gap-based
+// grouping lumped into one 22-key core. Keys no pair anchors are returned for
+// groupCores.
+func anchoredTriplets(keys []string, isPair func(a, b string) bool) ([][]string, []string) {
+	var (
+		groups [][]string
+		rest   []string
+	)
+
+	startsPair := func(k []string) bool { return len(k) >= 2 && isPair(k[0], k[1]) }
+
+	for len(keys) > 0 {
+		if !startsPair(keys) {
+			rest = append(rest, keys[0])
+			keys = keys[1:]
+
+			continue
+		}
+
+		g := slices.Clone(keys[:2])
+		keys = keys[2:]
+
+		if len(keys) > 0 && !startsPair(keys) {
+			g = append(g, keys[0])
+			keys = keys[1:]
+		}
+
+		groups = append(groups, g)
+	}
+
+	return groups, rest
 }
 
 // groupCores splits a series' sensor list into per-core groups.
@@ -1650,8 +1732,19 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	seriesGroups := groupBySeries(coreKeys, appleSilicon)
 	groups := make([][]string, 0, len(coreKeys))
 
+	isPair := offsetPairs(results)
+
 	for _, sk := range sortedSeriesKeys(seriesGroups) {
-		groups = append(groups, groupCores(seriesGroups[sk], appleSilicon, singleKey)...)
+		keys := seriesGroups[sk]
+
+		if !singleKey && isPair != nil {
+			var anchored [][]string
+
+			anchored, keys = anchoredTriplets(keys, isPair)
+			groups = append(groups, anchored...)
+		}
+
+		groups = append(groups, groupCores(keys, appleSilicon, singleKey)...)
 	}
 
 	perPhase, clusterGroups := classifyCoreGroups(groups, results)

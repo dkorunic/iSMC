@@ -343,3 +343,33 @@ func TestClassifyCoreGroups(t *testing.T) {
 		t.Errorf("clusters: got %v, want the TCDX group", clusters)
 	}
 }
+
+// TestAnchoredTriplets: M4 Pro bank B triplets straddle index gaps
+// (Tp1q/Tp1t/Tp1u, Tp2D/Tp2E/Tp2G); (A, B) offset pairs anchor them, and keys
+// no pair anchors are left for gap-based grouping.
+func TestAnchoredTriplets(t *testing.T) {
+	t.Parallel()
+
+	pairs := map[[2]string]bool{
+		{"Tp1m", "Tp1n"}: true, {"Tp1q", "Tp1t"}: true, {"Tp1v", "Tp1w"}: true, {"Tp2D", "Tp2E"}: true,
+	}
+	isPair := func(a, b string) bool { return pairs[[2]string{a, b}] }
+
+	keys := []string{"Tp1m", "Tp1n", "Tp1o", "Tp1q", "Tp1t", "Tp1u", "Tp1v", "Tp1w", "Tp1x", "Tp2D", "Tp2E", "Tp2G", "Tpx8"}
+
+	groups, rest := anchoredTriplets(keys, isPair)
+
+	want := [][]string{
+		{"Tp1m", "Tp1n", "Tp1o"}, {"Tp1q", "Tp1t", "Tp1u"}, {"Tp1v", "Tp1w", "Tp1x"}, {"Tp2D", "Tp2E", "Tp2G"},
+	}
+	if !slices.EqualFunc(groups, want, slices.Equal) || !slices.Equal(rest, []string{"Tpx8"}) {
+		t.Errorf("groups %v rest %v, want %v rest [Tpx8]", groups, rest, want)
+	}
+
+	// A pair whose next key starts another pair keeps only its two probes.
+	pairs[[2]string{"Tp1o", "Tp1q"}] = true
+
+	if g, _ := anchoredTriplets([]string{"Tp1m", "Tp1n", "Tp1o", "Tp1q"}, isPair); len(g) != 2 || len(g[0]) != 2 {
+		t.Errorf("got %v, want [[Tp1m Tp1n] [Tp1o Tp1q]]", g)
+	}
+}
