@@ -55,8 +55,8 @@ type guessCapture struct {
 }
 
 // capturedPhase is one stress phase: the settled baseline before it, the
-// averaged peak sample, per-CPU busy share over the load window, and (with
-// --save) the snapshots taken while the load ran.
+// averaged peak sample, per-CPU busy share over the load window, and the
+// snapshots taken while the load ran.
 type capturedPhase struct {
 	Baseline map[string]float32 `json:"baseline"`
 	Hot      map[string]float32 `json:"hot"`
@@ -74,16 +74,10 @@ type capturedSample struct {
 	T     float32            `json:"t"`
 }
 
-// sampleDuring waits d; when record is set it snapshots every
-// guessSeriesInterval meanwhile. Off by default: each snapshot is an SMC sweep
-// on the sampling thread, which competes with the spinners for a core.
-func (s *tempSampler) sampleDuring(d time.Duration, record bool) []capturedSample {
-	if !record {
-		time.Sleep(d)
-
-		return nil
-	}
-
+// sampleDuring snapshots every guessSeriesInterval for d. The snapshots feed
+// the onset tie-break (onsetPhase), lockstep merging and alias detection; at
+// 1 s that is about 8 SMC sweeps per phase competing with the spinners.
+func (s *tempSampler) sampleDuring(d time.Duration) []capturedSample {
 	start := time.Now()
 
 	var series []capturedSample
@@ -191,6 +185,7 @@ func analyzeCapture(c *guessCapture) {
 
 	printMapping(c.Family, c.NumCPU, c.PerfLevels, c.Layout, c.LayoutOK, c.Product, results, visible)
 	printCPULoad(c)
+	printAggregates(c)
 
 	if c.GPU != nil {
 		printGPUPhase(c.Family, c.Product.CPU, deltaTemps(c.GPU.Baseline, c.GPU.Hot), visible, results)

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -104,10 +105,11 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     all four P-cores from other data, and buildPhases now spins S+P threads.
 //   - m1-ultra-run (Mac Studio M1 Ultra): 16 threads busied all 20 CPUs;
 //     the E-cores are moved out of the Performance tier by rebalancing.
-//   - m4-air-run (MacBook Air M4, Mac16,12, fanless): known gap, every
-//     P-core triplet lands among the cluster sensors. E load warms the whole
-//     die 3-4 °C, so median-normalized scores flatten to ~1.0 in both phases
-//     (see CLAUDE.md). Fixing it changes this file.
+//   - m4-air-run (MacBook Air M4, Mac16,12, fanless): E load warms the whole
+//     die 3-4 °C, so the end rise ties every P group between both phases; the
+//     1 s onset tie-break (onsetPhase) puts them in the P tier. P-cores 1-4
+//     match src/temp.txt; the four P groups and Tp3W/X still show up as extra
+//     P "cores" (see CLAUDE.md).
 func TestReplayRuns(t *testing.T) {
 	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run"} {
 		t.Run(name, func(t *testing.T) {
@@ -168,6 +170,40 @@ func TestNoiseThreshold(t *testing.T) {
 	} {
 		if got := noiseThreshold(base, tc.hot); math.Abs(float64(got-tc.want)) > 1e-4 {
 			t.Errorf("noiseThreshold(%v) = %v, want %v", tc.hot, got, tc.want)
+		}
+	}
+}
+
+// TestFindAggregates checks alias and maximum detection on real runs.
+func TestFindAggregates(t *testing.T) {
+	for _, tc := range []struct {
+		run, key string
+		members  []string
+		maximum  bool
+	}{
+		// M6: one register under three keys.
+		{"m6-run", "Te0f", []string{"Te0g", "Ts05"}, false},
+		// M1 Ultra: the die-2 copies the allowlist could only suspect.
+		{"m1-ultra-run", "TCMz", []string{"Tc02"}, false},
+		// M6: TVNS is the hotter of TVN0/TVN1 on M5 too; here it equals TVN1.
+		{"m6-run", "TVN1", []string{"TVNS"}, false},
+		{"m1-ultra-run", "TVSx", []string{"TVS0", "TVS1"}, true},
+	} {
+		c, err := loadCapture("testdata/" + tc.run + ".json")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		aliases, maxima := findAggregates(captureSnapshots(c))
+
+		rows := aliases
+		if tc.maximum {
+			rows = maxima
+		}
+
+		i := slices.IndexFunc(rows, func(a aggregate) bool { return a.Key == tc.key })
+		if i < 0 || !slices.Equal(rows[i].Members, tc.members) {
+			t.Errorf("%s: %s want %v, got aliases %v maxima %v", tc.run, tc.key, tc.members, aliases, maxima)
 		}
 	}
 }

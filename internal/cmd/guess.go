@@ -67,6 +67,16 @@ const (
 	// Fewer changes than this cannot support a correlation.
 	guessLockstepMinSteps = 4
 
+	// Onset tie-break for groups the end rise leaves in the cluster bucket:
+	// the group's mean rise guessOnsetAt into a phase must reach
+	// guessOnsetMin there and at most guessOnsetShare of that in every other
+	// phase. Fanless M4 Air: P triplets +1.6-1.8 °C at 1 s under P load vs
+	// <= 0 under E load, E triplets +0.6-1.6 vs <= 0.2; by the end of each
+	// phase the whole die has converged. M1 Ultra 1 s rises stay < 0.5 °C.
+	guessOnsetAt    = float32(1.0)
+	guessOnsetMin   = float32(0.5)
+	guessOnsetShare = float32(0.25)
+
 	// A phase above its SKU core maximum is cut at the largest drop between
 	// consecutive groups ranked by mean rise, if that drop is at least this
 	// ratio: M6 Super cores rise ~18 °C, the next group 8.6 °C (2.1×).
@@ -140,9 +150,16 @@ phase's, and a tier left above its SKU core count is cut at the largest drop
 in rise. A sensor responds when it rises by 3× the phase's noise (the RMS of
 keys that cooled), between 0.3 and 1.0 °C.
 
+A group whose end rise no single phase wins is still assigned when the 1 s
+snapshots show it reacting first to one phase: at least 0.5 °C within 1 s
+there and at most a quarter of that in every other phase. On fanless Macs the
+whole die converges by the end of a phase, but the onset still separates
+tiers. A final section lists aliases (keys equal in every snapshot) and
+maxima (keys equal to the hottest of a set in every snapshot).
+
 --save FILE writes the whole run (baselines, peak samples, per-CPU load, and
-snapshots every 0.5 s while each load runs) as JSON; --replay FILE re-analyses
-a saved run without touching the SMC, on any Mac.`,
+the 1 s snapshots taken while each load runs) as JSON; --replay FILE
+re-analyses a saved run without touching the SMC, on any Mac.`,
 	Run: runGuess,
 }
 
@@ -616,7 +633,11 @@ func classifyCoreGroups(groups [][]string, results []phaseResult) ([][][]string,
 			// No phase produced a response; drop silently (cannot happen for
 			// groups built from detected keys, kept for safety).
 		case second > 0 && second/bestScore >= 1-guessClusterRatio:
-			clusters = append(clusters, group)
+			if o := onsetPhase(group, results); o >= 0 {
+				perPhase[o] = append(perPhase[o], group)
+			} else {
+				clusters = append(clusters, group)
+			}
 		default:
 			perPhase[best] = append(perPhase[best], group)
 		}
@@ -696,6 +717,67 @@ func rebalanceToLayout(perPhase [][][]string, results []phaseResult, layout plat
 	return weakest[:n], src, dst
 }
 
+// onsetPhase returns the phase a group reacted to first, or -1: the only
+// phase whose mean rise guessOnsetAt into its snapshots reaches guessOnsetMin
+// while every other phase stays at or below guessOnsetShare of it.
+func onsetPhase(group []string, results []phaseResult) int {
+	best, bestRise, second := -1, float32(0), float32(0)
+
+	for i, r := range results {
+		rise, ok := onsetRise(group, r.series)
+		if !ok {
+			return -1
+		}
+
+		switch {
+		case rise > bestRise:
+			second, bestRise, best = max(second, bestRise), rise, i
+		case rise > second:
+			second = rise
+		}
+	}
+
+	if bestRise < guessOnsetMin || second > guessOnsetShare*bestRise {
+		return -1
+	}
+
+	return best
+}
+
+// onsetRise returns a group's mean rise from the first snapshot to the first
+// one at least guessOnsetAt into the load; ok is false without such a pair.
+func onsetRise(group []string, series []capturedSample) (float32, bool) {
+	if len(series) < 2 {
+		return 0, false
+	}
+
+	at := slices.IndexFunc(series, func(s capturedSample) bool { return s.T >= guessOnsetAt })
+	if at <= 0 {
+		return 0, false
+	}
+
+	var (
+		sum float32
+		n   int
+	)
+
+	for _, k := range group {
+		v0, ok0 := series[0].Temps[k]
+		v1, ok1 := series[at].Temps[k]
+
+		if ok0 && ok1 {
+			sum += v1 - v0
+			n++
+		}
+	}
+
+	if n == 0 {
+		return 0, false
+	}
+
+	return sum / float32(n), true
+}
+
 // trimToLayout cuts each phase that still holds more groups than its SKU
 // maximum at the largest drop in mean rise (at least guessTrimGapRatio, never
 // below the SKU minimum) and returns the cut groups as cluster sensors. Median
@@ -743,8 +825,8 @@ func trimToLayout(perPhase [][][]string, results []phaseResult, layout platform.
 
 // mergeLockstep merges groups of a tier that still holds more groups than its
 // SKU maximum when they move in lockstep during that tier's load, i.e. when
-// they are several probes of one core (M6: two per Super core). The most
-// correlated pair merges first, until the tier fits or no pair reaches
+// they are several probes of one core (M6: two per Super core). Only
+// single-key groups pair up. The most correlated pair merges first, until the tier fits or no pair reaches
 // guessLockstepCorr. It returns a NOTE line per merge.
 func mergeLockstep(perPhase [][][]string, results []phaseResult, layout platform.SKULayout) []string {
 	var notes []string
@@ -757,6 +839,13 @@ func mergeLockstep(perPhase [][][]string, results []phaseResult, layout platform
 
 			for x := range perPhase[i] {
 				for y := x + 1; y < len(perPhase[i]); y++ {
+					// Single probes only: on M1-M4 a group is already one
+					// core's triplet, and identically loaded cores move in
+					// lockstep too (fanless M4 Air: r = 1.00 across cores).
+					if len(perPhase[i][x]) != 1 || len(perPhase[i][y]) != 1 {
+						continue
+					}
+
 					if c := lockstepCorr(perPhase[i][x], perPhase[i][y], r.series); c >= best {
 						a, b, best = x, y, c
 					}
@@ -770,7 +859,8 @@ func mergeLockstep(perPhase [][][]string, results []phaseResult, layout platform
 			notes = append(notes, fmt.Sprintf("// NOTE: merged %s into %s's %s group: they move in lockstep "+
 				"(r=%.2f), i.e. probes of one core.\n", strings.Join(perPhase[i][b], "/"),
 				strings.Join(perPhase[i][a], "/"), phaseMidWord(r.spec.label), best))
-			perPhase[i][a] = append(perPhase[i][a], perPhase[i][b]...)
+			// Concat, not append: groups can share a backing array.
+			perPhase[i][a] = slices.Concat(perPhase[i][a], perPhase[i][b])
 			perPhase[i] = slices.Delete(perPhase[i], b, b+1)
 		}
 	}
@@ -1037,7 +1127,7 @@ func runStressPhase(s *tempSampler, spec phaseSpec, threads int, baseline map[st
 		go spinCore(spec.qos, done)
 	}
 
-	series := s.sampleDuring(guessStressDuration, guessSave != "")
+	series := s.sampleDuring(guessStressDuration)
 	hot := s.avgRawTemps(guessSampleCount, guessSampleInterval)
 	busy := stress.BusyShare(before, stress.ReadCPUTicks())
 
@@ -1177,7 +1267,7 @@ func runGPUPhase(s *tempSampler, baseline map[string]float32) *capturedPhase {
 		return nil
 	}
 
-	series := s.sampleDuring(guessStressDuration, guessSave != "")
+	series := s.sampleDuring(guessStressDuration)
 	hot := s.avgRawTemps(guessSampleCount, guessSampleInterval)
 
 	stop()
