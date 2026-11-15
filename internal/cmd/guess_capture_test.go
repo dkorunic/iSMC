@@ -142,8 +142,14 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     Tp0u-w/Tp0y-10 only ~3 °C (7.2-7.6 °C under GPU load). Known gaps
 //     without the index: 12 P groups including the Tp3O/P and Tp3W/X bank
 //     maxima, and rebalancing moves Tp0g, Tp0y and Tp1Q into the E tier.
+//   - m5-air-run (MacBook Air 13 M5, Mac17,3, fanless, v0.18.4): eight
+//     Super-level keys (Tp00-0G and Tp0O-0a, +7.9-8.7 °C, 1 s onset 0.7-0.9 °C)
+//     for 4 Super cores; mergeLockstep pairs them, but 1 s snapshots make
+//     every Super key correlate at r >= 0.99, so the pairing is not evidence.
+//     Known gaps: Tp0p/Tp0y probes (+6 °C) stay as Super groups 5-6, and with
+//     four Te groups for six E-cores rebalancing moves Tp0u/Tp1E into E.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {

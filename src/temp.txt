@@ -1632,6 +1632,8 @@ SSD Controller 2:Ts1P:M5
 // Base M5 only: Ts0G reads inside the Ts band (37.17 °C vs Ta00 37.44 °C), so
 // unlike Pro/Max it is not the thermal-headroom alias.
 SSD 13:Ts0G:M5 Base
+// Live on the MacBook Air 13 M5 (report-m5-2.txt); M4 and base M3 label it so.
+Memory B:Tm0B:M5 Base
 SSD Controller 3:TsOP:M5 Base
 // M5 Max also populates TN04-TN07.
 Package 1:TN00:M5

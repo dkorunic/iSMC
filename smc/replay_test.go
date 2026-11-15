@@ -447,7 +447,11 @@ var replayAllow = map[string][]string{
 	// Only four Te keys exist; E-cores 5-6 are among the generic "CPU Probe" Tp
 	// slots, which the only (idle) base M5 dump cannot place. TVC0 ≡ TVD0
 	// byte-for-byte; TVMS is unknown, as on M4.
-	"m5":       {"cores E=4", "unmapped TVC0 TVMS"},
+	"m5": {"cores E=4", "unmapped TVC0 TVMS"},
+	// MacBook Air 13 M5 (Mac17,3), idle, with m5-air-run: four Te triplets for
+	// six E-cores as on m5; TVDE ≡ TVD0 and TH0T ≡ TH0x byte for byte, TVDP
+	// tracks TVD0 (an alias on M5 Pro/Max, m5Aliases); T5SP unknown, as on M4.
+	"m5-2":     {"cores E=4", "unmapped T5SP TH0T TVDE TVDP"},
 	"m5-max":   {m5Aliases},
 	"m5-max-2": {m5Aliases},
 	"m5-pro":   {m5Aliases},

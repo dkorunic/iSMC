@@ -1435,6 +1435,7 @@ var AppleTemp = []SensorStat{
 	{Key: "Ts0P", Desc: "SSD Controller 1", Platform: "M5"},
 	{Key: "Ts1P", Desc: "SSD Controller 2", Platform: "M5"},
 	{Key: "Ts0G", Desc: "SSD 13", Platform: "M5 Base"},
+	{Key: "Tm0B", Desc: "Memory B", Platform: "M5 Base"},
 	{Key: "TsOP", Desc: "SSD Controller 3", Platform: "M5 Base"},
 	{Key: "TN00", Desc: "Package 1", Platform: "M5"},
 	{Key: "TN01", Desc: "Package 2", Platform: "M5"},
