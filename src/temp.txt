@@ -451,6 +451,11 @@ CPU Performance Core 3:Tp0A:M2
 CPU Performance Core 4:Tp0C:M2
 CPU Performance Core 4:Tp0D:M2
 CPU Performance Core 4:Tp0E:M2
+// The two B - A offset classes are not P vs E (TG Pro maps them that way). In
+// exelban/stats#1286 the M2 Pro/Max 4.633 class reads P level, ~5 °C below the
+// 6.700 class: 102-106 vs 107-112 °C under Cinebench on an M2 Max, 65-71 vs
+// 68-81 °C under all-core `yes` on an M2 Pro Mac14,9, while the E cluster
+// Te04-06 reads 82-90 and 59-67 °C. So 16 P-level triplets, two per P-core.
 // Base M2 (4P+4E): Tp0e/0i/0m/0q repeat Tp00-0C's offsets (6.1/5.087), so they
 // look like the second 4-core cluster, but the only dump is idle and cannot say
 // whether that cluster is P or E. Generic labels until a loaded base dump exists.
