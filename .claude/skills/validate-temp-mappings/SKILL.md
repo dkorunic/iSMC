@@ -61,7 +61,7 @@ Two table-wide tests sit next to it and run with `go test ./smc/`:
 
 Before trusting a dump, count its gated keys (`grep -c 'bytes 00 00 20 42' internal/reports/report-<name>.txt`) and note whether it is idle or loaded. A dump with dozens of 40.00 keys says nothing about the cores it parks; only an ungated dump verifies a per-core mapping.
 
-Coverage decides how strong a finding can be. No dumps: base M1; M2 Ultra, M3 Ultra. One dump: base M2 (idle), base M3 (Mac15,13, with a `guess --gpu` run; generic Group labels), base M5 (idle), A18 Pro, Intel (T2 only), M1 Max, M1 Ultra, M2 Pro (Mac14,10, loaded), M2 Max (sentinels only), M4 Max (gated). Base M2 and M2 Pro/Max use different key layouts, as do base M3 and M3 Pro/Max. Label findings on those SKUs as unverified. Base M5 S/E-core rows are positional guesses from that idle dump.
+Coverage decides how strong a finding can be. No dumps: base M1; M2 Ultra, M3 Ultra. Two dumps: base M5 (one idle, one MacBook Air 13 Mac17,3 with a `guess --gpu` run and the M5-only `sd*` die estimates). One dump: base M2 (idle), base M3 (Mac15,13, with a `guess --gpu` run; generic Group labels), A18 Pro, Intel (T2 only), M1 Max, M1 Ultra, M2 Pro (Mac14,10, loaded), M2 Max (sentinels only), M4 Max (gated). Base M2 and M2 Pro/Max use different key layouts, as do base M3 and M3 Pro/Max. Label findings on those SKUs as unverified. Base M5 Super Core 1-4 (`Tp00-0G`) and E-core 1-4 (`Te04/08/0C/0R`) are confirmed by load (`m5-air-run`); E-cores 5-6 have no `T*` key (`cores E=4`).
 
 ### 2. Read the allowlist
 
