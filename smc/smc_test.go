@@ -295,9 +295,9 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 			wantDesc: "CPU Super Core 1", wantOK: true,
 		},
 		{
-			name: "M3 Te0G maps to Efficiency Core 2",
-			key:  "Te0G", family: "M3",
-			wantDesc: "CPU Efficiency Core 2", wantOK: true,
+			name: "M3 Te0Q maps to Efficiency Cluster Aggregate 1",
+			key:  "Te0Q", family: "M3",
+			wantDesc: "CPU Efficiency Cluster Aggregate 1", wantOK: true,
 		},
 		{
 			name: "Wildcard TC%c expands for digit indices",
@@ -381,12 +381,12 @@ func Test_MappedTempKeys_familyIsolation(t *testing.T) {
 		t.Errorf("MappedTempKeys(M1)[Tp08] = (%q, %v), want (\"CPU Efficiency Core 1\", true)", d, ok)
 	}
 
-	if _, ok := m1["Te0G"]; ok {
-		t.Errorf("MappedTempKeys(M1) leaked M3-only key Te0G")
+	if _, ok := m1["Te0Q"]; ok {
+		t.Errorf("MappedTempKeys(M1) leaked M3-only key Te0Q")
 	}
 
-	if d, ok := m3["Te0G"]; !ok || d != "CPU Efficiency Core 2" {
-		t.Errorf("MappedTempKeys(M3)[Te0G] = (%q, %v), want (\"CPU Efficiency Core 2\", true)", d, ok)
+	if d, ok := m3["Te0Q"]; !ok || d != "CPU Efficiency Cluster Aggregate 1" {
+		t.Errorf("MappedTempKeys(M3)[Te0Q] = (%q, %v), want (\"CPU Efficiency Cluster Aggregate 1\", true)", d, ok)
 	}
 }
 

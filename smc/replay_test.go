@@ -340,28 +340,21 @@ const (
 	m3MaxGated = "unmapped Tp1g Tp1h Tp1i Tp1o Tp1p Tp1q Tp1x Tp1y Tp1z Tp25 Tp26 Tp27 Tp29 Tp2A " +
 		"Tp2B Tp2H Tp2I Tp2J Tp2P Tp2Q Tp2R Tp2X Tp2Y Tp2Z Tp2f Tp2g Tp2h Tp2j Tp2k Tp2l " +
 		"Tp2r Tp2s Tp2t Tp2z Tp30 Tp31 Tp33 Tp34 Tp35 Tp3B Tp3C Tp3D Tp3a Tp3b Tp3e Tp3f Tp3i Tp3j"
-	// M3 Max: Tp0u/v/w track Tp0y/z/10 within ~0.7 °C (never byte-equal) and
-	// stay unmapped until a Max dump shows the ft index (on M3 Pro both are
-	// indexed, separate probes). Te0V aliases Te0T on M3 Pro.
-	m3Aliases    = "unmapped Tp0u Tp0v Tp0w"
+	// Te0V aliases Te0T on M3 Pro.
 	m3ProAliases = "unmapped Te0V"
 	// Virtual TV* channels with no known meaning.
 	m3MaxVirtual = "unmapped TV0h TV0m TV0s TV1h TV1m TV1s TVFh TVFm TVH3 TVHC TVSC TVsa TVss"
 	m3ProVirtual = "unmapped TVHD TVHE TVHF TVHG TVHH TVHO"
-	// M3 Pro: twelve indexed P triplets for 5-6 P-cores carry generic Group
-	// labels (m3-pro-run); E-cores stop at 5 (Te0U has no triplet; Te0V
-	// aliases Te0T).
+	// M3 Pro: twelve indexed P triplets for 5-6 P-cores and three indexed E
+	// triplets for 6 E-cores carry generic Group labels (m3-pro-run, ft index).
 	m3ProP = "cores P=0"
-	m3ProE = "cores E=5"
-	// M3 Pro cluster probes Tp0u-w/Tp0y-10: third < probe B in every M3 Pro
-	// dump, loaded or idle (as Core 9 was).
+	m3ProE = noECores
+	// M3 Pro/Max cluster probes Tp0u-w/Tp0y-10: third < probe B in every M3
+	// Pro and Max dump, loaded or idle.
 	m3ProProbes = "collide CPU Cluster Probe 1"
 	m3ProProbe2 = "collide CPU Cluster Probe 2"
-	// Same twelve triplets on M3 Max; only 9 carry core labels (expected 10-12)
-	// and nothing in the dumps says which cluster triplets are the missing cores.
-	m3MaxP = "cores P=9"
-	// Tp0y/z/10 ("Core 9"): third < probe B in all six M3 dumps, loaded or idle.
-	m3Core9 = "collide CPU Performance Core 9"
+	// M3 Max carries the M3 Pro Group labels (same die layout, see src/temp.txt).
+	m3MaxP = "cores P=0"
 	// Only Te04/Te0R triplets are live on M4 Pro/Max (Tpx8-D read 0 in all four
 	// dumps, see deadRowAllow); no other key carries per-E-core data.
 	m4ProMaxE = "cores E=2"
@@ -405,18 +398,13 @@ var replayAllow = map[string][]string{
 	// Base M3 (MacBook Air 15, Mac15,13): sixteen P triplets and three E groups
 	// for 4P+4E, none attributable to a core (m3-air-run), so generic Group
 	// labels. TH0T ≡ TH0x in the run; T5SP unknown, as on the M4 Air.
-	"m3": {noECores, "cores P=0", "unmapped T5SP TH0T"},
-	// Loaded dump: cluster 3 mixes Tp16-18 with Tp3S/T where Tp3T ≡ Tp10.
-	"m3-max": {m3MaxP, m3Core9, "collide CPU Performance Cluster 3", m3Aliases, m3MaxVirtual, m3MaxGated},
-	// Idle dump: third-of-triplet < probe B on most P triplets, so last-write
+	"m3":     {noECores, "cores P=0", "unmapped T5SP TH0T"},
+	"m3-max": {m3MaxP, m3ProProbes, m3ProProbe2, m3MaxVirtual, m3MaxGated},
+	// Idle dump: third-of-triplet < probe B on groups 2-12, so last-write
 	// shows the cooler value; not a distinct sensor.
 	"m3-max-2": {
-		m3MaxP, m3Core9, m3Aliases, m3MaxVirtual, m3MaxGated,
-		"collide CPU Performance Cluster 1", "collide CPU Performance Cluster 2",
-		"collide CPU Performance Core 2", "collide CPU Performance Core 3",
-		"collide CPU Performance Core 4", "collide CPU Performance Core 5",
-		"collide CPU Performance Core 6", "collide CPU Performance Core 7",
-		"collide CPU Performance Core 8",
+		m3MaxP, m3ProProbes, m3ProProbe2, m3MaxVirtual, m3MaxGated,
+		"collide CPU Performance Group 2", "collide CPU Performance Group 3", "collide CPU Performance Group 4", "collide CPU Performance Group 5", "collide CPU Performance Group 6", "collide CPU Performance Group 7", "collide CPU Performance Group 8", "collide CPU Performance Group 9", "collide CPU Performance Group 10", "collide CPU Performance Group 11", "collide CPU Performance Group 12",
 	},
 	// Idle dumps: the third key of a triplet reads below probe B on the listed
 	// groups (last-write shows the cooler value); not a distinct sensor.
