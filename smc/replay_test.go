@@ -398,6 +398,10 @@ var replayAllow = map[string][]string{
 	"m2": {noECores, "collide CPU Performance Cluster Aggregate 1", "unmapped TaMP Th1H"},
 	// Mac14,10, loaded: E-cores only as the Te04-06 cluster aggregate.
 	"m2-pro": {noECores},
+	// Base M3 (MacBook Air 15, Mac15,13): sixteen P triplets and three E groups
+	// for 4P+4E, none attributable to a core (m3-air-run), so generic Group
+	// labels. TH0T ≡ TH0x in the run; T5SP unknown, as on the M4 Air.
+	"m3": {noECores, "cores P=0", "unmapped T5SP TH0T"},
 	// Loaded dump: cluster 3 mixes Tp16-18 with Tp3S/T where Tp3T ≡ Tp10.
 	"m3-max": {m3MaxP, m3Core9, "collide CPU Performance Cluster 3", m3Aliases, m3MaxVirtual, m3MaxGated},
 	// Idle dump: third-of-triplet < probe B on most P triplets, so last-write

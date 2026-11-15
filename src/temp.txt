@@ -594,9 +594,15 @@ SSD 2:Ts0e:M2
 SSD 2:Ts0f:M2
 SSD 2:Ts0g:M2
 // M3
-CPU Efficiency Core 1:Te04:M3
-CPU Efficiency Core 1:Te05:M3
-CPU Efficiency Core 1:Te06:M3
+CPU Efficiency Core 1:Te04:M3 Pro
+CPU Efficiency Core 1:Te05:M3 Pro
+CPU Efficiency Core 1:Te06:M3 Pro
+CPU Efficiency Core 1:Te04:M3 Max
+CPU Efficiency Core 1:Te05:M3 Max
+CPU Efficiency Core 1:Te06:M3 Max
+CPU Efficiency Core 1:Te04:M3 Ultra
+CPU Efficiency Core 1:Te05:M3 Ultra
+CPU Efficiency Core 1:Te06:M3 Ultra
 CPU Efficiency Core 2:Te0G:M3
 CPU Efficiency Core 2:Te0H:M3
 CPU Efficiency Core 2:Te0I:M3
@@ -604,66 +610,155 @@ CPU Efficiency Core 2:Te0I:M3
 // core probes: Te0Q = Te06 (cluster 1 max) in 5 of 6 M3 dumps and above every
 // E key in the sixth; Te0T = Te0M on both M3 Max dumps and is the hottest E key
 // on M3 Pro, where Te0V aliases it (dropped).
-CPU Efficiency Core 3:Te0P:M3
+CPU Efficiency Core 3:Te0P:M3 Pro
+CPU Efficiency Core 3:Te0P:M3 Max
+CPU Efficiency Core 3:Te0P:M3 Ultra
 CPU Efficiency Core 4:Te0R:M3
 CPU Efficiency Core 4:Te0S:M3
 CPU Efficiency Core 5:Te0U:M3
 CPU Efficiency Cluster Aggregate 1:Te0Q:M3
 CPU Efficiency Cluster Aggregate 2:Te0T:M3
 // M3 Max additional E-cores.
-CPU Efficiency Core 6:Te0K:M3
-CPU Efficiency Core 6:Te0L:M3
-CPU Efficiency Core 6:Te0M:M3
-CPU Performance Core 1:Tp04:M3
-CPU Performance Core 1:Tp05:M3
-CPU Performance Core 1:Tp06:M3
-CPU Performance Core 2:Tp0C:M3
-CPU Performance Core 2:Tp0D:M3
-CPU Performance Core 2:Tp0E:M3
-CPU Performance Core 3:Tp0K:M3
-CPU Performance Core 3:Tp0L:M3
-CPU Performance Core 3:Tp0M:M3
-CPU Performance Core 4:Tp0a:M3
-CPU Performance Core 4:Tp0b:M3
-CPU Performance Core 4:Tp0c:M3
-CPU Performance Core 5:Tp0g:M3
-CPU Performance Core 5:Tp0h:M3
-CPU Performance Core 5:Tp0i:M3
-CPU Performance Core 6:Tp0m:M3
-CPU Performance Core 6:Tp0n:M3
-CPU Performance Core 6:Tp0o:M3
-CPU Performance Core 7:Tp1E:M3
-CPU Performance Core 7:Tp1F:M3
-CPU Performance Core 7:Tp1G:M3
+CPU Performance Core 1:Tp04:M3 Pro
+CPU Performance Core 1:Tp05:M3 Pro
+CPU Performance Core 1:Tp06:M3 Pro
+CPU Performance Core 2:Tp0C:M3 Pro
+CPU Performance Core 2:Tp0D:M3 Pro
+CPU Performance Core 2:Tp0E:M3 Pro
+CPU Performance Core 3:Tp0K:M3 Pro
+CPU Performance Core 3:Tp0L:M3 Pro
+CPU Performance Core 3:Tp0M:M3 Pro
+CPU Performance Core 4:Tp0a:M3 Pro
+CPU Performance Core 4:Tp0b:M3 Pro
+CPU Performance Core 4:Tp0c:M3 Pro
+CPU Performance Core 5:Tp0g:M3 Pro
+CPU Performance Core 5:Tp0h:M3 Pro
+CPU Performance Core 5:Tp0i:M3 Pro
+CPU Performance Core 6:Tp0m:M3 Pro
+CPU Performance Core 6:Tp0n:M3 Pro
+CPU Performance Core 6:Tp0o:M3 Pro
+CPU Performance Core 7:Tp1E:M3 Pro
+CPU Performance Core 7:Tp1F:M3 Pro
+CPU Performance Core 7:Tp1G:M3 Pro
+CPU Efficiency Core 6:Te0K:M3 Max
+CPU Efficiency Core 6:Te0L:M3 Max
+CPU Efficiency Core 6:Te0M:M3 Max
+CPU Performance Core 1:Tp04:M3 Max
+CPU Performance Core 1:Tp05:M3 Max
+CPU Performance Core 1:Tp06:M3 Max
+CPU Performance Core 2:Tp0C:M3 Max
+CPU Performance Core 2:Tp0D:M3 Max
+CPU Performance Core 2:Tp0E:M3 Max
+CPU Performance Core 3:Tp0K:M3 Max
+CPU Performance Core 3:Tp0L:M3 Max
+CPU Performance Core 3:Tp0M:M3 Max
+CPU Performance Core 4:Tp0a:M3 Max
+CPU Performance Core 4:Tp0b:M3 Max
+CPU Performance Core 4:Tp0c:M3 Max
+CPU Performance Core 5:Tp0g:M3 Max
+CPU Performance Core 5:Tp0h:M3 Max
+CPU Performance Core 5:Tp0i:M3 Max
+CPU Performance Core 6:Tp0m:M3 Max
+CPU Performance Core 6:Tp0n:M3 Max
+CPU Performance Core 6:Tp0o:M3 Max
+CPU Performance Core 7:Tp1E:M3 Max
+CPU Performance Core 7:Tp1F:M3 Max
+CPU Performance Core 7:Tp1G:M3 Max
+CPU Efficiency Core 6:Te0K:M3 Ultra
+CPU Efficiency Core 6:Te0L:M3 Ultra
+CPU Efficiency Core 6:Te0M:M3 Ultra
+CPU Performance Core 1:Tp04:M3 Ultra
+CPU Performance Core 1:Tp05:M3 Ultra
+CPU Performance Core 1:Tp06:M3 Ultra
+CPU Performance Core 2:Tp0C:M3 Ultra
+CPU Performance Core 2:Tp0D:M3 Ultra
+CPU Performance Core 2:Tp0E:M3 Ultra
+CPU Performance Core 3:Tp0K:M3 Ultra
+CPU Performance Core 3:Tp0L:M3 Ultra
+CPU Performance Core 3:Tp0M:M3 Ultra
+CPU Performance Core 4:Tp0a:M3 Ultra
+CPU Performance Core 4:Tp0b:M3 Ultra
+CPU Performance Core 4:Tp0c:M3 Ultra
+CPU Performance Core 5:Tp0g:M3 Ultra
+CPU Performance Core 5:Tp0h:M3 Ultra
+CPU Performance Core 5:Tp0i:M3 Ultra
+CPU Performance Core 6:Tp0m:M3 Ultra
+CPU Performance Core 6:Tp0n:M3 Ultra
+CPU Performance Core 6:Tp0o:M3 Ultra
+CPU Performance Core 7:Tp1E:M3 Ultra
+CPU Performance Core 7:Tp1F:M3 Ultra
+CPU Performance Core 7:Tp1G:M3 Ultra
 CPU Performance Core 8:Tp1Q:M3
 CPU Performance Core 8:Tp1R:M3
 CPU Performance Core 8:Tp1S:M3
 // Cluster 1 companion keys.
-CPU Performance Cluster 1:Tp0R:M3
-CPU Performance Cluster 1:Tp0S:M3
-CPU Performance Cluster 1:Tp0T:M3
-CPU Performance Cluster 1:Tp0U:M3
-CPU Performance Cluster 1:Tp0V:M3
-CPU Performance Cluster 1:Tp0W:M3
-CPU Performance Cluster 1:Tp3O:M3
-CPU Performance Cluster 1:Tp3P:M3
+CPU Performance Cluster 1:Tp0R:M3 Pro
+CPU Performance Cluster 1:Tp0S:M3 Pro
+CPU Performance Cluster 1:Tp0T:M3 Pro
+CPU Performance Cluster 1:Tp0U:M3 Pro
+CPU Performance Cluster 1:Tp0V:M3 Pro
+CPU Performance Cluster 1:Tp0W:M3 Pro
+CPU Performance Cluster 1:Tp3O:M3 Pro
+CPU Performance Cluster 1:Tp3P:M3 Pro
+CPU Performance Cluster 1:Tp0R:M3 Max
+CPU Performance Cluster 1:Tp0S:M3 Max
+CPU Performance Cluster 1:Tp0T:M3 Max
+CPU Performance Cluster 1:Tp0U:M3 Max
+CPU Performance Cluster 1:Tp0V:M3 Max
+CPU Performance Cluster 1:Tp0W:M3 Max
+CPU Performance Cluster 1:Tp3O:M3 Max
+CPU Performance Cluster 1:Tp3P:M3 Max
+CPU Performance Cluster 1:Tp0R:M3 Ultra
+CPU Performance Cluster 1:Tp0S:M3 Ultra
+CPU Performance Cluster 1:Tp0T:M3 Ultra
+CPU Performance Cluster 1:Tp0U:M3 Ultra
+CPU Performance Cluster 1:Tp0V:M3 Ultra
+CPU Performance Cluster 1:Tp0W:M3 Ultra
+CPU Performance Cluster 1:Tp3O:M3 Ultra
+CPU Performance Cluster 1:Tp3P:M3 Ultra
 // Cluster 2 companion keys.
-CPU Performance Cluster 2:Tp1I:M3
-CPU Performance Cluster 2:Tp1J:M3
-CPU Performance Cluster 2:Tp1K:M3
-CPU Performance Cluster 2:Tp3W:M3
-CPU Performance Cluster 2:Tp3X:M3
+CPU Performance Cluster 2:Tp1I:M3 Pro
+CPU Performance Cluster 2:Tp1J:M3 Pro
+CPU Performance Cluster 2:Tp1K:M3 Pro
+CPU Performance Cluster 2:Tp3W:M3 Pro
+CPU Performance Cluster 2:Tp3X:M3 Pro
+CPU Performance Cluster 2:Tp1I:M3 Max
+CPU Performance Cluster 2:Tp1J:M3 Max
+CPU Performance Cluster 2:Tp1K:M3 Max
+CPU Performance Cluster 2:Tp3W:M3 Max
+CPU Performance Cluster 2:Tp3X:M3 Max
+CPU Performance Cluster 2:Tp1I:M3 Ultra
+CPU Performance Cluster 2:Tp1J:M3 Ultra
+CPU Performance Cluster 2:Tp1K:M3 Ultra
+CPU Performance Cluster 2:Tp3W:M3 Ultra
+CPU Performance Cluster 2:Tp3X:M3 Ultra
 // Tp0u/v/w track Tp0y/z/10 within ~0.7 C in all six M3 dumps (never byte-equal);
 // dropped to avoid double-counting Core 9.
-CPU Performance Core 9:Tp0y:M3
-CPU Performance Core 9:Tp0z:M3
-CPU Performance Core 9:Tp10:M3
+CPU Performance Core 9:Tp0y:M3 Pro
+CPU Performance Core 9:Tp0z:M3 Pro
+CPU Performance Core 9:Tp10:M3 Pro
+CPU Performance Core 9:Tp0y:M3 Max
+CPU Performance Core 9:Tp0z:M3 Max
+CPU Performance Core 9:Tp10:M3 Max
+CPU Performance Core 9:Tp0y:M3 Ultra
+CPU Performance Core 9:Tp0z:M3 Ultra
+CPU Performance Core 9:Tp10:M3 Ultra
 // Cluster 3 (3-cluster M3 Pro layout).
-CPU Performance Cluster 3:Tp16:M3
-CPU Performance Cluster 3:Tp17:M3
-CPU Performance Cluster 3:Tp18:M3
-CPU Performance Cluster 3:Tp3S:M3
-CPU Performance Cluster 3:Tp3T:M3
+CPU Performance Cluster 3:Tp16:M3 Pro
+CPU Performance Cluster 3:Tp17:M3 Pro
+CPU Performance Cluster 3:Tp18:M3 Pro
+CPU Performance Cluster 3:Tp3S:M3 Pro
+CPU Performance Cluster 3:Tp3T:M3 Pro
+CPU Performance Cluster 3:Tp16:M3 Max
+CPU Performance Cluster 3:Tp17:M3 Max
+CPU Performance Cluster 3:Tp18:M3 Max
+CPU Performance Cluster 3:Tp3S:M3 Max
+CPU Performance Cluster 3:Tp3T:M3 Max
+CPU Performance Cluster 3:Tp16:M3 Ultra
+CPU Performance Cluster 3:Tp17:M3 Ultra
+CPU Performance Cluster 3:Tp18:M3 Ultra
+CPU Performance Cluster 3:Tp3S:M3 Ultra
+CPU Performance Cluster 3:Tp3T:M3 Ultra
 // Tf?4/D/E=aggregate, Tf?5=min, Tf?6=max, Tf?8-B=probes.
 // Shared across M2 Max / M3 / M4 → Apple; Tf?D (M3 only) and Tf9F/TfA0 stay M3.
 GPU Fabric Block 0:Tf04:Apple
@@ -773,12 +868,18 @@ SSD 3:Ts0E:M3
 SSD 4:Ts0K:M3
 SSD 4:Ts0L:M3
 SSD 4:Ts0M:M3
-SSD 5:Ts0R:M3
-SSD 5:Ts0S:M3
-SSD 5:Ts0T:M3
-SSD 6:Ts0U:M3
-SSD 6:Ts0V:M3
-SSD 6:Ts0W:M3
+SSD 5:Ts0R:M3 Max
+SSD 5:Ts0S:M3 Max
+SSD 5:Ts0T:M3 Max
+SSD 6:Ts0U:M3 Max
+SSD 6:Ts0V:M3 Max
+SSD 6:Ts0W:M3 Max
+SSD 5:Ts0R:M3 Ultra
+SSD 5:Ts0S:M3 Ultra
+SSD 5:Ts0T:M3 Ultra
+SSD 6:Ts0U:M3 Ultra
+SSD 6:Ts0V:M3 Ultra
+SSD 6:Ts0W:M3 Ultra
 SSD 7:Ts0Y:M3
 SSD 7:Ts0Z:M3
 SSD 7:Ts0a:M3
@@ -786,6 +887,105 @@ SSD 8:Ts0h:M3
 SSD 8:Ts0i:M3
 SSD Controller 1:Ts0P:M3
 SSD Controller 2:Ts1P:M3
+// Base M3 (4P+4E; report-m3.txt, MacBook Air 15 Mac15,13, and the guess --gpu
+// capture internal/cmd/testdata/m3-air-run.json). A different key layout from
+// M3 Pro/Max, hence the per-SKU rows above. Sixteen P triplets (B = A + 6.5 in
+// every snapshot) all rise +19-23 °C when the 4 P-cores are loaded, so which
+// triplet belongs to which core is unknown; generic labels.
+CPU Performance Group 1:Tp00:M3 Base
+CPU Performance Group 1:Tp01:M3 Base
+CPU Performance Group 1:Tp02:M3 Base
+CPU Performance Group 2:Tp04:M3 Base
+CPU Performance Group 2:Tp05:M3 Base
+CPU Performance Group 2:Tp06:M3 Base
+CPU Performance Group 3:Tp08:M3 Base
+CPU Performance Group 3:Tp09:M3 Base
+CPU Performance Group 3:Tp0A:M3 Base
+CPU Performance Group 4:Tp0C:M3 Base
+CPU Performance Group 4:Tp0D:M3 Base
+CPU Performance Group 4:Tp0E:M3 Base
+CPU Performance Group 5:Tp0G:M3 Base
+CPU Performance Group 5:Tp0H:M3 Base
+CPU Performance Group 5:Tp0I:M3 Base
+CPU Performance Group 6:Tp0K:M3 Base
+CPU Performance Group 6:Tp0L:M3 Base
+CPU Performance Group 6:Tp0M:M3 Base
+CPU Performance Group 7:Tp0O:M3 Base
+CPU Performance Group 7:Tp0P:M3 Base
+CPU Performance Group 7:Tp0Q:M3 Base
+CPU Performance Group 8:Tp0S:M3 Base
+CPU Performance Group 8:Tp0T:M3 Base
+CPU Performance Group 8:Tp0U:M3 Base
+CPU Performance Group 9:Tp0W:M3 Base
+CPU Performance Group 9:Tp0X:M3 Base
+CPU Performance Group 9:Tp0Y:M3 Base
+CPU Performance Group 10:Tp0a:M3 Base
+CPU Performance Group 10:Tp0b:M3 Base
+CPU Performance Group 10:Tp0c:M3 Base
+CPU Performance Group 11:Tp0e:M3 Base
+CPU Performance Group 11:Tp0f:M3 Base
+CPU Performance Group 11:Tp0g:M3 Base
+CPU Performance Group 12:Tp0i:M3 Base
+CPU Performance Group 12:Tp0j:M3 Base
+CPU Performance Group 12:Tp0k:M3 Base
+CPU Performance Group 13:Tp0m:M3 Base
+CPU Performance Group 13:Tp0n:M3 Base
+CPU Performance Group 13:Tp0o:M3 Base
+CPU Performance Group 14:Tp0q:M3 Base
+CPU Performance Group 14:Tp0r:M3 Base
+CPU Performance Group 14:Tp0s:M3 Base
+CPU Performance Group 15:Tp0u:M3 Base
+CPU Performance Group 15:Tp0v:M3 Base
+CPU Performance Group 15:Tp0w:M3 Base
+CPU Performance Group 16:Tp0y:M3 Base
+CPU Performance Group 16:Tp0z:M3 Base
+CPU Performance Group 16:Tp10:M3 Base
+// Tp1F = max(third probe of groups 1-8) and Tp1L = max(groups 9-16) in 28 and
+// 25 of 30 run snapshots, never below; Tp1E/Tp1K are their probe-A partners.
+CPU Performance Bank Max 1:Tp1E:M3 Base
+CPU Performance Bank Max 1:Tp1F:M3 Base
+CPU Performance Bank Max 2:Tp1K:M3 Base
+CPU Performance Bank Max 2:Tp1L:M3 Base
+// B = A + 8.2; +15.5 °C under P load but +21-22 °C under GPU load, like the
+// M2 cluster probes. Tp1I = max(Tp14, Tp18) in 27 of 30 snapshots.
+CPU Cluster Probe 1:Tp12:M3 Base
+CPU Cluster Probe 1:Tp13:M3 Base
+CPU Cluster Probe 1:Tp14:M3 Base
+CPU Cluster Probe 2:Tp16:M3 Base
+CPU Cluster Probe 2:Tp17:M3 Base
+CPU Cluster Probe 2:Tp18:M3 Base
+CPU Cluster Probe Max:Tp1H:M3 Base
+CPU Cluster Probe Max:Tp1I:M3 Base
+// Three E groups for 4 E-cores; Te0O/Te0P track Te04/Te06 within 0.4/1.2 °C
+// but are not copies. The E load warmed them only ~2 °C: generic labels.
+CPU Efficiency Group 1:Te04:M3 Base
+CPU Efficiency Group 1:Te05:M3 Base
+CPU Efficiency Group 1:Te06:M3 Base
+CPU Efficiency Group 2:Te0K:M3 Base
+CPU Efficiency Group 2:Te0L:M3 Base
+CPU Efficiency Group 2:Te0M:M3 Base
+CPU Efficiency Group 3:Te0O:M3 Base
+CPU Efficiency Group 3:Te0P:M3 Base
+// GPU pairs (B = A + 4.4, +25-29 °C under GPU load) alongside GPU 2 (Tg0C/D)
+// and GPU 6 (Tg0u/v) above.
+GPU 1:Tg0O:M3 Base
+GPU 1:Tg0P:M3 Base
+GPU 3:Tg0W:M3 Base
+GPU 3:Tg0X:M3 Base
+GPU 4:Tg0a:M3 Base
+GPU 4:Tg0b:M3 Base
+GPU 5:Tg0i:M3 Base
+GPU 5:Tg0j:M3 Base
+// Ts0S/T/U rise +8.8 °C under P load, Ts0W/X +16 °C: separate groups here.
+SSD 5:Ts0S:M3 Base
+SSD 5:Ts0T:M3 Base
+SSD 5:Ts0U:M3 Base
+SSD 6:Ts0W:M3 Base
+SSD 6:Ts0X:M3 Base
+SSD 9:Ts0G:M3 Base
+SSD 9:Ts0H:M3 Base
+SSD 9:Ts0I:M3 Base
+Memory B:Tm0B:M3 Base
 // M3 Pro only (all three dumps); meaning unknown, labels echo the key.
 Die Sensor ED %:TED%:M3
 Die Sensor FD %:TFD%:M3

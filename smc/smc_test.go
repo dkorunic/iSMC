@@ -295,9 +295,9 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 			wantDesc: "CPU Super Core 1", wantOK: true,
 		},
 		{
-			name: "M3 Tp1E maps to Performance Core 7",
-			key:  "Tp1E", family: "M3",
-			wantDesc: "CPU Performance Core 7", wantOK: true,
+			name: "M3 Tp1Q maps to Performance Core 8",
+			key:  "Tp1Q", family: "M3",
+			wantDesc: "CPU Performance Core 8", wantOK: true,
 		},
 		{
 			name: "Wildcard TC%c expands for digit indices",
@@ -381,12 +381,12 @@ func Test_MappedTempKeys_familyIsolation(t *testing.T) {
 		t.Errorf("MappedTempKeys(M1)[Tp08] = (%q, %v), want (\"CPU Efficiency Core 1\", true)", d, ok)
 	}
 
-	if _, ok := m1["Tp1E"]; ok {
-		t.Errorf("MappedTempKeys(M1) leaked M3-only key Tp1E")
+	if _, ok := m1["Tp1Q"]; ok {
+		t.Errorf("MappedTempKeys(M1) leaked M3-only key Tp1Q")
 	}
 
-	if d, ok := m3["Tp1E"]; !ok || d != "CPU Performance Core 7" {
-		t.Errorf("MappedTempKeys(M3)[Tp1E] = (%q, %v), want (\"CPU Performance Core 7\", true)", d, ok)
+	if d, ok := m3["Tp1Q"]; !ok || d != "CPU Performance Core 8" {
+		t.Errorf("MappedTempKeys(M3)[Tp1Q] = (%q, %v), want (\"CPU Performance Core 8\", true)", d, ok)
 	}
 }
 
