@@ -619,27 +619,6 @@ CPU Efficiency Core 5:Te0U:M3
 CPU Efficiency Cluster Aggregate 1:Te0Q:M3
 CPU Efficiency Cluster Aggregate 2:Te0T:M3
 // M3 Max additional E-cores.
-CPU Performance Core 1:Tp04:M3 Pro
-CPU Performance Core 1:Tp05:M3 Pro
-CPU Performance Core 1:Tp06:M3 Pro
-CPU Performance Core 2:Tp0C:M3 Pro
-CPU Performance Core 2:Tp0D:M3 Pro
-CPU Performance Core 2:Tp0E:M3 Pro
-CPU Performance Core 3:Tp0K:M3 Pro
-CPU Performance Core 3:Tp0L:M3 Pro
-CPU Performance Core 3:Tp0M:M3 Pro
-CPU Performance Core 4:Tp0a:M3 Pro
-CPU Performance Core 4:Tp0b:M3 Pro
-CPU Performance Core 4:Tp0c:M3 Pro
-CPU Performance Core 5:Tp0g:M3 Pro
-CPU Performance Core 5:Tp0h:M3 Pro
-CPU Performance Core 5:Tp0i:M3 Pro
-CPU Performance Core 6:Tp0m:M3 Pro
-CPU Performance Core 6:Tp0n:M3 Pro
-CPU Performance Core 6:Tp0o:M3 Pro
-CPU Performance Core 7:Tp1E:M3 Pro
-CPU Performance Core 7:Tp1F:M3 Pro
-CPU Performance Core 7:Tp1G:M3 Pro
 CPU Efficiency Core 6:Te0K:M3 Max
 CPU Efficiency Core 6:Te0L:M3 Max
 CPU Efficiency Core 6:Te0M:M3 Max
@@ -688,18 +667,13 @@ CPU Performance Core 6:Tp0o:M3 Ultra
 CPU Performance Core 7:Tp1E:M3 Ultra
 CPU Performance Core 7:Tp1F:M3 Ultra
 CPU Performance Core 7:Tp1G:M3 Ultra
-CPU Performance Core 8:Tp1Q:M3
-CPU Performance Core 8:Tp1R:M3
-CPU Performance Core 8:Tp1S:M3
+CPU Performance Core 8:Tp1Q:M3 Max
+CPU Performance Core 8:Tp1R:M3 Max
+CPU Performance Core 8:Tp1S:M3 Max
+CPU Performance Core 8:Tp1Q:M3 Ultra
+CPU Performance Core 8:Tp1R:M3 Ultra
+CPU Performance Core 8:Tp1S:M3 Ultra
 // Cluster 1 companion keys.
-CPU Performance Cluster 1:Tp0R:M3 Pro
-CPU Performance Cluster 1:Tp0S:M3 Pro
-CPU Performance Cluster 1:Tp0T:M3 Pro
-CPU Performance Cluster 1:Tp0U:M3 Pro
-CPU Performance Cluster 1:Tp0V:M3 Pro
-CPU Performance Cluster 1:Tp0W:M3 Pro
-CPU Performance Cluster 1:Tp3O:M3 Pro
-CPU Performance Cluster 1:Tp3P:M3 Pro
 CPU Performance Cluster 1:Tp0R:M3 Max
 CPU Performance Cluster 1:Tp0S:M3 Max
 CPU Performance Cluster 1:Tp0T:M3 Max
@@ -717,11 +691,6 @@ CPU Performance Cluster 1:Tp0W:M3 Ultra
 CPU Performance Cluster 1:Tp3O:M3 Ultra
 CPU Performance Cluster 1:Tp3P:M3 Ultra
 // Cluster 2 companion keys.
-CPU Performance Cluster 2:Tp1I:M3 Pro
-CPU Performance Cluster 2:Tp1J:M3 Pro
-CPU Performance Cluster 2:Tp1K:M3 Pro
-CPU Performance Cluster 2:Tp3W:M3 Pro
-CPU Performance Cluster 2:Tp3X:M3 Pro
 CPU Performance Cluster 2:Tp1I:M3 Max
 CPU Performance Cluster 2:Tp1J:M3 Max
 CPU Performance Cluster 2:Tp1K:M3 Max
@@ -734,9 +703,6 @@ CPU Performance Cluster 2:Tp3W:M3 Ultra
 CPU Performance Cluster 2:Tp3X:M3 Ultra
 // Tp0u/v/w track Tp0y/z/10 within ~0.7 C in all six M3 dumps (never byte-equal);
 // dropped to avoid double-counting Core 9.
-CPU Performance Core 9:Tp0y:M3 Pro
-CPU Performance Core 9:Tp0z:M3 Pro
-CPU Performance Core 9:Tp10:M3 Pro
 CPU Performance Core 9:Tp0y:M3 Max
 CPU Performance Core 9:Tp0z:M3 Max
 CPU Performance Core 9:Tp10:M3 Max
@@ -744,11 +710,6 @@ CPU Performance Core 9:Tp0y:M3 Ultra
 CPU Performance Core 9:Tp0z:M3 Ultra
 CPU Performance Core 9:Tp10:M3 Ultra
 // Cluster 3 (3-cluster M3 Pro layout).
-CPU Performance Cluster 3:Tp16:M3 Pro
-CPU Performance Cluster 3:Tp17:M3 Pro
-CPU Performance Cluster 3:Tp18:M3 Pro
-CPU Performance Cluster 3:Tp3S:M3 Pro
-CPU Performance Cluster 3:Tp3T:M3 Pro
 CPU Performance Cluster 3:Tp16:M3 Max
 CPU Performance Cluster 3:Tp17:M3 Max
 CPU Performance Cluster 3:Tp18:M3 Max
@@ -887,6 +848,64 @@ SSD 8:Ts0h:M3
 SSD 8:Ts0i:M3
 SSD Controller 1:Ts0P:M3
 SSD Controller 2:Ts1P:M3
+// M3 Pro (report-m3-pro-5.txt, MacBook Pro 14 6P+6E, idle, with the SMC ft index,
+// and its guess --gpu run internal/cmd/testdata/m3-pro-run.json). The firmware
+// indexes twelve P triplets plus two probes (ftP0-ftPd, each = probe B). The
+// twelve rise alike (+5.5-6.8 °C) under the 6-thread P load: which triplet
+// belongs to which of the 6 P-cores is unknown; generic labels.
+CPU Performance Group 1:Tp04:M3 Pro
+CPU Performance Group 1:Tp05:M3 Pro
+CPU Performance Group 1:Tp06:M3 Pro
+CPU Performance Group 2:Tp0C:M3 Pro
+CPU Performance Group 2:Tp0D:M3 Pro
+CPU Performance Group 2:Tp0E:M3 Pro
+CPU Performance Group 3:Tp0K:M3 Pro
+CPU Performance Group 3:Tp0L:M3 Pro
+CPU Performance Group 3:Tp0M:M3 Pro
+CPU Performance Group 4:Tp0R:M3 Pro
+CPU Performance Group 4:Tp0S:M3 Pro
+CPU Performance Group 4:Tp0T:M3 Pro
+CPU Performance Group 5:Tp0U:M3 Pro
+CPU Performance Group 5:Tp0V:M3 Pro
+CPU Performance Group 5:Tp0W:M3 Pro
+CPU Performance Group 6:Tp0a:M3 Pro
+CPU Performance Group 6:Tp0b:M3 Pro
+CPU Performance Group 6:Tp0c:M3 Pro
+CPU Performance Group 7:Tp0g:M3 Pro
+CPU Performance Group 7:Tp0h:M3 Pro
+CPU Performance Group 7:Tp0i:M3 Pro
+CPU Performance Group 8:Tp0m:M3 Pro
+CPU Performance Group 8:Tp0n:M3 Pro
+CPU Performance Group 8:Tp0o:M3 Pro
+CPU Performance Group 9:Tp16:M3 Pro
+CPU Performance Group 9:Tp17:M3 Pro
+CPU Performance Group 9:Tp18:M3 Pro
+CPU Performance Group 10:Tp1E:M3 Pro
+CPU Performance Group 10:Tp1F:M3 Pro
+CPU Performance Group 10:Tp1G:M3 Pro
+CPU Performance Group 11:Tp1I:M3 Pro
+CPU Performance Group 11:Tp1J:M3 Pro
+CPU Performance Group 11:Tp1K:M3 Pro
+CPU Performance Group 12:Tp1Q:M3 Pro
+CPU Performance Group 12:Tp1R:M3 Pro
+CPU Performance Group 12:Tp1S:M3 Pro
+// Tp0u-w and Tp0y-10 rise +3 °C under P load but +7.2-7.6 °C under GPU load,
+// like base M3's Tp12/Tp16 probes; both indexed (ftPc/ftPd), so not one
+// register. Tp3T = max(Tp0w, Tp10) in 30 of 30 run snapshots.
+CPU Cluster Probe 1:Tp0u:M3 Pro
+CPU Cluster Probe 1:Tp0v:M3 Pro
+CPU Cluster Probe 1:Tp0w:M3 Pro
+CPU Cluster Probe 2:Tp0y:M3 Pro
+CPU Cluster Probe 2:Tp0z:M3 Pro
+CPU Cluster Probe 2:Tp10:M3 Pro
+CPU Cluster Probe Max:Tp3S:M3 Pro
+CPU Cluster Probe Max:Tp3T:M3 Pro
+// Not indexed: Tp3P = max(Tp0W, Tp0c, Tp0i, Tp0o) and Tp3X = max(Tp1K, Tp1S)
+// in >= 90% of run snapshots; Tp3O/Tp3W are their probe-A partners.
+CPU Performance Bank Max 1:Tp3O:M3 Pro
+CPU Performance Bank Max 1:Tp3P:M3 Pro
+CPU Performance Bank Max 2:Tp3W:M3 Pro
+CPU Performance Bank Max 2:Tp3X:M3 Pro
 // Base M3 (4P+4E; report-m3.txt, MacBook Air 15 Mac15,13, and the guess --gpu
 // capture internal/cmd/testdata/m3-air-run.json). A different key layout from
 // M3 Pro/Max, hence the per-SKU rows above. Sixteen P triplets (B = A + 6.5 in

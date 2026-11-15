@@ -340,19 +340,23 @@ const (
 	m3MaxGated = "unmapped Tp1g Tp1h Tp1i Tp1o Tp1p Tp1q Tp1x Tp1y Tp1z Tp25 Tp26 Tp27 Tp29 Tp2A " +
 		"Tp2B Tp2H Tp2I Tp2J Tp2P Tp2Q Tp2R Tp2X Tp2Y Tp2Z Tp2f Tp2g Tp2h Tp2j Tp2k Tp2l " +
 		"Tp2r Tp2s Tp2t Tp2z Tp30 Tp31 Tp33 Tp34 Tp35 Tp3B Tp3C Tp3D Tp3a Tp3b Tp3e Tp3f Tp3i Tp3j"
-	// Tp0u/v/w track Tp0y/z/10 within ~0.7 °C (never byte-equal); Te0V aliases
-	// Te0T. Both dropped per src/temp.txt.
+	// M3 Max: Tp0u/v/w track Tp0y/z/10 within ~0.7 °C (never byte-equal) and
+	// stay unmapped until a Max dump shows the ft index (on M3 Pro both are
+	// indexed, separate probes). Te0V aliases Te0T on M3 Pro.
 	m3Aliases    = "unmapped Tp0u Tp0v Tp0w"
-	m3ProAliases = m3Aliases + " Te0V"
+	m3ProAliases = "unmapped Te0V"
 	// Virtual TV* channels with no known meaning.
 	m3MaxVirtual = "unmapped TV0h TV0m TV0s TV1h TV1m TV1s TVFh TVFm TVH3 TVHC TVSC TVsa TVss"
 	m3ProVirtual = "unmapped TVHD TVHE TVHF TVHG TVHH TVHO"
-	// M3 Pro triplets map to 9 "cores" (expected 5-6) and E-cores stop at 5
-	// (Te0U has no triplet; Te0V aliases Te0T). Twelve live triplets in two
-	// shapes (B = A + 6.1 / + 7.3 °C) exist on both M3 Pro and M3 Max, so the
-	// dumps cannot say which are physical cores.
-	m3ProP = "cores P=9"
+	// M3 Pro: twelve indexed P triplets for 5-6 P-cores carry generic Group
+	// labels (m3-pro-run); E-cores stop at 5 (Te0U has no triplet; Te0V
+	// aliases Te0T).
+	m3ProP = "cores P=0"
 	m3ProE = "cores E=5"
+	// M3 Pro cluster probes Tp0u-w/Tp0y-10: third < probe B in every M3 Pro
+	// dump, loaded or idle (as Core 9 was).
+	m3ProProbes = "collide CPU Cluster Probe 1"
+	m3ProProbe2 = "collide CPU Cluster Probe 2"
 	// Same twelve triplets on M3 Max; only 9 carry core labels (expected 10-12)
 	// and nothing in the dumps says which cluster triplets are the missing cores.
 	m3MaxP = "cores P=9"
@@ -414,19 +418,21 @@ var replayAllow = map[string][]string{
 		"collide CPU Performance Core 6", "collide CPU Performance Core 7",
 		"collide CPU Performance Core 8",
 	},
-	// Core 6 (Tp0m/n/o) third < probe B at idle; cluster 3 mixes triplets.
-	"m3-pro":   {m3ProP, m3ProE, m3Core9, "collide CPU Performance Core 6", "collide CPU Performance Cluster 3", m3ProAliases, m3ProVirtual},
-	"m3-pro-2": {m3ProP, m3ProE, m3Core9, m3ProAliases, m3ProVirtual},
-	"m3-pro-3": {m3ProP, m3ProE, m3Core9, "collide CPU Performance Core 6", m3ProAliases, m3ProVirtual},
-	// Cool idle dump (MBP 14" Nov 2023): third-of-triplet < probe B on cores 1-7
-	// and cluster 1, as in m3-max-2; not a distinct sensor.
+	// Idle dumps: the third key of a triplet reads below probe B on the listed
+	// groups (last-write shows the cooler value); not a distinct sensor.
+	"m3-pro":   {m3ProP, m3ProE, m3ProProbes, m3ProProbe2, "collide CPU Performance Group 8", m3ProAliases, m3ProVirtual},
+	"m3-pro-2": {m3ProP, m3ProE, m3ProProbes, m3ProProbe2, m3ProAliases, m3ProVirtual},
+	"m3-pro-3": {m3ProP, m3ProE, m3ProProbes, m3ProProbe2, "collide CPU Performance Group 4", "collide CPU Performance Group 5", "collide CPU Performance Group 8", m3ProAliases, m3ProVirtual},
+	// Cool idle dump (MBP 14" Nov 2023): third < probe B on groups 1-10.
 	"m3-pro-4": {
-		m3ProP, m3ProE, m3Core9, m3ProAliases, m3ProVirtual,
-		"collide CPU Performance Cluster 1",
-		"collide CPU Performance Core 1", "collide CPU Performance Core 2",
-		"collide CPU Performance Core 3", "collide CPU Performance Core 4",
-		"collide CPU Performance Core 5", "collide CPU Performance Core 6",
-		"collide CPU Performance Core 7",
+		m3ProP, m3ProE, m3ProProbes, m3ProProbe2, m3ProAliases, m3ProVirtual,
+		"collide CPU Performance Group 1", "collide CPU Performance Group 2", "collide CPU Performance Group 3", "collide CPU Performance Group 4", "collide CPU Performance Group 5", "collide CPU Performance Group 6", "collide CPU Performance Group 7", "collide CPU Performance Group 8", "collide CPU Performance Group 9", "collide CPU Performance Group 10",
+	},
+	// Idle dump with the SMC ft index (MBP 14" 6P+6E, m3-pro-run): third <
+	// probe B on groups 1-10, as in m3-pro-4.
+	"m3-pro-5": {
+		m3ProP, m3ProE, m3ProProbes, m3ProProbe2, m3ProAliases, m3ProVirtual,
+		"collide CPU Performance Group 1", "collide CPU Performance Group 2", "collide CPU Performance Group 3", "collide CPU Performance Group 4", "collide CPU Performance Group 5", "collide CPU Performance Group 6", "collide CPU Performance Group 7", "collide CPU Performance Group 8", "collide CPU Performance Group 9", "collide CPU Performance Group 10",
 	},
 	// Virtual-memory selectors and misc keys. TVMh/TVMm copy another TV* key
 	// byte-for-byte, but which one varies by machine (Mac16,12 guess run:
