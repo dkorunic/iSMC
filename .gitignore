@@ -39,5 +39,5 @@ cmake-build-debug/
 .DS_Store
 
 ## Claude Code
-.claude
+.claude/settings.local.json
 docs/
