@@ -125,8 +125,17 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     lists them as cluster sensors. Known gap: the five fabric triplets
 //     (Tp2I-Tp2X) rise only ~7% less than the cores and stay as extra P
 //     groups.
+//   - m3-air-run (MacBook Air 15 M3, Mac15,13, fanless, v0.18.4): sixteen P
+//     triplets (Tp00-Tp10, B = A + 6.5) rise alike for 4 P-cores, in two banks
+//     of eight whose maxima are Tp1F and Tp1L. The E phase warms the Te* keys
+//     only ~2 °C, so rebalancing fills the E tier with the three Te* groups
+//     plus Tp16. Tp1E/Tp1F drop out as a cluster sensor. Known gaps: all 16
+//     triplets stay P groups; Tp1L (bank-2 max) and Tp1I (max of Tp14/Tp18)
+//     match their members in only 83-90% of snapshots and stay P groups; the
+//     Tp12/Tp16/Tp1H probes (+15.5 °C under P load, +21 °C under GPU load)
+//     land as cores although they are neither tier.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {
