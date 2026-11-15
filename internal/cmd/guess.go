@@ -198,8 +198,16 @@ type tempSampler struct {
 	conn uint
 }
 
-// newTempSampler resolves conn's T-prefixed keys and the SMC's ft sensor index
-// (isFtIndexKey) once for the sampler's lifetime.
+// sdPrefix marks the M5 die-temperature estimates (sd00 … sd4M): ~6 °C above
+// the Tp/Te probes, several byte-equal to TVDA/TVD0/TVDP/TVDG, grouped like
+// the core layout (sd0a/0d/0g/0u for 4 Super cores, sd43-sd4M for 6 E-cores on
+// the MacBook Air 13 M5, report-m5-2.txt; TG Pro reads the latter as E-cores).
+// guess samples them so a run shows which tier each follows; they are never
+// core groups (coreEligibleSeries).
+const sdPrefix = "sd"
+
+// newTempSampler resolves conn's T-prefixed keys, the SMC's ft sensor index
+// (isFtIndexKey) and the sd die estimates once for the sampler's lifetime.
 func newTempSampler(conn uint) *tempSampler {
 	keys := smc.EnumerateKeysPrefix(conn, "T")
 
@@ -208,6 +216,8 @@ func newTempSampler(conn uint) *tempSampler {
 			keys = append(keys, k)
 		}
 	}
+
+	keys = append(keys, smc.EnumerateKeysPrefix(conn, sdPrefix)...)
 
 	return &tempSampler{conn: conn, keys: keys}
 }
