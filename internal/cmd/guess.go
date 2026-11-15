@@ -198,9 +198,18 @@ type tempSampler struct {
 	conn uint
 }
 
-// newTempSampler resolves conn's T-prefixed keys once for the sampler's lifetime.
+// newTempSampler resolves conn's T-prefixed keys and the SMC's ft sensor index
+// (isFtIndexKey) once for the sampler's lifetime.
 func newTempSampler(conn uint) *tempSampler {
-	return &tempSampler{conn: conn, keys: smc.EnumerateKeysPrefix(conn, "T")}
+	keys := smc.EnumerateKeysPrefix(conn, "T")
+
+	for _, k := range smc.EnumerateKeysPrefix(conn, ftPrefix) {
+		if isFtIndexKey(k) {
+			keys = append(keys, k)
+		}
+	}
+
+	return &tempSampler{conn: conn, keys: keys}
 }
 
 // rawTemps returns key → °C for the sampler's keys reporting a plausible value.
@@ -538,6 +547,24 @@ func dropAliasGroups(groups [][]string, results []phaseResult) ([][]string, [][]
 	return kept, dropped
 }
 
+// toClusters moves the groups in drop out of every tier into the cluster
+// sensors and returns the updated cluster list.
+func toClusters(perPhase [][][]string, clusters, drop [][]string) [][]string {
+	if len(drop) == 0 {
+		return clusters
+	}
+
+	isDropped := func(g []string) bool {
+		return slices.ContainsFunc(drop, func(a []string) bool { return slices.Equal(a, g) })
+	}
+
+	for i := range perPhase {
+		perPhase[i] = slices.DeleteFunc(perPhase[i], isDropped)
+	}
+
+	return append(slices.DeleteFunc(clusters, isDropped), drop...)
+}
+
 // maxOfOtherGroups reports whether a key of groups[i] is the maximum (maxOf)
 // of keys spread over at least two other groups: a cluster maximum, not a
 // core. M4 Pro Tpx9 = max of the P-cores' third probes; M4 Air Tp3P =
@@ -838,7 +865,7 @@ func classifyCoreGroups(groups [][]string, results []phaseResult) ([][][]string,
 // ponytail: only the unambiguous one-over/one-under case; 3-tier SKUs where
 // several tiers miss would need per-tier affinity scores.
 func rebalanceToLayout(perPhase [][][]string, results []phaseResult, layout platform.SKULayout,
-	groups [][]string,
+	groups [][]string, keep string,
 ) ([][]string, int, int) {
 	src, dst := -1, -1
 
@@ -863,7 +890,7 @@ func rebalanceToLayout(perPhase [][][]string, results []phaseResult, layout plat
 		}
 	}
 
-	if src < 0 || dst < 0 {
+	if src < 0 || dst < 0 || results[dst].spec.label == keep {
 		return nil, 0, 0
 	}
 
@@ -1856,7 +1883,7 @@ func singleKeyLayout(l platform.SKULayout) bool {
 // into src/temp.txt.
 func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	layout platform.SKULayout, layoutOK bool, product platform.Product, results []phaseResult,
-	visible map[string]float32,
+	visible map[string]float32, idx ftIndex,
 ) {
 	appleSilicon := family != "Intel"
 	tePerCore := family != "M1" && family != "M2"
@@ -1898,19 +1925,11 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 
 	perPhase, clusterGroups := classifyCoreGroups(groups, results)
 
-	// After scoring, so the alias groups still count towards each phase's
-	// median and no other group's classification shifts.
-	if _, aliasGroups := dropAliasGroups(groups, results); len(aliasGroups) > 0 {
-		isAlias := func(g []string) bool {
-			return slices.ContainsFunc(aliasGroups, func(a []string) bool { return slices.Equal(a, g) })
-		}
-
-		for i := range perPhase {
-			perPhase[i] = slices.DeleteFunc(perPhase[i], isAlias)
-		}
-
-		clusterGroups = append(slices.DeleteFunc(clusterGroups, isAlias), aliasGroups...)
-	}
+	// After scoring, so the alias and unindexed groups still count towards
+	// each phase's median and no other group's classification shifts.
+	_, aliasGroups := dropAliasGroups(groups, results)
+	clusterGroups = toClusters(perPhase, clusterGroups, aliasGroups)
+	clusterGroups = toClusters(perPhase, clusterGroups, unindexedGroups(groups, idx))
 
 	var (
 		moved              [][]string
@@ -1919,7 +1938,16 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 	)
 
 	if layoutOK {
-		moved, movedSrc, movedDst = rebalanceToLayout(perPhase, results, layout, groups)
+		// When the SMC index lists the E sensors (ftE) of a chip whose E-cores
+		// are Te* groups, the E tier is what the index and assignTeByPrefix
+		// say; filling it with the weakest P groups invents E-cores (base M3:
+		// Tp16-18 moved in).
+		var keep string
+		if tePerCore && idx.hasTier('E') {
+			keep = labelEfficiencyCore
+		}
+
+		moved, movedSrc, movedDst = rebalanceToLayout(perPhase, results, layout, groups, keep)
 		clusterGroups = append(clusterGroups, trimToLayout(perPhase, results, layout)...)
 		notes = mergeLockstep(perPhase, results, layout)
 
@@ -1999,7 +2027,7 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 		fmt.Println()
 		fmt.Printf("// %s\n", strings.Repeat("─", 72))
 		fmt.Printf("// Cluster/package sensors (top two phases within %.0f%% of each other, "+
-			"or cut from a tier above its SKU core count):\n", guessClusterRatio*100)
+			"cut from a tier above its SKU core count, or not in the SMC index):\n", guessClusterRatio*100)
 
 		for _, k := range clusterKeys {
 			parts := make([]string, 0, len(results))
@@ -2018,6 +2046,8 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 			}
 		}
 	}
+
+	printFtIndex(idx)
 
 	detected := allDetectedKeys(results, clusterKeys)
 	printTempTxtCrosscheck(family, product.CPU, detected, visible)

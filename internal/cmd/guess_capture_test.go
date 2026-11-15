@@ -134,8 +134,16 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     match their members in only 83-90% of snapshots and stay P groups; the
 //     Tp12/Tp16/Tp1H probes (+15.5 °C under P load, +21 °C under GPU load)
 //     land as cores although they are neither tier.
+//   - m1-ultra-ft-run (Mac Studio M1 Ultra, Mac13,2): the first run that also
+//     reads the SMC ft index; its 20 ftP entries cover every core triplet, so
+//     the core lines match m1-ultra-run's classification.
+//   - m3-pro-run (MacBook Pro 14 M3 Pro 6P+6E, v0.18.4, saved without the ft
+//     index): twelve P triplets rise +5.5-6.8 °C under P load, the probes
+//     Tp0u-w/Tp0y-10 only ~3 °C (7.2-7.6 °C under GPU load). Known gaps
+//     without the index: 12 P groups including the Tp3O/P and Tp3W/X bank
+//     maxima, and rebalancing moves Tp0g, Tp0y and Tp1Q into the E tier.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {

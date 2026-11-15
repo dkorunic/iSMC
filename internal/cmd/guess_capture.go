@@ -163,6 +163,11 @@ func printGuessHeader(c *guessCapture, phases int) {
 
 // analyzeCapture classifies a live or replayed run and prints the mapping.
 func analyzeCapture(c *guessCapture) {
+	// Resolve the SMC sensor index first, then drop its keys: every later
+	// step sees T* keys only.
+	idx := resolveFtIndex(c)
+	stripFtKeys(c)
+
 	results := make([]phaseResult, 0, len(c.Phases))
 
 	for _, p := range c.Phases {
@@ -183,7 +188,7 @@ func analyzeCapture(c *guessCapture) {
 		visible = c.GPU.Baseline
 	}
 
-	printMapping(c.Family, c.NumCPU, c.PerfLevels, c.Layout, c.LayoutOK, c.Product, results, visible)
+	printMapping(c.Family, c.NumCPU, c.PerfLevels, c.Layout, c.LayoutOK, c.Product, results, visible, idx)
 	printCPULoad(c)
 	printAggregates(c)
 

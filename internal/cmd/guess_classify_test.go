@@ -83,7 +83,7 @@ func TestRebalanceToLayout(t *testing.T) {
 		Dies: 1,
 	}
 
-	moved, src, dst := rebalanceToLayout(perPhase, results, layout, groups)
+	moved, src, dst := rebalanceToLayout(perPhase, results, layout, groups, "")
 
 	if len(moved) != 1 || src != 0 || dst != 1 {
 		t.Fatalf("rebalance moved %v from %d to %d, want the E-core from 0 to 1", moved, src, dst)
@@ -98,7 +98,7 @@ func TestRebalanceToLayout(t *testing.T) {
 	}
 
 	// Counts already within the layout: nothing moves.
-	if again, _, _ := rebalanceToLayout(perPhase, results, layout, groups); again != nil {
+	if again, _, _ := rebalanceToLayout(perPhase, results, layout, groups, ""); again != nil {
 		t.Errorf("second rebalance moved %v, want nothing", again)
 	}
 }
@@ -140,7 +140,7 @@ func TestRebalanceToLayout_MeanNotSum(t *testing.T) {
 		Dies: 1,
 	}
 
-	moved, _, _ := rebalanceToLayout(perPhase, results, layout, groups)
+	moved, _, _ := rebalanceToLayout(perPhase, results, layout, groups, "")
 
 	if len(moved) != 1 || moved[0][0] != "Tp08" {
 		t.Errorf("moved %v, want the Tp08 E-core", moved)
@@ -165,7 +165,7 @@ func TestRebalanceToLayout_SkipsEmptyPhase(t *testing.T) {
 		Dies: 1,
 	}
 
-	if moved, _, _ := rebalanceToLayout(perPhase, results, layout, groups); moved != nil {
+	if moved, _, _ := rebalanceToLayout(perPhase, results, layout, groups, ""); moved != nil {
 		t.Fatalf("moved %v into a phase with no responders, want nothing", moved)
 	}
 }
