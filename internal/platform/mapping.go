@@ -140,7 +140,7 @@ var products = map[string]Product{
 	"iMac19,1": {Name: "iMac 27-Inch", Year: 2019, Family: "Intel", CPU: "Core i5-8500"},
 	"iMac19,2": {Name: "iMac 21.5-Inch", Year: 2019, Family: "Intel", CPU: "Core i3-8100"},
 	"iMac20,1": {Name: "iMac 27-Inch", Year: 2020, Family: "Intel", CPU: "Core i5-10500"},
-	"iMac20,2": {Name: "iMac 27-Inch", Year: 2020, Family: "Intel", CPU: "Core i7-10700K"},
+	"iMac20,2": {Name: "iMac 27-Inch", Year: 2020, Family: "Intel", CPU: "Core i9-10910"},
 	"iMac21,1": {Name: "iMac 24-Inch (M1)", Year: 2021, Family: "M1", CPU: "M1"},
 	"iMac21,2": {Name: "iMac 24-Inch (M1)", Year: 2021, Family: "M1", CPU: "M1"},
 	"Mac15,4":  {Name: "iMac 24-Inch (M3, 8 CPU/8 GPU)", Year: 2023, Family: "M3", CPU: "M3"},

@@ -24,6 +24,9 @@ GPU Probe A %:TG%A:Intel
 GPU Probe B %:TG%B:Intel
 GPU Probe C %:TG%C:Intel
 GPU Probe V %:TG%V:Intel
+// iMac20,2 (Radeon Pro 5700): TG0E/TG0F rise 16-19 °C under GPU load only.
+GPU Probe E %:TG%E:Intel
+GPU Probe F %:TG%F:Intel
 Memory Bank Proximity %:Tm%P:Intel
 Memory Proximity %:TM%P:All
 Memory Slot %:TM%S:All
@@ -70,6 +73,8 @@ Embedded Device:TIED:All
 Heatpipe %:Th%H:Intel
 GPU Intel Graphics:TCGC:Intel
 System Agent:TCSA:Intel
+// iMac20,2: TCXc tracks the hottest TC*c core within ~1 °C in every sample.
+CPU Core Max:TCXc:Intel
 System Cluster:TCSC:Intel
 GPU %:TG%G:Intel
 Thermal Group Target:THTG:Intel
