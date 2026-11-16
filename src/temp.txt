@@ -526,7 +526,10 @@ CPU Cluster Probe 2:Tp2I:M2
 // Eight more P-level triplets on M2 Pro/Max (absent on base M2): 96-109 °C in
 // the same Cinebench dump, gated at idle with the P-cores. That makes 16 P-level
 // triplets for 6-8 P-cores, so which triplet belongs to which core (including
-// P-cores 1-8 above) is unverified; generic labels.
+// P-cores 1-8 above) is unverified; generic labels. They are a second bank, as
+// on M4 Pro/Max: report-m2-pro-2 (iSMC#33) reads them at 56-66 °C while the
+// P-core triplets hold the report-m2-max sentinels, and its ftP indexes probe B
+// of P-cores 1-8, Tp17, probe B of Groups 1-8 (Tp1B, Tp1F, … Tp1t), Tp2H.
 CPU Performance Probe Group 1:Tp1A:M2
 CPU Performance Probe Group 1:Tp1B:M2
 CPU Performance Probe Group 1:Tp1C:M2
@@ -1202,7 +1205,8 @@ CPU Performance Fabric 5:Tp2X:M4
 // on the Tp1i-scheme M4 Pro 14-core, not E-cores: in m4Pro14CoreReport Tpx9 =
 // Tp1o (hottest third key of P-cores 1-5) and TpxD = Tp29 (cores 6-10), and they
 // read 0.0 in the loaded Tp00-scheme report-m4-pro.txt while its E-cores read
-// 52-62 °C. Per exelban/stats#2249 dumps, Tpx2/3 and TpxA/B track the fabric
+// 52-62 °C. report-m4-pro-5 (Mac16,7, Tp1i scheme live) confirms both byte for
+// byte. Per exelban/stats#2249 dumps, Tpx2/3 and TpxA/B track the fabric
 // triplets rather than a core cluster.
 CPU Performance Cluster 1 Die:Tpx0:M4
 CPU Performance Cluster 1 Die:Tpx1:M4

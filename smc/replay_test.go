@@ -176,13 +176,10 @@ func loadDumps(t *testing.T) []dump {
 }
 
 // deadRowAllow lists rows ("KEY:Platform") that no dump reads live but that
-// other evidence supports. The M4 rows are the alternate P-core and cluster-die
-// scheme of the M4 Pro 14-core (m4Pro14CoreReport in mapping_test.go); every M4
-// dump here uses the Tp00-Tp0c scheme and reads these as 0 or -4.
-var deadRowAllow = slices.Concat(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4 TpxC:M4 TpxD:M4 "+
-	"Tp1i:M4 Tp1j:M4 Tp1k:M4 Tp1m:M4 Tp1n:M4 Tp1o:M4 Tp1q:M4 Tp1t:M4 Tp1u:M4 Tp1v:M4 "+
-	"Tp1w:M4 Tp1x:M4 Tp1y:M4 Tp1z:M4 Tp20:M4 Tp21:M4 Tp22:M4 Tp23:M4 Tp24:M4 Tp25:M4 "+
-	"Tp26:M4 Tp27:M4 Tp28:M4 Tp29:M4 Tp2A:M4 Tp2B:M4 Tp2C:M4 Tp2D:M4 Tp2E:M4 Tp2G:M4"),
+// other evidence supports. The M2 and M4 bank-B rows and the M4 Tpx8-D cluster
+// dies are not here: report-m2-pro-2 and report-m4-pro-5 (Mac16,7) caught the
+// alternate bank live.
+var deadRowAllow = slices.Concat(
 	// M2 Max P-cores 6-8: the only M2 Max dump reads sentinels on every Tp key;
 	// the rows follow report-m2-pro.txt, whose keys are a subset of the Max dump.
 	// SKU tags contain a space, so these are separate elements.
@@ -190,25 +187,15 @@ var deadRowAllow = slices.Concat(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4
 		"Tp0a:M2 Max", "Tp0b:M2 Max", "Tp0c:M2 Max", "Tp0e:M2 Max", "Tp0f:M2 Max",
 		"Tp0g:M2 Max", "Tp0i:M2 Max", "Tp0j:M2 Max", "Tp0k:M2 Max",
 	},
-	// M2 Pro/Max second P-level triplets and cluster probe 2: gated in the idle
-	// report-m2-pro/m2-max, live at 96-109 °C (Tp2G-I 83-91 °C) in an M2 Max
-	// Cinebench dump in exelban/stats#1286.
-	strings.Fields("Tp1A:M2 Tp1B:M2 Tp1C:M2 Tp1E:M2 Tp1F:M2 Tp1G:M2 Tp1I:M2 Tp1J:M2 Tp1K:M2 "+
-		"Tp1M:M2 Tp1N:M2 Tp1O:M2 Tp1g:M2 Tp1h:M2 Tp1i:M2 Tp1k:M2 Tp1l:M2 Tp1m:M2 "+
-		"Tp1o:M2 Tp1p:M2 Tp1q:M2 Tp1s:M2 Tp1t:M2 Tp1u:M2 Tp2G:M2 Tp2H:M2 Tp2I:M2"),
-	// M4 Tp1i-scheme (bank B) fabric triplets: live only in the iSMC#28 JSON
-	// runs (Mac16,8); its raw dump, report-m4-pro-4, caught bank B parked.
-	strings.Fields("Tp2O:M4 Tp2Q:M4 Tp2R:M4 Tp2S:M4 Tp2T:M4 Tp2U:M4 Tp2V:M4 Tp2W:M4 Tp2X:M4"),
 	// M4 Max P-cores 8-12 (cores 11-12 are the M4 Pro Fabric 1-2 triplets, both
-	// banks) and M4 Pro bank-B Fabric 1-2: the only M4 Max dump has every P-core
-	// parked at gatedTemp; m4-max-run (Mac16,9) reads them all live under P load.
-	// SKU tags contain a space.
+	// banks): the only M4 Max dump has every P-core parked at gatedTemp;
+	// m4-max-run (Mac16,9) reads them all live under P load. SKU tags contain a
+	// space.
 	[]string{
 		"Tp0S:M4 Max", "Tp0T:M4 Max", "Tp0U:M4 Max", "Tp0W:M4 Max", "Tp0X:M4 Max", "Tp0Y:M4 Max",
 		"Tp0a:M4 Max", "Tp0b:M4 Max", "Tp0c:M4 Max", "Tp0d:M4 Max", "Tp0e:M4 Max", "Tp0f:M4 Max",
 		"Tp0g:M4 Max", "Tp0i:M4 Max", "Tp0k:M4 Max",
 		"Tp2I:M4 Max", "Tp2J:M4 Max", "Tp2K:M4 Max", "Tp2L:M4 Max", "Tp2M:M4 Max", "Tp2N:M4 Max",
-		"Tp2I:M4 Pro", "Tp2J:M4 Pro", "Tp2K:M4 Pro", "Tp2L:M4 Pro", "Tp2M:M4 Pro", "Tp2N:M4 Pro",
 	})
 
 // Test_DumpLiveRows checks that every Apple-Silicon-tagged row reads live in at
@@ -361,9 +348,11 @@ const (
 	m3ProProbe2 = "collide CPU Cluster Probe 2"
 	// M3 Max carries the M3 Pro Group labels (same die layout, see src/temp.txt).
 	m3MaxP = "cores P=0"
-	// Only Te04/Te0R triplets are live on M4 Pro/Max (Tpx8-D read 0 in all four
-	// dumps, see deadRowAllow); no other key carries per-E-core data.
+	// Only Te04/Te0R triplets are per-E-core keys on M4 Pro/Max; Tpx8-D (live
+	// only in report-m4-pro-5) are P cluster dies.
 	m4ProMaxE = "cores E=2"
+	// TVM*/TVX* virtual selectors on M4 Pro.
+	m4ProVirtual = "unmapped TVMx TVXX TVXh TVXm TVxx"
 	// Register aliases removed from src/temp.txt: TVDP/TVDc ≡ TVD0, Tm0y/Tm2T ≡
 	// Tp0a, Ts0G ≡ the Ta00-Ta0R band (see Test_M5Pro18CoreMapping).
 	m5Aliases = "unmapped TVDP TVDc Tm0y Tm2T Ts0G"
@@ -404,6 +393,11 @@ var replayAllow = map[string][]string{
 	"m2": {noECores, "collide CPU Performance Cluster Aggregate 1", "unmapped TaMP Th1H"},
 	// Mac14,10, loaded: E-cores only as the Te04-06 cluster aggregate.
 	"m2-pro": {noECores},
+	// iSMC#33 bundle, loaded: the P-core triplets (bank A) hold the sentinels of
+	// report-m2-max and the eight Probe Group triplets (bank B) read 56-66 °C;
+	// ftP indexes both banks alike (P9-Pg = probe B of Groups 1-8), so the
+	// generic labels stand. TVM2/TVMO are virtual selectors.
+	"m2-pro-2": {noECores, "cores P=0", "unmapped TVM2 TVMO"},
 	// Base M3 (MacBook Air 15, Mac15,13): sixteen P triplets and three E groups
 	// for 4P+4E, none attributable to a core (m3-air-run), so generic Group
 	// labels. TH0T ≡ TH0x in the run; T5SP unknown, as on the M4 Air.
@@ -436,7 +430,9 @@ var replayAllow = map[string][]string{
 	// TVMh ≡ TVh0, TVMm ≡ TVM0 over 51 samples; m4-4/m4-5: TVMh ≡ TVM0).
 	// TH0T ≡ TH0x in m4-4/5/7. T5SP stays within 0.5 °C under full CPU and GPU
 	// load: a board/ambient probe of unknown placement.
-	"m4":   {"unmapped TVMS TVMh TVMm"},
+	"m4": {"unmapped TVMS TVMh TVMm"},
+	// iSMC#33 bundle, 222-key base M4 like m4/m4-2.
+	"m4-8": {"unmapped TVMS TVMh TVMm"},
 	"m4-2": {"unmapped TVMS TVMh"},
 	"m4-4": {"unmapped T5SP TH0T TVMh TVMm"},
 	"m4-5": {"unmapped T5SP TH0T TVMh TVMm"},
@@ -446,13 +442,17 @@ var replayAllow = map[string][]string{
 	// triplet, TCMb and TCMz are pinned at gatedTemp: the P-core mapping is
 	// unverified until a loaded M4 Max dump exists.
 	"m4-max": {m4ProMaxE, "cores P=0", "collide GPU 28", "collide GPU 34", "unmapped TB0p TBBp TI0p TPMp TPSp TR5p TSVL"},
-	"m4-pro": {m4ProMaxE, "unmapped TVMx TVXX TVXh TVXm TVxx"},
+	"m4-pro": {m4ProMaxE, m4ProVirtual},
 	// Idle dumps: all ten P-core triplets are parked at gatedTemp (51 keys);
 	// report-m4-pro.txt is the dump that verifies the M4 Pro P-core mapping.
-	"m4-pro-2": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVXm TVxx"},
+	"m4-pro-2": {m4ProMaxE, "cores P=0", m4ProVirtual},
 	"m4-pro-3": {m4ProMaxE, "cores P=0", "unmapped TVMx TVXX TVXh TVxx"},
 	// Mac16,8 (iSMC#28), 14-core: bank A (Tp00..Tp0c) live, bank B parked.
-	"m4-pro-4": {m4ProMaxE, "unmapped TVMx TVXX TVXh TVXm TVxx"},
+	"m4-pro-4": {m4ProMaxE, m4ProVirtual},
+	// Mac16,7 (iSMC#32/#33): bank B (Tp1i..) and Tpx8-D live, bank A mostly
+	// sentinels, but the bank-A P-core 9 triplet and Tp0c also read 34-42 °C,
+	// so last-write shows the cooler bank-A value (keepReading only skips 40.0).
+	"m4-pro-5": {m4ProMaxE, m4ProVirtual, "collide CPU Performance Core 9", "collide CPU Performance Core 10"},
 	// Only four Te keys exist; E-cores 5-6 are among the generic "CPU Probe" Tp
 	// slots, which the only (idle) base M5 dump cannot place. TVC0 ≡ TVD0
 	// byte-for-byte; TVMS is unknown, as on M4.
@@ -465,6 +465,7 @@ var replayAllow = map[string][]string{
 	"m5-max-2": {m5Aliases, m5ProMaxP},
 	"m5-pro":   {m5Aliases, m5ProMaxP},
 	"m5-pro-2": {m5Aliases, m5ProMaxP},
+	"m5-pro-3": {m5Aliases, m5ProMaxP},
 	// M6 E-cores have no per-core sensors (see src/temp.txt). TVDC ≡ TVD0
 	// byte-for-byte; Te0g and Ts05 ≡ Te0f in every snapshot of the owner's
 	// saved guess run.
