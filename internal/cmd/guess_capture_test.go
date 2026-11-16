@@ -150,16 +150,20 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     four Te groups for six E-cores rebalancing moves Tp0u/Tp1E into E.
 //   - m3-max-run (MacBook Pro 16 M3 Max 12P+4E, Mac15,9, iSMC#34, dev build):
 //     a second bank of 48 Tp keys (Tp1g-Tp3j), gated at 40.0 in every M3 Max
-//     dump and in the baselines, goes live ~2 s into P load beside bank A;
-//     ftPe-ftPr resolve to it, so most bank-A groups lose their index and drop
-//     to cluster sensors (5 P groups). The E load warms nothing above noise.
+//     dump and in the baselines, goes live ~2 s into P load beside bank A.
+//     ftP0-ftPd copy bank A (the M3 Pro list) and ftPe-ftPr bank B, exactly in
+//     the idle snapshots only, so resolveFtIndex ranks exact matches first;
+//     the twelve indexed bank-A triplets are the P tier (src/temp.txt P Groups
+//     1-12). The E load warms nothing above noise; Te04-06/Te0K-M hold ftE0/1
+//     and move to E before the P tier is trimmed to 12.
 //   - m4-max-run (Mac Studio M4 Max 12P+4E, Mac16,9, iSMC#34): both P banks
 //     and ftP* read 40.0 (parked) at every baseline and wake ~1 s into P load,
 //     so deltaTemps scores the whole Tp family against guessTempMin and
 //     resolveFtIndex takes keys from every snapshot. Fabric 1-2 of each bank
 //     read at core level (P-cores 11-12), Fabric 3-5 ~4.5 °C lower; the index
 //     covers all 15 triplets per bank, so the run lists 30 P groups. The E
-//     load warms nothing above noise.
+//     load warms nothing above noise; the indexed Te04-06/Te0R-T (ftE0/1) are
+//     E by key name. ftPN copies the SSD key TH0x and is not resolved.
 //   - m5-max-run (MacBook Pro 16 M5 Max 6S+12P, Mac17,6, iSMC#34): every Tp*/
 //     Tm* key idles below guessTempMin (~20 °C), so only the floor fallback
 //     sees them. Super load heats all 18 Tp00-Tp0y keys (Super triplets) and

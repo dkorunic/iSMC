@@ -775,6 +775,11 @@ SSD Controller 2:Ts1P:M3
 // Ultra share the die layout: in the loaded report-m3-max.txt the twelve
 // triplets read 56-69 °C, Tp0w/Tp10 49.8/49.9 (Tp3T = Tp10), Tp3P = Tp0c and
 // Tp3X = Tp1K, as on M3 Pro; its 48 further P keys are gated in both Max dumps.
+// The idle report-m3-max-2.txt index: ftP0-ftPd are the M3 Pro list byte for
+// byte, and ftPe-ftPr read 40.0 like that second bank (Tp1g-Tp3j), which they
+// copy exactly once it wakes in m3-max-run (ftPe=Tp2A, ftPf=Tp1h, …): the
+// firmware indexes it like bank A, likely as the second 6-P-core cluster.
+// It stays unmapped until a dump reads it live.
 CPU Performance Group 1:Tp04:M3 Pro
 CPU Performance Group 1:Tp05:M3 Pro
 CPU Performance Group 1:Tp06:M3 Pro
@@ -1416,6 +1421,13 @@ CPU Probe 10:Tp1E:M5 Base
 // report-m5-pro.txt reads triplets 1-5 at 53-59 °C and triplet 6 at 45-48 °C
 // (a 5-Super-core SKU); split into three banks of six cores instead, one core
 // would read hot in two banks and cold in the third.
+// M5 Max has no CPU ft index (only ftD*/ftN*/ftR*), and its 153 sd* die
+// estimates copy no T* key. By rise in m5-max-run (Super / P+Super / GPU):
+// sdA9-sdAz every third key (18, six triplets like Tp00-Tp0y) +19-31 / +23-34
+// / +4, Super; sd7q-sd8e (17) and sd90-sd9n+sdA3/A6 (19) +2-9 / +11-17 / ≤2,
+// P, two blocks like the two 19-probe Tm* clusters; sd0d-sd2P, sd4e-sd63 and
+// sd6I-sd7h (20 each) +2-3 / +5 / +5-11, GPU. sd00-sd0R are one value six
+// times. There are no E-cores, so sd4* is GPU, not an E lead.
 CPU Super Core 1 Probe 1:Tp00:M5 Pro
 CPU Super Core 1 Probe 2:Tp04:M5 Pro
 CPU Super Core 1 Probe 3:Tp08:M5 Pro

@@ -173,3 +173,36 @@ func TestReplayM1UltraFtIndex(t *testing.T) {
 		t.Errorf("unindexedGroups dropped %v", g)
 	}
 }
+
+// TestResolveFtIndexMax: on the M3 Max run bank B wakes beside bank A under
+// load, so only exact matches tie the index to its sources. ftP0-ftPd are the
+// M3 Pro bank-A list (byte-identical in report-m3-max-2.txt) and ftPe-ftPr
+// bank B (40.0 in the dump, exact in the run's live snapshots). M4 Max ftPN
+// copies the SSD key TH0x and is not a tier entry.
+func TestResolveFtIndexMax(t *testing.T) {
+	t.Parallel()
+
+	c, err := loadCapture("testdata/m3-max-run.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	idx := resolveFtIndex(c)
+	want := strings.Fields("Tp0V Tp05 Tp0b Tp0D Tp1J Tp17 Tp1R Tp1F Tp0h Tp0L Tp0n Tp0S Tp0v Tp0z " +
+		"Tp2A Tp1h Tp2I Tp1p Tp34 Tp2s Tp3C Tp30 Tp2Q Tp1y Tp2Y Tp26 Tp2g Tp2k")
+
+	for i, src := range want {
+		if k := "ftP" + string("0123456789abcdefghijklmnopqr"[i]); idx[k] != src {
+			t.Errorf("M3 Max idx[%s] = %q, want %q", k, idx[k], src)
+		}
+	}
+
+	c, err = loadCapture("testdata/m4-max-run.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if src, ok := resolveFtIndex(c)["ftPN"]; ok {
+		t.Errorf("M4 Max ftPN resolved to %s, want it skipped", src)
+	}
+}

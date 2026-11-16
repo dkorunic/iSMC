@@ -1994,10 +1994,20 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 		}
 
 		moved, movedSrc, movedDst = rebalanceToLayout(perPhase, results, layout, groups, keep)
-		clusterGroups = append(clusterGroups, trimToLayout(perPhase, results, layout)...)
-		notes = mergeLockstep(perPhase, results, layout)
 
-		if tePerCore {
+		// With ftE every Te* group left is indexed (unindexedGroups cut the
+		// rest), so move them before trimming: a full P tier would otherwise
+		// cut them as its weakest (M3 Max: 12 indexed P triplets plus
+		// Te04-06/Te0K-M). Without it the trim must go first: M6 Te0c-Te0i are
+		// die probes that warm with the Super cores.
+		if keep != "" {
+			notes = assignTeByPrefix(perPhase, results, layout)
+		}
+
+		clusterGroups = append(clusterGroups, trimToLayout(perPhase, results, layout)...)
+		notes = append(notes, mergeLockstep(perPhase, results, layout)...)
+
+		if tePerCore && keep == "" {
 			notes = append(notes, assignTeByPrefix(perPhase, results, layout)...)
 		}
 	}

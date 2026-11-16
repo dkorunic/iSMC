@@ -32,11 +32,20 @@ const (
 	// further. ponytail: nearest mean only; correlate the changes if the
 	// filtered index ever lags more than this.
 	ftMatchTol = 1.0
+	// A candidate equal to the entry in at least this many snapshots wins over
+	// the nearest mean: the index copies its source exactly while load is
+	// steady, and lags it by up to ~5 °C while load changes. M3 Max: bank-A
+	// entries equal their source at idle (4 of 30 snapshots), but bank B waking
+	// beside it pulls the nearest mean to the wrong probe.
+	ftExactMin = 2
 )
 
-// isFtIndexKey reports whether key is an ft index entry guess resolves.
+// isFtIndexKey reports whether key is an ft index entry guess resolves. Entries
+// are numbered 0-9 then a-z; an uppercase index (M4 Max ftPN, a copy of the SSD
+// key TH0x; M5 Max ftDO) is a separate sensor, not part of the tier.
 func isFtIndexKey(key string) bool {
-	return len(key) == 4 && strings.HasPrefix(key, ftPrefix) && strings.ContainsRune(ftTiers, rune(key[2]))
+	return len(key) == 4 && strings.HasPrefix(key, ftPrefix) && strings.ContainsRune(ftTiers, rune(key[2])) &&
+		(key[3] < 'A' || key[3] > 'Z')
 }
 
 // ftIndex maps an index key (ftP0) to the T* key it mirrors (Tp01).
@@ -101,12 +110,12 @@ func resolveFtIndex(c *guessCapture) ftIndex {
 	out := ftIndex{}
 
 	for _, f := range idx {
-		best, bestMean := "", math.Inf(1)
+		best, bestMean, bestExact := "", math.Inf(1), 0
 
 		for _, k := range cand {
 			var (
-				sum float64
-				n   int
+				sum      float64
+				n, exact int
 			)
 
 			for _, s := range snaps {
@@ -116,15 +125,28 @@ func resolveFtIndex(c *guessCapture) ftIndex {
 				if ok1 && ok2 {
 					sum += math.Abs(float64(fv - kv))
 					n++
+
+					if fv == kv {
+						exact++
+					}
 				}
 			}
 
-			if n >= aggMinShared && sum/float64(n) < bestMean {
-				best, bestMean = k, sum/float64(n)
+			if n < aggMinShared {
+				continue
+			}
+
+			if exact < ftExactMin {
+				exact = 0
+			}
+
+			// More exact matches first, then the nearest mean.
+			if mean := sum / float64(n); exact > bestExact || exact == bestExact && mean < bestMean {
+				best, bestMean, bestExact = k, mean, exact
 			}
 		}
 
-		if bestMean <= ftMatchTol {
+		if bestExact > 0 || bestMean <= ftMatchTol {
 			out[f] = best
 		}
 	}
