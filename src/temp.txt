@@ -1430,19 +1430,17 @@ CPU Probe 10:Tp1E:M5 Base
 // report-m5-pro.txt reads triplets 1-5 at 53-59 °C and triplet 6 at 45-48 °C
 // (a 5-Super-core SKU); split into three banks of six cores instead, one core
 // would read hot in two banks and cold in the third.
-// M5 Max has no CPU ft index (only ftD*/ftN*/ftR*), and its 153 sd* die
-// estimates copy no T* key. By rise in m5-max-run (Super / P+Super / GPU):
-// sdA9-sdAz every third key (18, six triplets like Tp00-Tp0y) +19-31 / +23-34
-// / +4, Super; sd7q-sd8e (17) and sd90-sd9n+sdA3/A6 (19) +2-9 / +11-17 / ≤2,
-// P, two blocks like the two 19-probe Tm* clusters; sd0d-sd2P, sd4e-sd63 and
-// sd6I-sd7h (20 each) +2-3 / +5 / +5-11, GPU. sd00-sd0R are one value six
-// times. There are no E-cores, so sd4* is GPU, not an E lead.
-// m5-pro-run (MacBook Pro 14 M5 Pro 6S+12P, Mac17,9; idle dump
-// report-m5-pro-4.txt) repeats this: Super load lifts Tp00-Tp0y +16-26 °C, each
-// triplet's third key hottest, Tm* +1-7 °C; P load adds ~10 °C to Tm* and
-// Tp1E-1g. Its 111 sd*: sd0d-sd2P and sd2j-sd4P (20 each) GPU, sd4Y-sd5L (17)
-// and sd5b-sd6n (21) P, sd6q-sd7h (18) Super, sd7t-sd8F (5) like Tp1E-1g. Only
-// the GPU block tracks Tg* (σ 0.1 °C); unlike base M5, none is an exact copy.
+// m5-pro-run (Mac17,9, 6S+12P) and m5-max-2-run (Mac17,6), both with Tp*/Tm*
+// idling above guessTempMin, repeat this: Super load lifts Tp00-Tp0y +16-28 °C,
+// each triplet's third key hottest, Tm* +1-8 °C; P load adds ~10 °C to Tm* and
+// Tp1E-1g. M5 Pro/Max have no CPU ft index (only ftD*/ftN*/ftR*). As on base
+// M5, every sd* key is one T* key plus a fixed offset (exact in all snapshots
+// but the one taken mid-change, since keys are read in sequence). M5 Max:
+// sdA9-sdAz = Tp00-Tp0y, sd7q-sd8e/sd8t-sd9n/sdA3-A6 = Tm00-Tm2n, sdBA-sdBV =
+// Tp1E-1g, sd0d-sd7n = Tg*/Ts0d/Ts0g, sd00-0R = Ts0G (sd8h/sd9q/sdAe copy
+// Tm0y = Tp0a). M5 Pro: sd6q-sd7h = Tp00-Tp0y, sd4Y-sd6n = Tm*, sd7t-sd8F =
+// Tp1E-1g, sd0d-sd4P = Tg*. They carry no new sensor, so they stay unmapped.
+// The first m5-max-run read Tp*/Tm* below the floor and so matched none.
 CPU Super Core 1 Probe 1:Tp00:M5 Pro
 CPU Super Core 1 Probe 2:Tp04:M5 Pro
 CPU Super Core 1 Probe 3:Tp08:M5 Pro

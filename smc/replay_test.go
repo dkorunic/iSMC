@@ -463,6 +463,9 @@ var replayAllow = map[string][]string{
 	"m5-2":     {"cores E=4", "unmapped T5SP TH0T TVDE TVDP"},
 	"m5-max":   {m5Aliases, m5ProMaxP},
 	"m5-max-2": {m5Aliases, m5ProMaxP},
+	// Mac17,6 (j716c) with m5-max-2-run, newer firmware than m5-max-2 (3669
+	// keys, same 361 T* keys).
+	"m5-max-3": {m5Aliases, m5ProMaxP},
 	"m5-pro":   {m5Aliases, m5ProMaxP},
 	"m5-pro-2": {m5Aliases, m5ProMaxP},
 	"m5-pro-3": {m5Aliases, m5ProMaxP},

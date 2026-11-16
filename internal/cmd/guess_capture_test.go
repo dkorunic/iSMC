@@ -180,13 +180,18 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     are Super triplets (+16-26 °C), so pairing makes 7 Super groups and
 //     rebalancing moves Tp0O/0R/0X/0g/0j into P beside the Tp1E-1g cluster
 //     keys. Tm* (P-cluster probes) are not core keys.
+//   - m5-max-2-run (MacBook Pro 16 M5 Max 6S+12P, Mac17,6, v0.18.6): unlike
+//     m5-max-run every Tp*/Tm* key idles above guessTempMin (~48 °C), with the
+//     same result: QoS kept the Super CPUs busy in the P phase, all 18 Tp00-
+//     Tp0y keys rise +17-28 °C, and rebalancing moves six of them into P beside
+//     Tp1E-1g. Its sd* keys copy T* keys (Super, Tm*, GPU) and stay out.
 //   - imac20-2-run (iMac 27 2020, Core i9-10910 10C/20T, iSMC#36, v0.18.5):
 //     one perf level, but v0.18.5 still ran a Background phase on the same
 //     20 CPUs; singlePerfLevel keeps the UserInitiated phase as plain cores.
 //     TC2c read nothing at either baseline (reads fail intermittently, ~80 °C
 //     under load), so it is the one missing core.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {
