@@ -453,9 +453,9 @@ var replayAllow = map[string][]string{
 	// sentinels, but the bank-A P-core 9 triplet and Tp0c also read 34-42 °C,
 	// so last-write shows the cooler bank-A value (keepReading only skips 40.0).
 	"m4-pro-5": {m4ProMaxE, m4ProVirtual, "collide CPU Performance Core 9", "collide CPU Performance Core 10"},
-	// Only four Te keys exist; E-cores 5-6 are among the generic "CPU Probe" Tp
-	// slots, which the only (idle) base M5 dump cannot place. TVC0 ≡ TVD0
-	// byte-for-byte; TVMS is unknown, as on M4.
+	// MacBook Pro 14 M5 (Mac17,2) with m5-mbp14-run: only four Te keys exist
+	// and E-cores 5-6 have no T* key (the Tp0p-Tp1E probes follow neither tier
+	// under load). TVC0 ≡ TVD0 byte-for-byte; TVMS is unknown, as on M4.
 	"m5": {"cores E=4", "unmapped TVC0 TVMS"},
 	// MacBook Air 13 M5 (Mac17,3), idle, with m5-air-run: four Te triplets for
 	// six E-cores as on m5; TVDE ≡ TVD0 and TH0T ≡ TH0x byte for byte, TVDP
@@ -466,6 +466,9 @@ var replayAllow = map[string][]string{
 	"m5-pro":   {m5Aliases, m5ProMaxP},
 	"m5-pro-2": {m5Aliases, m5ProMaxP},
 	"m5-pro-3": {m5Aliases, m5ProMaxP},
+	// Mac17,9 (j714s), fully idle (core keys ~30 °C), newer firmware than
+	// m5-pro-3 (3613 keys, same 285 T* keys).
+	"m5-pro-4": {m5Aliases, m5ProMaxP},
 	// M6 E-cores have no per-core sensors (see src/temp.txt). TVDC ≡ TVD0
 	// byte-for-byte; Te0g and Ts05 ≡ Te0f in every snapshot of the owner's
 	// saved guess run.

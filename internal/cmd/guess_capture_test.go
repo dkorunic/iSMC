@@ -175,13 +175,18 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     separate the tiers), and Tm* (P-core probes, +8 °C) are not core keys,
 //     so SKU rebalancing moves 12 Super-triplet keys and the Tp1E-1g cluster
 //     keys into the P tier.
+//   - m5-pro-run (MacBook Pro 14 M5 Pro 6S+12P, Mac17,9, v0.18.6): as in
+//     m5-max-run the P phase kept the Super CPUs busy; all 18 Tp00-Tp0y keys
+//     are Super triplets (+16-26 °C), so pairing makes 7 Super groups and
+//     rebalancing moves Tp0O/0R/0X/0g/0j into P beside the Tp1E-1g cluster
+//     keys. Tm* (P-cluster probes) are not core keys.
 //   - imac20-2-run (iMac 27 2020, Core i9-10910 10C/20T, iSMC#36, v0.18.5):
 //     one perf level, but v0.18.5 still ran a Background phase on the same
 //     20 CPUs; singlePerfLevel keeps the UserInitiated phase as plain cores.
 //     TC2c read nothing at either baseline (reads fail intermittently, ~80 °C
 //     under load), so it is the one missing core.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {

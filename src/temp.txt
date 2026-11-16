@@ -1437,6 +1437,12 @@ CPU Probe 10:Tp1E:M5 Base
 // P, two blocks like the two 19-probe Tm* clusters; sd0d-sd2P, sd4e-sd63 and
 // sd6I-sd7h (20 each) +2-3 / +5 / +5-11, GPU. sd00-sd0R are one value six
 // times. There are no E-cores, so sd4* is GPU, not an E lead.
+// m5-pro-run (MacBook Pro 14 M5 Pro 6S+12P, Mac17,9; idle dump
+// report-m5-pro-4.txt) repeats this: Super load lifts Tp00-Tp0y +16-26 °C, each
+// triplet's third key hottest, Tm* +1-7 °C; P load adds ~10 °C to Tm* and
+// Tp1E-1g. Its 111 sd*: sd0d-sd2P and sd2j-sd4P (20 each) GPU, sd4Y-sd5L (17)
+// and sd5b-sd6n (21) P, sd6q-sd7h (18) Super, sd7t-sd8F (5) like Tp1E-1g. Only
+// the GPU block tracks Tg* (σ 0.1 °C); unlike base M5, none is an exact copy.
 CPU Super Core 1 Probe 1:Tp00:M5 Pro
 CPU Super Core 1 Probe 2:Tp04:M5 Pro
 CPU Super Core 1 Probe 3:Tp08:M5 Pro
