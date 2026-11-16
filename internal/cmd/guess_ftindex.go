@@ -74,7 +74,17 @@ func resolveFtIndex(c *guessCapture) ftIndex {
 
 	var idx, cand []string
 
-	for k := range snaps[0] {
+	// Union over all snapshots: the first load snapshot can predate a parked
+	// bank waking (M4 Max ftP* and Tp* read 40.0 until ~1 s into the load).
+	keys := make(map[string]bool)
+
+	for _, s := range snaps {
+		for k := range s {
+			keys[k] = true
+		}
+	}
+
+	for k := range keys {
 		switch {
 		case isFtIndexKey(k):
 			idx = append(idx, k)

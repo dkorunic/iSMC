@@ -87,10 +87,16 @@ func TestDeltaTemps(t *testing.T) {
 			want: map[string]float32{},
 		},
 		{
-			name: "key missing from base",
-			base: map[string]float32{},
-			hot:  map[string]float32{"TC0c": 45.0},
+			name: "key missing from base, family live (parked bank)",
+			base: map[string]float32{"TC1c": 30.0},
+			hot:  map[string]float32{"TC0c": 45.0, "TC1c": 30.0},
 			want: map[string]float32{},
+		},
+		{
+			name: "whole family missing from base scores against the floor",
+			base: map[string]float32{"TW0P": 30.0},
+			hot:  map[string]float32{"TC0c": 45.0, "TW0P": 30.0},
+			want: map[string]float32{"TC0c": 45.0 - guessTempMin},
 		},
 		{
 			name: "empty inputs",
@@ -495,7 +501,7 @@ func TestAnnotateLine(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := annotateLine(tt.line, tt.label, tt.key, tt.family, "", tt.coreIdx)
+			got := annotateLine(tt.line, tt.label, tt.key, tt.family, tt.family, tt.coreIdx) // base SKU
 			if !strings.Contains(got, tt.contains) {
 				t.Errorf("annotateLine(...) = %q\n  must contain %q", got, tt.contains)
 			}

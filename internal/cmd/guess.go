@@ -380,6 +380,28 @@ func deltaTemps(base, hot map[string]float32) map[string]float32 {
 		}
 	}
 
+	// A whole key family (Tp, Tm, …) with no live baseline key read parked
+	// (40.0: both M4 Max P banks at idle) or below guessTempMin (M5 Max cores
+	// idle at ~20 °C). Score its keys against the floor so the phase still
+	// sees them. Families with some live baseline key are left alone: there a
+	// missing key is the parked M4 Pro bank, which must not outscore the live
+	// one. ponytail: the floor overstates a parked key's rise; record the
+	// first live reading if tiers ever need absolute rises.
+	live := make(map[string]bool)
+	for k := range base {
+		live[k[:min(2, len(k))]] = true
+	}
+
+	for k, h := range hot {
+		if _, ok := base[k]; ok || live[k[:min(2, len(k))]] {
+			continue
+		}
+
+		if delta := h - guessTempMin; delta >= thr {
+			d[k] = delta
+		}
+	}
+
 	return d
 }
 
