@@ -607,26 +607,36 @@ SSD 2:Ts0e:M2
 SSD 2:Ts0f:M2
 SSD 2:Ts0g:M2
 // M3
-CPU Efficiency Core 1:Te04:M3 Max
-CPU Efficiency Core 1:Te05:M3 Max
-CPU Efficiency Core 1:Te06:M3 Max
-CPU Efficiency Core 1:Te04:M3 Ultra
-CPU Efficiency Core 1:Te05:M3 Ultra
-CPU Efficiency Core 1:Te06:M3 Ultra
-// M3 Max: Te0P→3, Te0S→4. Te0Q and Te0T are E-cluster maxima, not core
-// probes: Te0Q = Te06 (cluster 1 max) in 5 of 6 M3 Pro/Max dumps and above
-// every E key in the sixth; Te0T = Te0M on both M3 Max dumps.
-CPU Efficiency Core 3:Te0P:M3 Max
-CPU Efficiency Core 3:Te0P:M3 Ultra
-CPU Efficiency Core 4:Te0S:M3 Max
-CPU Efficiency Core 4:Te0S:M3 Ultra
+// M3 Max: two E triplets for 4 E-cores, the ones the SMC index lists (ftE0 =
+// Te05, ftE1 = Te0L, report-m3-max-2.txt). Te0P = Te04 + 6.50 and Te0S = Te0K +
+// 6.00 in both dumps and all 30 m3-max-run snapshots: derived, not cores.
+CPU Efficiency Group 1:Te04:M3 Max
+CPU Efficiency Group 1:Te05:M3 Max
+CPU Efficiency Group 1:Te0P:M3 Max
+CPU Efficiency Group 1:Te06:M3 Max
+CPU Efficiency Group 2:Te0K:M3 Max
+CPU Efficiency Group 2:Te0L:M3 Max
+CPU Efficiency Group 2:Te0S:M3 Max
+CPU Efficiency Group 2:Te0M:M3 Max
+CPU Efficiency Group 1:Te04:M3 Ultra
+CPU Efficiency Group 1:Te05:M3 Ultra
+CPU Efficiency Group 1:Te0P:M3 Ultra
+CPU Efficiency Group 1:Te06:M3 Ultra
+CPU Efficiency Group 2:Te0K:M3 Ultra
+CPU Efficiency Group 2:Te0L:M3 Ultra
+CPU Efficiency Group 2:Te0S:M3 Ultra
+CPU Efficiency Group 2:Te0M:M3 Ultra
+// Te0Q and Te0T are E-cluster maxima, not core probes: Te0Q = Te06 (cluster 1
+// max) in 5 of 6 M3 Pro/Max dumps and above every E key in the sixth; Te0T =
+// Te0M on both M3 Max dumps.
 CPU Efficiency Cluster Aggregate 1:Te0Q:M3
 CPU Efficiency Cluster Aggregate 2:Te0T:M3 Max
 CPU Efficiency Cluster Aggregate 2:Te0T:M3 Ultra
 // M3 Pro: three E triplets for 6 E-cores, the ones the SMC index lists (ftE0-2 =
 // Te05/Te0H/Te0S, report-m3-pro-5.txt). In all five M3 Pro dumps Te0S = Te0R + 8.000
 // and Te0U = Te0S + 0.500 (derived, not a core), Te0T is the third key; Te0V
-// aliases Te0T (dropped). Te0P is a probe of its own, not indexed.
+// aliases Te0T (dropped). Te0P = Te04 + 6.50 while Te04 is live (all 14 such
+// m3-pro-run snapshots) and keeps reading while Te04 parks, so it stays mapped.
 CPU Efficiency Group 1:Te04:M3 Pro
 CPU Efficiency Group 1:Te05:M3 Pro
 CPU Efficiency Group 1:Te06:M3 Pro
@@ -638,10 +648,6 @@ CPU Efficiency Group 3:Te0S:M3 Pro
 CPU Efficiency Group 3:Te0U:M3 Pro
 CPU Efficiency Group 3:Te0T:M3 Pro
 CPU Efficiency Probe 1:Te0P:M3 Pro
-// M3 Max additional E-cores.
-CPU Efficiency Core 6:Te0K:M3 Max
-CPU Efficiency Core 6:Te0L:M3 Max
-CPU Efficiency Core 6:Te0M:M3 Max
 // Tf?4/D/E=aggregate, Tf?5=min, Tf?6=max, Tf?8-B=probes.
 // Shared across M2 Max / M3 / M4 → Apple; Tf?D (M3 only) and Tf9F/TfA0 stay M3.
 GPU Fabric Block 0:Tf04:Apple
@@ -1712,9 +1718,12 @@ SSD 1:Ts00:M5
 SSD 2:Ts04:M5
 SSD 3:Ts08:M5
 SSD 4:Ts0C:M5
-// Ts0G aliases the Ta00-Ta0R thermal-headroom register, not an SSD probe.
+// The Ta00-Ta0R thermal-headroom register has an SSD-slot alias: Ts0G on M5
+// Pro/Max, Ts0O on base M5 (within 0.016 °C over 60 m5-air-run/m5-mbp14-run
+// snapshots), so base M5 leaves Ts0O unmapped.
 SSD 5:Ts0K:M5
-SSD 6:Ts0O:M5
+SSD 6:Ts0O:M5 Pro
+SSD 6:Ts0O:M5 Max
 SSD 7:Ts0R:M5
 SSD 8:Ts0U:M5
 SSD 9:Ts0X:M5

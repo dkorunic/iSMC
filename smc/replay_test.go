@@ -348,6 +348,9 @@ const (
 	m3ProProbe2 = "collide CPU Cluster Probe 2"
 	// M3 Max carries the M3 Pro Group labels (same die layout, see src/temp.txt).
 	m3MaxP = "cores P=0"
+	// M3 Max: two indexed E triplets (ftE0 = Te05, ftE1 = Te0L) for 4 E-cores
+	// carry generic Group labels; Te0P/Te0S are fixed offsets of Te04/Te0K.
+	m3MaxE = noECores
 	// Only Te04/Te0R triplets are per-E-core keys on M4 Pro/Max; Tpx8-D (live
 	// only in report-m4-pro-5) are P cluster dies.
 	m4ProMaxE = "cores E=2"
@@ -401,12 +404,13 @@ var replayAllow = map[string][]string{
 	// Base M3 (MacBook Air 15, Mac15,13): sixteen P triplets and three E groups
 	// for 4P+4E, none attributable to a core (m3-air-run), so generic Group
 	// labels. TH0T ≡ TH0x in the run; T5SP unknown, as on the M4 Air.
-	"m3":     {noECores, "cores P=0", "unmapped T5SP TH0T"},
-	"m3-max": {m3MaxP, m3ProProbes, m3ProProbe2, m3MaxVirtual, m3MaxGated},
+	"m3": {noECores, "cores P=0", "unmapped T5SP TH0T"},
+	// M3 Max E rows are two generic Groups (Te0P/Te0S derived, see src/temp.txt).
+	"m3-max": {m3MaxP, m3MaxE, m3ProProbes, m3ProProbe2, m3MaxVirtual, m3MaxGated},
 	// Idle dump: third-of-triplet < probe B on groups 2-12, so last-write
 	// shows the cooler value; not a distinct sensor.
 	"m3-max-2": {
-		m3MaxP, m3ProProbes, m3ProProbe2, m3MaxVirtual, m3MaxGated,
+		m3MaxP, m3MaxE, m3ProProbes, m3ProProbe2, m3MaxVirtual, m3MaxGated,
 		"collide CPU Performance Group 2", "collide CPU Performance Group 3", "collide CPU Performance Group 4", "collide CPU Performance Group 5", "collide CPU Performance Group 6", "collide CPU Performance Group 7", "collide CPU Performance Group 8", "collide CPU Performance Group 9", "collide CPU Performance Group 10", "collide CPU Performance Group 11", "collide CPU Performance Group 12",
 	},
 	// Idle dumps: the third key of a triplet reads below probe B on the listed
@@ -455,12 +459,14 @@ var replayAllow = map[string][]string{
 	"m4-pro-5": {m4ProMaxE, m4ProVirtual, "collide CPU Performance Core 9", "collide CPU Performance Core 10"},
 	// MacBook Pro 14 M5 (Mac17,2) with m5-mbp14-run: only four Te keys exist
 	// and E-cores 5-6 have no T* key (the Tp0p-Tp1E probes follow neither tier
-	// under load). TVC0 ≡ TVD0 byte-for-byte; TVMS is unknown, as on M4.
-	"m5": {"cores E=4", "unmapped TVC0 TVMS"},
+	// under load). TVC0 ≡ TVD0 byte-for-byte; TVMS is unknown, as on M4. Ts0O
+	// copies the Ta00-Ta0R headroom register on base M5 (src/temp.txt).
+	"m5": {"cores E=4", "unmapped TVC0 TVMS Ts0O"},
 	// MacBook Air 13 M5 (Mac17,3), idle, with m5-air-run: four Te triplets for
 	// six E-cores as on m5; TVDE ≡ TVD0 and TH0T ≡ TH0x byte for byte, TVDP
-	// tracks TVD0 (an alias on M5 Pro/Max, m5Aliases); T5SP unknown, as on M4.
-	"m5-2":     {"cores E=4", "unmapped T5SP TH0T TVDE TVDP"},
+	// tracks TVD0 (an alias on M5 Pro/Max, m5Aliases); T5SP unknown, as on M4;
+	// Ts0O copies the headroom register, as on m5.
+	"m5-2":     {"cores E=4", "unmapped T5SP TH0T TVDE TVDP Ts0O"},
 	"m5-max":   {m5Aliases, m5ProMaxP},
 	"m5-max-2": {m5Aliases, m5ProMaxP},
 	// Mac17,6 (j716c) with m5-max-2-run, newer firmware than m5-max-2 (3669
