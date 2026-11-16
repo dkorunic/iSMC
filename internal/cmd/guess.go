@@ -1228,6 +1228,9 @@ const (
 	labelSuperCore       = "CPU Super Core"
 	labelPerformanceCore = "CPU Performance Core"
 	labelEfficiencyCore  = "CPU Efficiency Core"
+	// labelCore names the cores of a single-perf-level CPU (Intel), as the
+	// Intel rows in src/temp.txt do.
+	labelCore = "CPU Core"
 )
 
 // phaseSpec describes one stress phase: its label prefix, QoS class, expected
@@ -1294,6 +1297,16 @@ func qosName(qos int) string {
 // The SKU's preferred top-tier QoS class (UserInteractive for Super, UserInitiated
 // for Performance) biases the kernel scheduler toward the right tier.
 func buildPhases(perfLevels []platform.PerfLevel, layout platform.SKULayout) []phaseSpec {
+	// One perf level (Intel): QoS cannot split tiers, and a second Background
+	// phase only reloads the same CPUs (iMac20,2: both phases kept all 20
+	// CPUs busy and the classifier split one core tier into P and E).
+	if len(perfLevels) == 1 {
+		return []phaseSpec{{
+			label: labelCore, qos: stress.QoSUserInitiated,
+			cores: perfLevels[0].PhysicalCPU, threads: perfLevels[0].LogicalCPU,
+		}}
+	}
+
 	if len(perfLevels) == 3 {
 		return []phaseSpec{
 			{
@@ -1919,7 +1932,8 @@ func printMapping(family string, numCPU int, perfLevels []platform.PerfLevel,
 ) {
 	appleSilicon := family != "Intel"
 	tePerCore := family != "M1" && family != "M2"
-	singleKey := layoutOK && singleKeyLayout(layout)
+	// Intel keys carry the core in a digit (TC0c, TC1c): one key per core.
+	singleKey := !appleSilicon || (layoutOK && singleKeyLayout(layout))
 
 	allKeys := make(map[string]struct{})
 

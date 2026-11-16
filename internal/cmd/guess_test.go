@@ -203,6 +203,8 @@ func TestBuildPhases(t *testing.T) {
 	m5Base, _ := platform.LookupSKULayout("M5")
 	m5Pro, _ := platform.LookupSKULayout("M5 Pro")
 
+	var noLayout platform.SKULayout // Intel has no SKU layout
+
 	tests := []struct {
 		name       string
 		levels     []platform.PerfLevel
@@ -218,6 +220,14 @@ func TestBuildPhases(t *testing.T) {
 			wantLabels: []string{"CPU Performance Core", "CPU Efficiency Core"},
 			wantCores:  []int{0, 0},
 			wantQoS:    []int{stress.QoSUserInitiated, stress.QoSBackground},
+		},
+		{
+			name:       "1 level (Intel) → one plain-core phase",
+			levels:     []platform.PerfLevel{{Name: "Standard", PhysicalCPU: 10, LogicalCPU: 20}},
+			layout:     noLayout,
+			wantLabels: []string{"CPU Core"},
+			wantCores:  []int{10},
+			wantQoS:    []int{stress.QoSUserInitiated},
 		},
 		{
 			name:       "2-level P+E (M4 Pro)",

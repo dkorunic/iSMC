@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/dkorunic/iSMC/internal/platform"
+	"github.com/dkorunic/iSMC/internal/stress"
 )
 
 // captureVersion is bumped whenever guessCapture changes incompatibly.
@@ -163,6 +164,8 @@ func printGuessHeader(c *guessCapture, phases int) {
 
 // analyzeCapture classifies a live or replayed run and prints the mapping.
 func analyzeCapture(c *guessCapture) {
+	singlePerfLevel(c)
+
 	// Resolve the SMC sensor index first, then drop its keys: every later
 	// step sees T* keys only.
 	idx := resolveFtIndex(c)
@@ -194,6 +197,24 @@ func analyzeCapture(c *guessCapture) {
 
 	if c.GPU != nil {
 		printGPUPhase(c.Family, c.Product.CPU, deltaTemps(c.GPU.Baseline, c.GPU.Hot), visible, results)
+	}
+}
+
+// singlePerfLevel reduces a run saved on a single-perf-level CPU (Intel) by an
+// older guess, which still ran a Background "Efficiency" phase on the same
+// CPUs, to its UserInitiated phase labelled as plain cores.
+func singlePerfLevel(c *guessCapture) {
+	if len(c.PerfLevels) != 1 {
+		return
+	}
+
+	for _, p := range c.Phases {
+		if p.QoS == stress.QoSUserInitiated {
+			p.Label = labelCore
+			c.Phases = []capturedPhase{p}
+
+			return
+		}
 	}
 }
 
