@@ -1397,11 +1397,16 @@ Fabric Sensor 2:TF2S:M4
 // M5
 CPU Super Core 1:Tp00:M5 Base
 CPU Super Core 2:Tp04:M5 Base
-// Base M5 (4S+6E; report-m5.txt, idle, every core key ~37 °C): Tp08 is absent,
-// so the four S-cores sit at Tp00/04/0C/0G. Te04/08/0C/0R are the only Te keys
-// (M4 E-core slot names); E-cores 5-6 hide among the Tp probes below, which an
-// idle dump cannot place, hence the generic labels. Unverified until a loaded
-// base M5 dump exists.
+// Base M5 (4S+6E): Tp08 is absent, so the four S-cores sit at Tp00/04/0C/0G.
+// Te04/08/0C/0R are the only Te keys (M4 E-core slot names); E-cores 5-6 have
+// no T* key. Confirmed by load on MacBook Air 13 (m5-air-run) and MacBook Pro
+// 14 Mac17,2 (m5-mbp14-run): Super load lifts Tp00-0G and Tp0O-0a +18-22 °C,
+// Tp0p-Tp1E +10-12 °C; E load lifts Te* up to +2 °C and Tp0p-Tp1E ≤ 0.5 °C,
+// and GPU load lifts Tp0p-Tp1E +8-10 °C, so those six follow neither tier.
+// The 47 sd* keys are each one T* key plus a fixed per-unit offset (σ 0 over
+// 30 Mac17,2 snapshots; same pairs in report-m5-2/report-m5): sd37-3l =
+// Tp00..Tp0a, sd43-4M = Tp0p..Tp1E, sd0a/0d/0g/0u = Te04/08/0C/0R, sd16-33 =
+// Tg04..Tg1s, sd00-0R = Ta00. They carry no new sensor, so they stay unmapped.
 CPU Super Core 3:Tp0C:M5 Base
 CPU Super Core 4:Tp0G:M5 Base
 CPU Efficiency Core 1:Te04:M5 Base

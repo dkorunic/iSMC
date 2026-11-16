@@ -148,6 +148,10 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     every Super key correlate at r >= 0.99, so the pairing is not evidence.
 //     Known gaps: Tp0p/Tp0y probes (+6 °C) stay as Super groups 5-6, and with
 //     four Te groups for six E-cores rebalancing moves Tp0u/Tp1E into E.
+//   - m5-mbp14-run (MacBook Pro 14 M5, Mac17,2, v0.18.6, with sd*): same
+//     classification as m5-air-run (Super load +18-22 °C on the eight Super
+//     keys, E load ≤ 2 °C) and the same known gaps; every sd* key is one T*
+//     key plus a constant offset, so none becomes a core group.
 //   - m3-max-run (MacBook Pro 16 M3 Max 12P+4E, Mac15,9, iSMC#34, dev build):
 //     a second bank of 48 Tp keys (Tp1g-Tp3j), gated at 40.0 in every M3 Max
 //     dump and in the baselines, goes live ~2 s into P load beside bank A.
@@ -177,7 +181,7 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     TC2c read nothing at either baseline (reads fail intermittently, ~80 °C
 //     under load), so it is the one missing core.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {
