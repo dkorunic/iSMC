@@ -1139,16 +1139,22 @@ CPU Performance Group 3:Tp0c:M4 Base
 CPU Performance Group 4:Tp0d:M4 Base
 CPU Performance Group 4:Tp0e:M4 Base
 CPU Performance Group 4:Tp0f:M4 Base
-// Die-fabric probes (not cores).
+// Die-fabric probes (not cores) on the 10-P-core M4 Pro: all five triplets
+// read ~10 °C below the cores under P load (m4-pro-run). On the 12-P-core M4
+// Max (Mac16,9 m4-max-run) Fabric 1-2 read at core level in both banks while
+// Fabric 3-5 stay ~4.5 °C lower, so Fabric 1-2 are P-cores 11-12 there.
 CPU Performance Fabric 1:Tp0d:M4 Pro
 CPU Performance Fabric 1:Tp0e:M4 Pro
 CPU Performance Fabric 1:Tp0f:M4 Pro
-CPU Performance Fabric 1:Tp0d:M4 Max
-CPU Performance Fabric 1:Tp0e:M4 Max
-CPU Performance Fabric 1:Tp0f:M4 Max
-CPU Performance Fabric 2:Tp0g:M4
-CPU Performance Fabric 2:Tp0i:M4
-CPU Performance Fabric 2:Tp0k:M4
+CPU Performance Core 11:Tp0d:M4 Max
+CPU Performance Core 11:Tp0e:M4 Max
+CPU Performance Core 11:Tp0f:M4 Max
+CPU Performance Fabric 2:Tp0g:M4 Pro
+CPU Performance Fabric 2:Tp0i:M4 Pro
+CPU Performance Fabric 2:Tp0k:M4 Pro
+CPU Performance Core 12:Tp0g:M4 Max
+CPU Performance Core 12:Tp0i:M4 Max
+CPU Performance Core 12:Tp0k:M4 Max
 CPU Performance Fabric 3:Tp0l:M4
 CPU Performance Fabric 3:Tp0m:M4
 CPU Performance Fabric 3:Tp0n:M4
@@ -1161,12 +1167,18 @@ CPU Performance Fabric 5:Tp0w:M4
 // Tp1i-scheme fabric triplets (M4 Pro 14-core): in the iSMC#28 run (Mac16,8,
 // both schemes live) Tp2R = TpxB and Tp0n = Tpx3, so each scheme's third fabric
 // triplet feeds the same fabric-max key and the order matches Fabric 1-5.
-CPU Performance Fabric 1:Tp2I:M4
-CPU Performance Fabric 1:Tp2J:M4
-CPU Performance Fabric 1:Tp2K:M4
-CPU Performance Fabric 2:Tp2L:M4
-CPU Performance Fabric 2:Tp2M:M4
-CPU Performance Fabric 2:Tp2N:M4
+CPU Performance Fabric 1:Tp2I:M4 Pro
+CPU Performance Fabric 1:Tp2J:M4 Pro
+CPU Performance Fabric 1:Tp2K:M4 Pro
+CPU Performance Fabric 2:Tp2L:M4 Pro
+CPU Performance Fabric 2:Tp2M:M4 Pro
+CPU Performance Fabric 2:Tp2N:M4 Pro
+CPU Performance Core 11:Tp2I:M4 Max
+CPU Performance Core 11:Tp2J:M4 Max
+CPU Performance Core 11:Tp2K:M4 Max
+CPU Performance Core 12:Tp2L:M4 Max
+CPU Performance Core 12:Tp2M:M4 Max
+CPU Performance Core 12:Tp2N:M4 Max
 CPU Performance Fabric 3:Tp2O:M4
 CPU Performance Fabric 3:Tp2Q:M4
 CPU Performance Fabric 3:Tp2R:M4
@@ -1369,12 +1381,8 @@ Uncore Voltage Regulator:TUVR:M4
 Power Heatsink 3:TPH3:M4
 Fabric Sensor 2:TF2S:M4
 // M5
-CPU Super Core 1:Tp00:M5
-CPU Super Core 2:Tp04:M5
-CPU Super Core 3:Tp08:M5 Pro
-CPU Super Core 4:Tp0C:M5 Pro
-CPU Super Core 3:Tp08:M5 Max
-CPU Super Core 4:Tp0C:M5 Max
+CPU Super Core 1:Tp00:M5 Base
+CPU Super Core 2:Tp04:M5 Base
 // Base M5 (4S+6E; report-m5.txt, idle, every core key ~37 °C): Tp08 is absent,
 // so the four S-cores sit at Tp00/04/0C/0G. Te04/08/0C/0R are the only Te keys
 // (M4 E-core slot names); E-cores 5-6 hide among the Tp probes below, which an
@@ -1396,21 +1404,31 @@ CPU Probe 7:Tp0y:M5 Base
 CPU Probe 8:Tp12:M5 Base
 CPU Probe 9:Tp16:M5 Base
 CPU Probe 10:Tp1E:M5 Base
-// Super Cores 5-6, P-cores and P-clusters exist on M5 Pro/Max only.
-CPU Super Core 5:Tp0G:M5 Pro
-CPU Super Core 6:Tp0K:M5 Pro
-CPU Performance Core 1:Tp0O:M5 Pro
-CPU Performance Core 2:Tp0R:M5 Pro
-CPU Performance Core 3:Tp0U:M5 Pro
-CPU Performance Core 4:Tp0X:M5 Pro
-CPU Performance Core 5:Tp0a:M5 Pro
-CPU Performance Core 6:Tp0d:M5 Pro
-CPU Performance Core 7:Tp0g:M5 Pro
-CPU Performance Core 8:Tp0j:M5 Pro
-CPU Performance Core 9:Tp0m:M5 Pro
-CPU Performance Core 10:Tp0p:M5 Pro
-CPU Performance Core 11:Tp0u:M5 Pro
-CPU Performance Core 12:Tp0y:M5 Pro
+// M5 Pro/Max: Tp00-Tp0y are six Super-core triplets, not Super + P cores. In
+// m5-max-run (Mac17,6) a Super-only load (P CPUs idle) heats all 18 keys to
+// 42-54 °C, the third key of each triplet hottest, while the Tm* keys stay at
+// 27-31 °C; a P load then lifts Tm* ~8 °C and Tp* 1-2 °C. The loaded
+// report-m5-pro.txt reads triplets 1-5 at 53-59 °C and triplet 6 at 45-48 °C
+// (a 5-Super-core SKU); split into three banks of six cores instead, one core
+// would read hot in two banks and cold in the third.
+CPU Super Core 1 Probe 1:Tp00:M5 Pro
+CPU Super Core 1 Probe 2:Tp04:M5 Pro
+CPU Super Core 1 Probe 3:Tp08:M5 Pro
+CPU Super Core 2 Probe 1:Tp0C:M5 Pro
+CPU Super Core 2 Probe 2:Tp0G:M5 Pro
+CPU Super Core 2 Probe 3:Tp0K:M5 Pro
+CPU Super Core 3 Probe 1:Tp0O:M5 Pro
+CPU Super Core 3 Probe 2:Tp0R:M5 Pro
+CPU Super Core 3 Probe 3:Tp0U:M5 Pro
+CPU Super Core 4 Probe 1:Tp0X:M5 Pro
+CPU Super Core 4 Probe 2:Tp0a:M5 Pro
+CPU Super Core 4 Probe 3:Tp0d:M5 Pro
+CPU Super Core 5 Probe 1:Tp0g:M5 Pro
+CPU Super Core 5 Probe 2:Tp0j:M5 Pro
+CPU Super Core 5 Probe 3:Tp0m:M5 Pro
+CPU Super Core 6 Probe 1:Tp0p:M5 Pro
+CPU Super Core 6 Probe 2:Tp0u:M5 Pro
+CPU Super Core 6 Probe 3:Tp0y:M5 Pro
 // Tp12/Tp16 are absent on M5 Pro/Max; base M5 rows above.
 // 5th cluster (M5 Pro/Max has no E-cores).
 CPU Performance Cluster Aggregate:Tp1E:M5 Pro
@@ -1420,20 +1438,24 @@ CPU Performance Cluster 2:Tp1Q:M5 Pro
 CPU Performance Cluster 3:Tp1U:M5 Pro
 CPU Performance Cluster 4:Tp1g:M5 Pro
 // Same rows for M5 Max.
-CPU Super Core 5:Tp0G:M5 Max
-CPU Super Core 6:Tp0K:M5 Max
-CPU Performance Core 1:Tp0O:M5 Max
-CPU Performance Core 2:Tp0R:M5 Max
-CPU Performance Core 3:Tp0U:M5 Max
-CPU Performance Core 4:Tp0X:M5 Max
-CPU Performance Core 5:Tp0a:M5 Max
-CPU Performance Core 6:Tp0d:M5 Max
-CPU Performance Core 7:Tp0g:M5 Max
-CPU Performance Core 8:Tp0j:M5 Max
-CPU Performance Core 9:Tp0m:M5 Max
-CPU Performance Core 10:Tp0p:M5 Max
-CPU Performance Core 11:Tp0u:M5 Max
-CPU Performance Core 12:Tp0y:M5 Max
+CPU Super Core 1 Probe 1:Tp00:M5 Max
+CPU Super Core 1 Probe 2:Tp04:M5 Max
+CPU Super Core 1 Probe 3:Tp08:M5 Max
+CPU Super Core 2 Probe 1:Tp0C:M5 Max
+CPU Super Core 2 Probe 2:Tp0G:M5 Max
+CPU Super Core 2 Probe 3:Tp0K:M5 Max
+CPU Super Core 3 Probe 1:Tp0O:M5 Max
+CPU Super Core 3 Probe 2:Tp0R:M5 Max
+CPU Super Core 3 Probe 3:Tp0U:M5 Max
+CPU Super Core 4 Probe 1:Tp0X:M5 Max
+CPU Super Core 4 Probe 2:Tp0a:M5 Max
+CPU Super Core 4 Probe 3:Tp0d:M5 Max
+CPU Super Core 5 Probe 1:Tp0g:M5 Max
+CPU Super Core 5 Probe 2:Tp0j:M5 Max
+CPU Super Core 5 Probe 3:Tp0m:M5 Max
+CPU Super Core 6 Probe 1:Tp0p:M5 Max
+CPU Super Core 6 Probe 2:Tp0u:M5 Max
+CPU Super Core 6 Probe 3:Tp0y:M5 Max
 CPU Performance Cluster Aggregate:Tp1E:M5 Max
 CPU Performance Cluster 1:Tp1I:M5 Max
 CPU Performance Cluster 2:Tp1Q:M5 Max
@@ -1573,46 +1595,88 @@ Virtual Die A:TVDA:M5
 Virtual Die G:TVDG:M5
 Virtual Die M:TVDM:M5
 // TVDP and TVDc mirror TVD0 ("Virtual Die 1") byte-for-byte on all M5 dumps.
-// M5 unified memory sensors.
-Memory 1:Tm00:M5
-Memory 2:Tm04:M5
-Memory 3:Tm08:M5
-Memory 4:Tm0C:M5
-Memory 5:Tm0G:M5
-Memory 6:Tm0K:M5
-Memory 7:Tm0O:M5
-Memory 8:Tm0R:M5
-Memory 9:Tm0U:M5
-Memory 10:Tm0X:M5
-Memory 11:Tm0a:M5
-Memory 12:Tm0d:M5
-Memory 13:Tm0g:M5
-Memory 14:Tm0j:M5
-Memory 15:Tm0m:M5
-Memory 16:Tm0p:M5
-Memory 17:Tm0u:M5
-// Tm0y and Tm2T alias Tp0a (P-core 5) byte-for-byte across all four M5 dumps.
-Memory 18:Tm1E:M5
-Memory 19:Tm1I:M5
-Memory 20:Tm1M:M5
-Memory 21:Tm1Q:M5
-Memory 22:Tm1U:M5
-Memory 23:Tm1Y:M5
-Memory 24:Tm1c:M5
-Memory 25:Tm1g:M5
-Memory 26:Tm1k:M5
-Memory 27:Tm1o:M5
-Memory 28:Tm1s:M5
-Memory 29:Tm1x:M5
-Memory 30:Tm21:M5
-Memory 31:Tm25:M5
-Memory 32:Tm29:M5
-Memory 33:Tm2D:M5
-Memory 34:Tm2H:M5
-Memory 35:Tm2L:M5
-Memory 36:Tm2P:M5
-Memory 37:Tm2j:M5
-Memory 38:Tm2n:M5
+// M5 Pro/Max P-core probes (formerly "Memory"): in m5-max-run they stay at
+// 27-31 °C under Super-only load and rise ~8 °C under P load. Two clusters of
+// 19: one reads a single identical value while parked (cluster 1 in the idle
+// report-m5-pro-2/m5-max-2, cluster 2 under GPU load in m5-max-run). Which
+// probes belong to which of the 12 cores is not resolvable. Base M5 has none.
+CPU Performance Cluster 1 Probe 1:Tm00:M5 Pro
+CPU Performance Cluster 1 Probe 2:Tm04:M5 Pro
+CPU Performance Cluster 1 Probe 3:Tm08:M5 Pro
+CPU Performance Cluster 1 Probe 4:Tm0C:M5 Pro
+CPU Performance Cluster 1 Probe 5:Tm0G:M5 Pro
+CPU Performance Cluster 1 Probe 6:Tm0K:M5 Pro
+CPU Performance Cluster 1 Probe 7:Tm0O:M5 Pro
+CPU Performance Cluster 1 Probe 8:Tm0R:M5 Pro
+CPU Performance Cluster 1 Probe 9:Tm0U:M5 Pro
+CPU Performance Cluster 1 Probe 10:Tm0X:M5 Pro
+CPU Performance Cluster 1 Probe 11:Tm0a:M5 Pro
+CPU Performance Cluster 1 Probe 12:Tm0d:M5 Pro
+CPU Performance Cluster 1 Probe 13:Tm0g:M5 Pro
+CPU Performance Cluster 1 Probe 14:Tm0j:M5 Pro
+CPU Performance Cluster 1 Probe 15:Tm0m:M5 Pro
+CPU Performance Cluster 1 Probe 16:Tm0p:M5 Pro
+CPU Performance Cluster 1 Probe 17:Tm0u:M5 Pro
+CPU Performance Cluster 1 Probe 18:Tm1E:M5 Pro
+CPU Performance Cluster 1 Probe 19:Tm1I:M5 Pro
+// Tm0y and Tm2T alias Tp0a (a Super Core 4 probe) byte-for-byte on M5 Pro/Max.
+CPU Performance Cluster 2 Probe 1:Tm1M:M5 Pro
+CPU Performance Cluster 2 Probe 2:Tm1Q:M5 Pro
+CPU Performance Cluster 2 Probe 3:Tm1U:M5 Pro
+CPU Performance Cluster 2 Probe 4:Tm1Y:M5 Pro
+CPU Performance Cluster 2 Probe 5:Tm1c:M5 Pro
+CPU Performance Cluster 2 Probe 6:Tm1g:M5 Pro
+CPU Performance Cluster 2 Probe 7:Tm1k:M5 Pro
+CPU Performance Cluster 2 Probe 8:Tm1o:M5 Pro
+CPU Performance Cluster 2 Probe 9:Tm1s:M5 Pro
+CPU Performance Cluster 2 Probe 10:Tm1x:M5 Pro
+CPU Performance Cluster 2 Probe 11:Tm21:M5 Pro
+CPU Performance Cluster 2 Probe 12:Tm25:M5 Pro
+CPU Performance Cluster 2 Probe 13:Tm29:M5 Pro
+CPU Performance Cluster 2 Probe 14:Tm2D:M5 Pro
+CPU Performance Cluster 2 Probe 15:Tm2H:M5 Pro
+CPU Performance Cluster 2 Probe 16:Tm2L:M5 Pro
+CPU Performance Cluster 2 Probe 17:Tm2P:M5 Pro
+CPU Performance Cluster 2 Probe 18:Tm2j:M5 Pro
+CPU Performance Cluster 2 Probe 19:Tm2n:M5 Pro
+CPU Performance Cluster 1 Probe 1:Tm00:M5 Max
+CPU Performance Cluster 1 Probe 2:Tm04:M5 Max
+CPU Performance Cluster 1 Probe 3:Tm08:M5 Max
+CPU Performance Cluster 1 Probe 4:Tm0C:M5 Max
+CPU Performance Cluster 1 Probe 5:Tm0G:M5 Max
+CPU Performance Cluster 1 Probe 6:Tm0K:M5 Max
+CPU Performance Cluster 1 Probe 7:Tm0O:M5 Max
+CPU Performance Cluster 1 Probe 8:Tm0R:M5 Max
+CPU Performance Cluster 1 Probe 9:Tm0U:M5 Max
+CPU Performance Cluster 1 Probe 10:Tm0X:M5 Max
+CPU Performance Cluster 1 Probe 11:Tm0a:M5 Max
+CPU Performance Cluster 1 Probe 12:Tm0d:M5 Max
+CPU Performance Cluster 1 Probe 13:Tm0g:M5 Max
+CPU Performance Cluster 1 Probe 14:Tm0j:M5 Max
+CPU Performance Cluster 1 Probe 15:Tm0m:M5 Max
+CPU Performance Cluster 1 Probe 16:Tm0p:M5 Max
+CPU Performance Cluster 1 Probe 17:Tm0u:M5 Max
+CPU Performance Cluster 1 Probe 18:Tm1E:M5 Max
+CPU Performance Cluster 1 Probe 19:Tm1I:M5 Max
+CPU Performance Cluster 2 Probe 1:Tm1M:M5 Max
+CPU Performance Cluster 2 Probe 2:Tm1Q:M5 Max
+CPU Performance Cluster 2 Probe 3:Tm1U:M5 Max
+CPU Performance Cluster 2 Probe 4:Tm1Y:M5 Max
+CPU Performance Cluster 2 Probe 5:Tm1c:M5 Max
+CPU Performance Cluster 2 Probe 6:Tm1g:M5 Max
+CPU Performance Cluster 2 Probe 7:Tm1k:M5 Max
+CPU Performance Cluster 2 Probe 8:Tm1o:M5 Max
+CPU Performance Cluster 2 Probe 9:Tm1s:M5 Max
+CPU Performance Cluster 2 Probe 10:Tm1x:M5 Max
+CPU Performance Cluster 2 Probe 11:Tm21:M5 Max
+CPU Performance Cluster 2 Probe 12:Tm25:M5 Max
+CPU Performance Cluster 2 Probe 13:Tm29:M5 Max
+CPU Performance Cluster 2 Probe 14:Tm2D:M5 Max
+CPU Performance Cluster 2 Probe 15:Tm2H:M5 Max
+CPU Performance Cluster 2 Probe 16:Tm2L:M5 Max
+CPU Performance Cluster 2 Probe 17:Tm2P:M5 Max
+CPU Performance Cluster 2 Probe 18:Tm2j:M5 Max
+CPU Performance Cluster 2 Probe 19:Tm2n:M5 Max
 // M5 SSD slots and controllers.
 SSD 1:Ts00:M5
 SSD 2:Ts04:M5

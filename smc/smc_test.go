@@ -290,9 +290,9 @@ func Test_LookupTempDesc_directMatch(t *testing.T) {
 		wantOK   bool
 	}{
 		{
-			name: "M5 base Tp00 maps to Super Core 1",
-			key:  "Tp00", family: "M5",
-			wantDesc: "CPU Super Core 1", wantOK: true,
+			name: "M5 Ta04 maps to Die Thermal Headroom",
+			key:  "Ta04", family: "M5",
+			wantDesc: "CPU Die Thermal Headroom", wantOK: true,
 		},
 		{
 			name: "M3 Te0Q maps to Efficiency Cluster Aggregate 1",

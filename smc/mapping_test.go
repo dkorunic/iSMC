@@ -631,13 +631,14 @@ func isNumberedRow(desc, prefix string) bool {
 }
 
 // Test_M5Pro18CoreMapping verifies that the M5 temperature definitions resolve
-// the M5 Pro 18-core snapshot to exactly 6 Super Cores and 12 Performance
-// Cores, honouring the S+P pair signature (M5 Pro/Max have no E-cores).
+// the M5 Pro 18-core snapshot to six Super-core triplets (18 "Core N Probe M"
+// rows) and two 19-probe P-core clusters (Tm*), with no E-cores (S+P pair
+// signature) and no per-core P rows (m5-max-run cannot attribute Tm probes).
 //
 // It also asserts that the register aliases removed from src/temp.txt stay
-// removed: memory must resolve to 38 rows (not 40 — Tm0y/Tm2T mirror Tp0a) and
-// SSD to 10 rows (not 11 — Ts0G mirrors the thermal-headroom band; Ts0d/Ts0g
-// are M5 Max-only and legitimately absent here).
+// removed: the P-cluster probes must resolve to 38 rows (not 40 — Tm0y/Tm2T
+// mirror Tp0a) and SSD to 10 rows (not 11 — Ts0G mirrors the thermal-headroom
+// band; Ts0d/Ts0g are M5 Max-only and legitimately absent here).
 func Test_M5Pro18CoreMapping(t *testing.T) {
 	resolved := resolveForFamily(AppleTemp, "M5", "M5 Pro", m5Pro18CoreReport)
 
@@ -661,22 +662,23 @@ func Test_M5Pro18CoreMapping(t *testing.T) {
 			eCores++
 
 			eCoreNames = append(eCoreNames, desc)
-		case isNumberedRow(desc, "Memory "):
+		case strings.HasPrefix(desc, "CPU Performance Cluster 1 Probe "),
+			strings.HasPrefix(desc, "CPU Performance Cluster 2 Probe "):
 			memNames = append(memNames, desc)
 		case isNumberedRow(desc, "SSD "):
 			ssdSet = append(ssdSet, desc)
 		}
 	}
 
-	assert.Equal(t, 6, sCores,
-		"M5 Pro 18-core must resolve to exactly 6 Super Cores; got %v", sCoreNames)
-	assert.Equal(t, 12, pCores,
-		"M5 Pro 18-core must resolve to exactly 12 Performance Cores; got %v", pCoreNames)
+	assert.Equal(t, 18, sCores,
+		"M5 Pro 18-core must resolve to 6 Super-core triplets (18 probes); got %v", sCoreNames)
+	assert.Equal(t, 0, pCores,
+		"M5 Pro P-cores are Tm cluster probes, not per-core rows; got %v", pCoreNames)
 	assert.Equal(t, 0, eCores,
 		"M5 Pro is S+P; no Efficiency Cores may resolve; got %v", eCoreNames)
 
 	assert.Len(t, memNames, 38,
-		"Tm0y/Tm2T alias Tp0a and must not resolve as memory rows; got %v", memNames)
+		"Tm0y/Tm2T alias Tp0a and must not resolve as P-cluster probes; got %v", memNames)
 	assert.Len(t, ssdSet, 10,
 		"Ts0G aliases the thermal-headroom band and must not resolve as an SSD row; got %v", ssdSet)
 

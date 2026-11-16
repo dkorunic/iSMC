@@ -23,8 +23,9 @@ import (
 // Test_DumpReplay replays every internal/reports dump through the production
 // temperature mapping for the dump's platform and checks, per dump:
 //
-//	cores    distinct live "CPU {Performance,Efficiency,Super} Core N" rows fall
-//	         inside the skuLayouts min–max for the SKU;
+//	cores    distinct live "CPU {Performance,Efficiency,Super} Core N" rows (a
+//	         "Core N Probe M" row counts toward core N) fall inside the
+//	         skuLayouts min–max for the SKU;
 //	collide  no description hides a hotter distinct key behind the last-written
 //	         one (last-write-wins in addGeneric);
 //	unmapped every live T* key resolves to some description;
@@ -39,7 +40,7 @@ import (
 func Test_DumpReplay(t *testing.T) {
 	const collideTol = 0.5 // °C; probe A/B vs max spread on a live triplet.
 
-	coreRe := regexp.MustCompile(`^CPU (Performance|Efficiency|Super) Core \d+$`)
+	coreRe := regexp.MustCompile(`^CPU (Performance|Efficiency|Super) Core (\d+)(?: Probe \d+)?$`)
 
 	for _, d := range loadDumps(t) {
 		name, family, sku, live := d.name, d.family, d.sku, d.live
@@ -84,13 +85,15 @@ func Test_DumpReplay(t *testing.T) {
 			})
 
 			cores := map[string]int{}
+			seen := map[string]bool{}
 
 			for desc, key := range last {
 				if hottest[desc]-live[key] > collideTol {
 					got["collide "+desc] = true
 				}
 
-				if m := coreRe.FindStringSubmatch(desc); m != nil && ungated[desc] {
+				if m := coreRe.FindStringSubmatch(desc); m != nil && ungated[desc] && !seen[m[1]+m[2]] {
+					seen[m[1]+m[2]] = true
 					cores[m[1][:1]]++
 				}
 			}
@@ -195,14 +198,17 @@ var deadRowAllow = slices.Concat(strings.Fields("Tpx8:M4 Tpx9:M4 TpxA:M4 TpxB:M4
 		"Tp1o:M2 Tp1p:M2 Tp1q:M2 Tp1s:M2 Tp1t:M2 Tp1u:M2 Tp2G:M2 Tp2H:M2 Tp2I:M2"),
 	// M4 Tp1i-scheme (bank B) fabric triplets: live only in the iSMC#28 JSON
 	// runs (Mac16,8); its raw dump, report-m4-pro-4, caught bank B parked.
-	strings.Fields("Tp2I:M4 Tp2J:M4 Tp2K:M4 Tp2L:M4 Tp2M:M4 Tp2N:M4 Tp2O:M4 Tp2Q:M4 Tp2R:M4 "+
-		"Tp2S:M4 Tp2T:M4 Tp2U:M4 Tp2V:M4 Tp2W:M4 Tp2X:M4"),
-	// M4 Max P-cores 8-10 and Fabric 1: the only M4 Max dump has every P-core
-	// parked at gatedTemp; the rows mirror the M4 Pro rows that report-m4-pro
-	// and report-m4-pro-4 read live. SKU tags contain a space.
+	strings.Fields("Tp2O:M4 Tp2Q:M4 Tp2R:M4 Tp2S:M4 Tp2T:M4 Tp2U:M4 Tp2V:M4 Tp2W:M4 Tp2X:M4"),
+	// M4 Max P-cores 8-12 (cores 11-12 are the M4 Pro Fabric 1-2 triplets, both
+	// banks) and M4 Pro bank-B Fabric 1-2: the only M4 Max dump has every P-core
+	// parked at gatedTemp; m4-max-run (Mac16,9) reads them all live under P load.
+	// SKU tags contain a space.
 	[]string{
 		"Tp0S:M4 Max", "Tp0T:M4 Max", "Tp0U:M4 Max", "Tp0W:M4 Max", "Tp0X:M4 Max", "Tp0Y:M4 Max",
 		"Tp0a:M4 Max", "Tp0b:M4 Max", "Tp0c:M4 Max", "Tp0d:M4 Max", "Tp0e:M4 Max", "Tp0f:M4 Max",
+		"Tp0g:M4 Max", "Tp0i:M4 Max", "Tp0k:M4 Max",
+		"Tp2I:M4 Max", "Tp2J:M4 Max", "Tp2K:M4 Max", "Tp2L:M4 Max", "Tp2M:M4 Max", "Tp2N:M4 Max",
+		"Tp2I:M4 Pro", "Tp2J:M4 Pro", "Tp2K:M4 Pro", "Tp2L:M4 Pro", "Tp2M:M4 Pro", "Tp2N:M4 Pro",
 	})
 
 // Test_DumpLiveRows checks that every Apple-Silicon-tagged row reads live in at
@@ -361,6 +367,9 @@ const (
 	// Register aliases removed from src/temp.txt: TVDP/TVDc ≡ TVD0, Tm0y/Tm2T ≡
 	// Tp0a, Ts0G ≡ the Ta00-Ta0R band (see Test_M5Pro18CoreMapping).
 	m5Aliases = "unmapped TVDP TVDc Tm0y Tm2T Ts0G"
+	// M5 Pro/Max P-cores read through two 19-probe Tm* clusters with no per-core
+	// attribution (m5-max-run), so no "CPU Performance Core N" row exists.
+	m5ProMaxP = "cores P=0"
 )
 
 // notTemperature lists live T* keys that are deliberately unmapped because
@@ -452,10 +461,10 @@ var replayAllow = map[string][]string{
 	// six E-cores as on m5; TVDE ≡ TVD0 and TH0T ≡ TH0x byte for byte, TVDP
 	// tracks TVD0 (an alias on M5 Pro/Max, m5Aliases); T5SP unknown, as on M4.
 	"m5-2":     {"cores E=4", "unmapped T5SP TH0T TVDE TVDP"},
-	"m5-max":   {m5Aliases},
-	"m5-max-2": {m5Aliases},
-	"m5-pro":   {m5Aliases},
-	"m5-pro-2": {m5Aliases},
+	"m5-max":   {m5Aliases, m5ProMaxP},
+	"m5-max-2": {m5Aliases, m5ProMaxP},
+	"m5-pro":   {m5Aliases, m5ProMaxP},
+	"m5-pro-2": {m5Aliases, m5ProMaxP},
 	// M6 E-cores have no per-core sensors (see src/temp.txt). TVDC ≡ TVD0
 	// byte-for-byte; Te0g and Ts05 ≡ Te0f in every snapshot of the owner's
 	// saved guess run.
