@@ -492,4 +492,6 @@ var replayAllow = map[string][]string{
 	// byte-for-byte; Te0g and Ts05 ≡ Te0f in every snapshot of the owner's
 	// saved guess run.
 	"m6": {noECores, "unmapped TVDC Te0g Ts05"},
+	// Same Mac18,5, full dump under sustained CI load (S-cores 81-93 °C).
+	"m6-2": {noECores, "unmapped TVDC Te0g Ts05"},
 }

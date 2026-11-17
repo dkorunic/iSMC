@@ -1842,8 +1842,9 @@ Virtual Ambient O:TVAO:M5 Base
 Virtual Sensor G0:TVG0:M5 Base
 Airflow Left Rear:TaLR:M5 Base
 // M6 (2S+4P+6E). report-m6.txt (Mac18,5, idle, no gated keys) confirms every
-// row SiliconScope#84 listed. TVDC mirrors TVD0 byte-for-byte; TVDP does not
-// (39.95 vs 40.04 °C).
+// row SiliconScope#84 listed. TVDC mirrors TVD0 byte-for-byte. TVD0 is the
+// maximum of TVDA/E/G/P: TVDE at idle (40.04 °C, TVDP 39.95), TVDP under
+// load (101.49 °C in report-m6-2.txt, same Mac18,5 under sustained CI load).
 Power Delivery IC 27:TPDG:M6
 Power Delivery IC 28:TPDH:M6
 Power Delivery IC 29:TPDI:M6
@@ -1879,19 +1880,23 @@ Virtual Die P:TVDP:M6
 // pairs are unverified: the saved run's 1 s changes favour Tp0E+Tp0I, Tp0G+Tp0L,
 // Tp0d+Tp05, Tp0m+Tp0b (r 0.99-1.00 vs 0.98-0.99 for alternatives, from only ~8
 // distinct samples), while othyn's rise sizes favour Tp0I+Tp0L, Tp0b+Tp05,
-// Tp0m+Tp0d. Within a pair the key hotter at idle is last.
-CPU Super Core 1:Tp07:M6
-CPU Super Core 1:Tp09:M6
-CPU Super Core 2:Tp0j:M6
-CPU Super Core 2:Tp0g:M6
-CPU Performance Core 1:Tp0I:M6
-CPU Performance Core 1:Tp0E:M6
-CPU Performance Core 2:Tp0L:M6
-CPU Performance Core 2:Tp0G:M6
-CPU Performance Core 3:Tp0d:M6
-CPU Performance Core 3:Tp05:M6
-CPU Performance Core 4:Tp0m:M6
-CPU Performance Core 4:Tp0b:M6
+// Tp0m+Tp0d. report-m6-2.txt (sustained CI load) splits them the same way:
+// Tp05/0b/0d/0m 67-71 °C, Tp0E/0G/0I/0L at die level (~65 °C).
+// One row per probe, as on M5 Max: the hotter probe moves with load (Tp07
+// 82.53 > Tp09 81.12 °C in report-m6-2, Tp09 >= Tp07 in every m6-run
+// snapshot; Tp0L > Tp0G in 13 of 72), so a shared label hid the hotter key.
+CPU Super Core 1 Probe 1:Tp07:M6
+CPU Super Core 1 Probe 2:Tp09:M6
+CPU Super Core 2 Probe 1:Tp0j:M6
+CPU Super Core 2 Probe 2:Tp0g:M6
+CPU Performance Core 1 Probe 1:Tp0I:M6
+CPU Performance Core 1 Probe 2:Tp0E:M6
+CPU Performance Core 2 Probe 1:Tp0L:M6
+CPU Performance Core 2 Probe 2:Tp0G:M6
+CPU Performance Core 3 Probe 1:Tp0d:M6
+CPU Performance Core 3 Probe 2:Tp05:M6
+CPU Performance Core 4 Probe 1:Tp0m:M6
+CPU Performance Core 4 Probe 2:Tp0b:M6
 CPU Probe 4:Tp0A:M6
 CPU Probe 14:Tp0o:M6
 CPU Probe 15:Tp0r:M6
