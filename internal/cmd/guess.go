@@ -84,8 +84,9 @@ const (
 
 	// A phase above its SKU core maximum is cut at the largest drop between
 	// consecutive groups ranked by mean rise, if that drop is at least this
-	// ratio: M6 Super cores rise ~18 °C, the next group 8.6 °C (2.1×).
-	guessTrimGapRatio = float32(1.5)
+	// ratio: M6 Super cores rise ~18 °C, the next group 8.6 °C (2.1×); Mac
+	// mini M4 P triplets ~11.4 °C, the cluster aggregates Tp1A-1S <= 8.3 (1.37×).
+	guessTrimGapRatio = float32(1.3)
 
 	// Sensor is cluster-level if min/max phase delta ≥ (1 − this).
 	guessClusterRatio = float32(0.20)
@@ -96,6 +97,10 @@ const (
 	// desktop's 1 °C noise on one key of a P-core (5% of its P-phase rise on an
 	// M1 Ultra) does not.
 	guessMinPhaseShare = float32(0.25)
+
+	// Per-key cap in a group's phase delta, as a multiple of the group's
+	// median key delta (see groupPhaseDelta).
+	guessSpikeCap = float32(2.0)
 )
 
 var guessCmd = &cobra.Command{
@@ -776,11 +781,27 @@ func coreEligibleSeries(series string, appleSilicon, tePerCore bool) bool {
 
 // groupPhaseDelta returns the summed deltas of a group's keys in one phase's
 // delta map; keys below the output threshold are absent and contribute 0.
+// In groups of three or more keys each delta is capped at guessSpikeCap times
+// the group's median: one probe spiking in the end snapshot is not the group
+// warming (Mac mini M4: under E load Tp0Z read +22 °C while Tp0X/Tp0Y rose
+// 1.1 °C, as the idle P cluster woke briefly, and Tp0X-Z scored as an E-core).
 func groupPhaseDelta(group []string, deltas map[string]float32) float32 {
+	limit := float32(math.MaxFloat32)
+
+	if len(group) >= 3 {
+		vals := make([]float32, len(group))
+		for i, k := range group {
+			vals[i] = deltas[k]
+		}
+
+		slices.Sort(vals)
+		limit = guessSpikeCap * vals[len(vals)/2]
+	}
+
 	var sum float32
 
 	for _, k := range group {
-		sum += deltas[k]
+		sum += min(deltas[k], limit)
 	}
 
 	return sum

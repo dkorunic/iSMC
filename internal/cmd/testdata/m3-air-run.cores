@@ -46,13 +46,8 @@ CPU Performance Core 15:Tp0w:M3
 CPU Performance Core 16:Tp0y:M3
 CPU Performance Core 16:Tp0z:M3
 CPU Performance Core 16:Tp10:M3
-CPU Performance Core 17:Tp12:M3
-CPU Performance Core 17:Tp13:M3
-CPU Performance Core 17:Tp14:M3
-CPU Performance Core 18:Tp1H:M3
-CPU Performance Core 18:Tp1I:M3
-CPU Performance Core 19:Tp1K:M3
-CPU Performance Core 19:Tp1L:M3
+CPU Performance Core 17:Tp1K:M3
+CPU Performance Core 17:Tp1L:M3
 CPU Efficiency Core 1:Te04:M3
 CPU Efficiency Core 1:Te05:M3
 CPU Efficiency Core 1:Te06:M3

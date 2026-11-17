@@ -130,10 +130,11 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     of eight whose maxima are Tp1F and Tp1L. The E phase warms the Te* keys
 //     only ~2 °C, so rebalancing fills the E tier with the three Te* groups
 //     plus Tp16. Tp1E/Tp1F drop out as a cluster sensor. Known gaps: all 16
-//     triplets stay P groups; Tp1L (bank-2 max) and Tp1I (max of Tp14/Tp18)
-//     match their members in only 83-90% of snapshots and stay P groups; the
-//     Tp12/Tp16/Tp1H probes (+15.5 °C under P load, +21 °C under GPU load)
-//     land as cores although they are neither tier.
+//     triplets stay P groups; Tp1L (bank-2 max) matches its members in only
+//     83-90% of snapshots and stays a P group; Tp16 (+15.5 °C under P load,
+//     +21 °C under GPU load) lands in E although it is neither tier. The
+//     Tp12-14 and Tp1H/Tp1I groups fall 1.3× below the triplets and are
+//     trimmed.
 //   - m1-ultra-ft-run (Mac Studio M1 Ultra, Mac13,2): the first run that also
 //     reads the SMC ft index; its 20 ftP entries cover every core triplet, so
 //     the core lines match m1-ultra-run's classification.
@@ -150,8 +151,9 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     four Te groups for six E-cores rebalancing moves Tp0u/Tp1E into E.
 //   - m5-mbp14-run (MacBook Pro 14 M5, Mac17,2, v0.18.6, with sd*): same
 //     classification as m5-air-run (Super load +18-22 °C on the eight Super
-//     keys, E load ≤ 2 °C) and the same known gaps; every sd* key is one T*
-//     key plus a constant offset, so none becomes a core group.
+//     keys, E load ≤ 2 °C), except that the Tp0p/Tp0y groups fall more than
+//     1.3× below the Super keys and are trimmed; every sd* key is one T* key
+//     plus a constant offset, so none becomes a core group.
 //   - m3-max-run (MacBook Pro 16 M3 Max 12P+4E, Mac15,9, iSMC#34, dev build):
 //     a second bank of 48 Tp keys (Tp1g-Tp3j), gated at 40.0 in every M3 Max
 //     dump and in the baselines, goes live ~2 s into P load beside bank A.
@@ -185,13 +187,21 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     same result: QoS kept the Super CPUs busy in the P phase, all 18 Tp00-
 //     Tp0y keys rise +17-28 °C, and rebalancing moves six of them into P beside
 //     Tp1E-1g. Its sd* keys copy T* keys (Super, Tm*, GPU) and stay out.
+//   - m4-mini-run (Mac mini M4 4P+6E, Mac16,10, v0.18.6): with a fan the E
+//     load leaves every Te* key flat (-0.1 to -1.2 °C), while probe C of the
+//     P triplets (Tp02, Tp0W, Tp0Z, ...) spikes +10-22 °C in the end snapshot
+//     as the idle P cluster wakes; groupPhaseDelta's spike cap keeps Tp0X-Z
+//     in P, and assignTeByPrefix fills E from the indexed Te* groups. The
+//     indexed cluster aggregates Tp1A-C/1E-G/1Q-S rise 7-8 °C against ~11-14
+//     for the triplets and are trimmed; P Groups 1-4 (Tp0U-Tp0f) remain as
+//     extra P-cores, as on m4-air-run.
 //   - imac20-2-run (iMac 27 2020, Core i9-10910 10C/20T, iSMC#36, v0.18.5):
 //     one perf level, but v0.18.5 still ran a Background phase on the same
 //     20 CPUs; singlePerfLevel keeps the UserInitiated phase as plain cores.
 //     TC2c read nothing at either baseline (reads fail intermittently, ~80 °C
 //     under load), so it is the one missing core.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run", "m4-mini-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {
