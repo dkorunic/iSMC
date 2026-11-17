@@ -200,8 +200,17 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     20 CPUs; singlePerfLevel keeps the UserInitiated phase as plain cores.
 //     TC2c read nothing at either baseline (reads fail intermittently, ~80 °C
 //     under load), so it is the one missing core.
+//   - m3-max-2-run (MacBook Pro 16 M3 Max 12P+4E, Mac15,9, iSMC#33, v0.18.6):
+//     a second machine of the m3-max-run model; same twelve P and two E groups,
+//     the same ft index (bank B live under P load), and Te0P = Te04 + 6.50,
+//     Te0S = Te0K + 6.00 in all 18 snapshots.
+//   - m1-mbp13-run (MacBook Pro 13 M1 4P+4E, MacBookPro17,1, iSMC#33, v0.18.6):
+//     the base M1 a/b/x/z quad layout (see the M1 Base block in src/temp.txt).
+//     Seven indexed Tp quads rise +10-18 °C; their trimmed x/z copies rise
+//     alike and are listed as cluster sensors, and the six a/b pairs exceed
+//     the 4 P-cores. The E load raised no key, so the E tier is empty.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run", "m4-mini-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run", "m4-mini-run", "m3-max-2-run", "m1-mbp13-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {

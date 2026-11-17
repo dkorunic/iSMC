@@ -291,37 +291,38 @@ CPU Performance Core 7:Tp0Y:M1
 CPU Performance Core 8:Tp0a:M1
 CPU Performance Core 8:Tp0b:M1
 CPU Performance Core 8:Tp0c:M1
-// M1 Ultra die 2 (rejected on non-Ultra SKUs).
-CPU Efficiency Core 3:Tp28:M1
-CPU Efficiency Core 3:Tp29:M1
-CPU Efficiency Core 3:Tp2A:M1
-CPU Efficiency Core 4:Tp2S:M1
-CPU Efficiency Core 4:Tp2T:M1
-CPU Efficiency Core 4:Tp2U:M1
-CPU Performance Core 9:Tp20:M1
-CPU Performance Core 9:Tp21:M1
-CPU Performance Core 9:Tp22:M1
-CPU Performance Core 10:Tp24:M1
-CPU Performance Core 10:Tp25:M1
-CPU Performance Core 10:Tp26:M1
-CPU Performance Core 11:Tp2C:M1
-CPU Performance Core 11:Tp2D:M1
-CPU Performance Core 11:Tp2E:M1
-CPU Performance Core 12:Tp2G:M1
-CPU Performance Core 12:Tp2H:M1
-CPU Performance Core 12:Tp2I:M1
-CPU Performance Core 13:Tp2K:M1
-CPU Performance Core 13:Tp2L:M1
-CPU Performance Core 13:Tp2M:M1
-CPU Performance Core 14:Tp2O:M1
-CPU Performance Core 14:Tp2P:M1
-CPU Performance Core 14:Tp2Q:M1
-CPU Performance Core 15:Tp2W:M1
-CPU Performance Core 15:Tp2X:M1
-CPU Performance Core 15:Tp2Y:M1
-CPU Performance Core 16:Tp2a:M1
-CPU Performance Core 16:Tp2b:M1
-CPU Performance Core 16:Tp2c:M1
+// M1 Ultra die 2. SKU-tagged: base M1 (MacBookPro17,1) reads Tp2a/Tp2b as a
+// different sensor (see the M1 Base block).
+CPU Efficiency Core 3:Tp28:M1 Ultra
+CPU Efficiency Core 3:Tp29:M1 Ultra
+CPU Efficiency Core 3:Tp2A:M1 Ultra
+CPU Efficiency Core 4:Tp2S:M1 Ultra
+CPU Efficiency Core 4:Tp2T:M1 Ultra
+CPU Efficiency Core 4:Tp2U:M1 Ultra
+CPU Performance Core 9:Tp20:M1 Ultra
+CPU Performance Core 9:Tp21:M1 Ultra
+CPU Performance Core 9:Tp22:M1 Ultra
+CPU Performance Core 10:Tp24:M1 Ultra
+CPU Performance Core 10:Tp25:M1 Ultra
+CPU Performance Core 10:Tp26:M1 Ultra
+CPU Performance Core 11:Tp2C:M1 Ultra
+CPU Performance Core 11:Tp2D:M1 Ultra
+CPU Performance Core 11:Tp2E:M1 Ultra
+CPU Performance Core 12:Tp2G:M1 Ultra
+CPU Performance Core 12:Tp2H:M1 Ultra
+CPU Performance Core 12:Tp2I:M1 Ultra
+CPU Performance Core 13:Tp2K:M1 Ultra
+CPU Performance Core 13:Tp2L:M1 Ultra
+CPU Performance Core 13:Tp2M:M1 Ultra
+CPU Performance Core 14:Tp2O:M1 Ultra
+CPU Performance Core 14:Tp2P:M1 Ultra
+CPU Performance Core 14:Tp2Q:M1 Ultra
+CPU Performance Core 15:Tp2W:M1 Ultra
+CPU Performance Core 15:Tp2X:M1 Ultra
+CPU Performance Core 15:Tp2Y:M1 Ultra
+CPU Performance Core 16:Tp2a:M1 Ultra
+CPU Performance Core 16:Tp2b:M1 Ultra
+CPU Performance Core 16:Tp2c:M1 Ultra
 GPU 1:Tg04:M1
 GPU 1:Tg05:M1
 GPU 2:Tg0C:M1
@@ -437,6 +438,62 @@ SoC Diode Group 5:Td0I:M1
 SoC Diode Group 6:Td0K:M1
 SoC Diode Group 6:Td0L:M1
 SoC Diode Group 6:Td0M:M1
+// Base M1 (4P+4E; MacBook Pro 13 MacBookPro17,1, internal/cmd/testdata/
+// m1-mbp13-run.json, iSMC#33). A different layout from M1 Pro/Max/Ultra: every
+// sensor is a quad a/b/x/z where b = a + trim and z = x + trim, constant to
+// 0.001 °C in all snapshots (Tp2/Tp7 9.1/15, Tp3/Tp8 7.4/12, Tp4/Tp9 10.1/17,
+// Te3 8.7/20, Th1/Th2 9/9, Ts1/Ts2 5/5; Te0/Th0/Ts0 have none). The firmware
+// reads the trimmed keys (ftP0-6 = Tp2b-Tp9b, ftE0 = Te3b, TCMz = max of z), as
+// M1 Pro shows B ≈ A + 9 and C ≈ A + 15, so z is listed last and displayed.
+// Seven indexed P groups rise +15-18 °C (Tp5 +10) for 4 P-cores: generic labels.
+// The E load moved no key (±1.6 °C), so Te0/Te3 are named by prefix and index.
+// Th1/Ts1 rise +11-12.7 °C under GPU load against 4.4-5.0 under CPU load and
+// base M1 has no Tg keys. Tc* copy other quads (Tc0 = Ts1, Tc7 = Te3, Tc9 = Tp5,
+// Tc8x = Tp3x, Tcax = max(Tp8x, Tp9x)); Th0/Th2/Ts0/Ts2 have no tier: unmapped.
+CPU Performance Group 1:Tp2a:M1 Base
+CPU Performance Group 1:Tp2b:M1 Base
+CPU Performance Group 1:Tp2x:M1 Base
+CPU Performance Group 1:Tp2z:M1 Base
+CPU Performance Group 2:Tp3a:M1 Base
+CPU Performance Group 2:Tp3b:M1 Base
+CPU Performance Group 2:Tp3x:M1 Base
+CPU Performance Group 2:Tp3z:M1 Base
+CPU Performance Group 3:Tp4a:M1 Base
+CPU Performance Group 3:Tp4b:M1 Base
+CPU Performance Group 3:Tp4x:M1 Base
+CPU Performance Group 3:Tp4z:M1 Base
+CPU Performance Group 4:Tp5a:M1 Base
+CPU Performance Group 4:Tp5b:M1 Base
+CPU Performance Group 4:Tp5x:M1 Base
+CPU Performance Group 4:Tp5z:M1 Base
+CPU Performance Group 5:Tp7a:M1 Base
+CPU Performance Group 5:Tp7b:M1 Base
+CPU Performance Group 5:Tp7x:M1 Base
+CPU Performance Group 5:Tp7z:M1 Base
+CPU Performance Group 6:Tp8a:M1 Base
+CPU Performance Group 6:Tp8b:M1 Base
+CPU Performance Group 6:Tp8x:M1 Base
+CPU Performance Group 6:Tp8z:M1 Base
+CPU Performance Group 7:Tp9a:M1 Base
+CPU Performance Group 7:Tp9b:M1 Base
+CPU Performance Group 7:Tp9x:M1 Base
+CPU Performance Group 7:Tp9z:M1 Base
+CPU Efficiency Group 1:Te0a:M1 Base
+CPU Efficiency Group 1:Te0b:M1 Base
+CPU Efficiency Group 1:Te0x:M1 Base
+CPU Efficiency Group 1:Te0z:M1 Base
+CPU Efficiency Group 2:Te3a:M1 Base
+CPU Efficiency Group 2:Te3b:M1 Base
+CPU Efficiency Group 2:Te3x:M1 Base
+CPU Efficiency Group 2:Te3z:M1 Base
+GPU Group 1:Th1a:M1 Base
+GPU Group 1:Th1b:M1 Base
+GPU Group 1:Th1x:M1 Base
+GPU Group 1:Th1z:M1 Base
+GPU Group 2:Ts1a:M1 Base
+GPU Group 2:Ts1b:M1 Base
+GPU Group 2:Ts1x:M1 Base
+GPU Group 2:Ts1z:M1 Base
 // M2
 // Two key layouts. Base M2 (report-m2.txt) differs from the M2 Pro/Max die, whose
 // report-m2-pro.txt (Mac14,10) is a strict key subset of report-m2-max.txt.
@@ -649,52 +706,55 @@ CPU Efficiency Group 3:Te0U:M3 Pro
 CPU Efficiency Group 3:Te0T:M3 Pro
 CPU Efficiency Probe 1:Te0P:M3 Pro
 // Tf?4/D/E=aggregate, Tf?5=min, Tf?6=max, Tf?8-B=probes.
+// Labels drop "GPU": Tf0*/Tf4* rise +12-15 °C under P load against +3-8 °C under
+// GPU load (m3-max-run, m3-max-2-run, m4-max-run), Tf14 rises under P load
+// on M3 Pro (+4.4 vs +0.3) and Tf1* mainly under GPU load on M3/M4 Max (+17-24).
 // Shared across M2 Max / M3 / M4 → Apple; Tf?D (M3 only) and Tf9F/TfA0 stay M3.
-GPU Fabric Block 0:Tf04:Apple
-GPU Fabric Block 0:Tf0D:M3
-GPU Fabric Block 0:Tf0E:Apple
-GPU Fabric Block 0 Min:Tf05:Apple
-GPU Fabric Block 0 Max:Tf06:Apple
-GPU Fabric Block 0 Probe 1:Tf08:Apple
-GPU Fabric Block 0 Probe 2:Tf09:Apple
-GPU Fabric Block 0 Probe 3:Tf0A:Apple
-GPU Fabric Block 0 Probe 4:Tf0B:Apple
-GPU Fabric Block 1:Tf14:Apple
-GPU Fabric Block 1:Tf1D:M3
-GPU Fabric Block 1:Tf1E:Apple
-GPU Fabric Block 1 Min:Tf15:Apple
-GPU Fabric Block 1 Max:Tf16:Apple
-GPU Fabric Block 1 Probe 1:Tf18:Apple
-GPU Fabric Block 1 Probe 2:Tf19:Apple
-GPU Fabric Block 1 Probe 3:Tf1A:Apple
-GPU Fabric Block 1 Probe 4:Tf1B:Apple
-GPU Fabric Block 2:Tf24:Apple
-GPU Fabric Block 2:Tf2D:M3
-GPU Fabric Block 2:Tf2E:Apple
-GPU Fabric Block 2 Min:Tf25:Apple
-GPU Fabric Block 2 Max:Tf26:Apple
-GPU Fabric Block 2 Probe 1:Tf28:Apple
-GPU Fabric Block 2 Probe 2:Tf29:Apple
-GPU Fabric Block 2 Probe 3:Tf2A:Apple
-GPU Fabric Block 2 Probe 4:Tf2B:Apple
-GPU Fabric Block 3:Tf34:Apple
-GPU Fabric Block 3:Tf3D:M3
-GPU Fabric Block 3:Tf3E:Apple
-GPU Fabric Block 3 Min:Tf35:Apple
-GPU Fabric Block 3 Max:Tf36:Apple
-GPU Fabric Block 3 Probe 1:Tf38:Apple
-GPU Fabric Block 3 Probe 2:Tf39:Apple
-GPU Fabric Block 3 Probe 3:Tf3A:Apple
-GPU Fabric Block 3 Probe 4:Tf3B:Apple
-GPU Fabric Block 4:Tf44:Apple
-GPU Fabric Block 4:Tf4D:M3
-GPU Fabric Block 4:Tf4E:Apple
-GPU Fabric Block 4 Min:Tf45:Apple
-GPU Fabric Block 4 Max:Tf46:Apple
-GPU Fabric Block 4 Probe 1:Tf48:Apple
-GPU Fabric Block 4 Probe 2:Tf49:Apple
-GPU Fabric Block 4 Probe 3:Tf4A:Apple
-GPU Fabric Block 4 Probe 4:Tf4B:Apple
+Fabric Block 0:Tf04:Apple
+Fabric Block 0:Tf0D:M3
+Fabric Block 0:Tf0E:Apple
+Fabric Block 0 Min:Tf05:Apple
+Fabric Block 0 Max:Tf06:Apple
+Fabric Block 0 Probe 1:Tf08:Apple
+Fabric Block 0 Probe 2:Tf09:Apple
+Fabric Block 0 Probe 3:Tf0A:Apple
+Fabric Block 0 Probe 4:Tf0B:Apple
+Fabric Block 1:Tf14:Apple
+Fabric Block 1:Tf1D:M3
+Fabric Block 1:Tf1E:Apple
+Fabric Block 1 Min:Tf15:Apple
+Fabric Block 1 Max:Tf16:Apple
+Fabric Block 1 Probe 1:Tf18:Apple
+Fabric Block 1 Probe 2:Tf19:Apple
+Fabric Block 1 Probe 3:Tf1A:Apple
+Fabric Block 1 Probe 4:Tf1B:Apple
+Fabric Block 2:Tf24:Apple
+Fabric Block 2:Tf2D:M3
+Fabric Block 2:Tf2E:Apple
+Fabric Block 2 Min:Tf25:Apple
+Fabric Block 2 Max:Tf26:Apple
+Fabric Block 2 Probe 1:Tf28:Apple
+Fabric Block 2 Probe 2:Tf29:Apple
+Fabric Block 2 Probe 3:Tf2A:Apple
+Fabric Block 2 Probe 4:Tf2B:Apple
+Fabric Block 3:Tf34:Apple
+Fabric Block 3:Tf3D:M3
+Fabric Block 3:Tf3E:Apple
+Fabric Block 3 Min:Tf35:Apple
+Fabric Block 3 Max:Tf36:Apple
+Fabric Block 3 Probe 1:Tf38:Apple
+Fabric Block 3 Probe 2:Tf39:Apple
+Fabric Block 3 Probe 3:Tf3A:Apple
+Fabric Block 3 Probe 4:Tf3B:Apple
+Fabric Block 4:Tf44:Apple
+Fabric Block 4:Tf4D:M3
+Fabric Block 4:Tf4E:Apple
+Fabric Block 4 Min:Tf45:Apple
+Fabric Block 4 Max:Tf46:Apple
+Fabric Block 4 Probe 1:Tf48:Apple
+Fabric Block 4 Probe 2:Tf49:Apple
+Fabric Block 4 Probe 3:Tf4A:Apple
+Fabric Block 4 Probe 4:Tf4B:Apple
 GPU Fabric Aggregate:Tf9F:M3
 GPU Fabric Aggregate Max:TfA0:M3
 // GPU clusters (M1-style addressing).
@@ -1601,18 +1661,19 @@ GPU 90:Tg1A:M5 Base
 GPU 91:Tg1g:M5 Base
 GPU 92:Tg1s:M5 Base
 // Tf?6 is a static ~64°C threshold.
-GPU Fabric Block 0:Tf04:M5
-GPU Fabric Block 0 Max:Tf06:M5
-GPU Fabric Block 0 Probe 1:Tf08:M5
-GPU Fabric Block 0 Probe 2:Tf09:M5
-GPU Fabric Block 0 Probe 3:Tf0A:M5
-GPU Fabric Block 0 Probe 4:Tf0B:M5
-GPU Fabric Block 1:Tf14:M5
-GPU Fabric Block 1 Max:Tf16:M5
-GPU Fabric Block 1 Probe 1:Tf18:M5
-GPU Fabric Block 1 Probe 2:Tf19:M5
-GPU Fabric Block 1 Probe 3:Tf1A:M5
-GPU Fabric Block 1 Probe 4:Tf1B:M5
+// Tf0*/Tf1* rise +6-18 °C under Super/P load, +4 under GPU (m5-max-2-run).
+Fabric Block 0:Tf04:M5
+Fabric Block 0 Max:Tf06:M5
+Fabric Block 0 Probe 1:Tf08:M5
+Fabric Block 0 Probe 2:Tf09:M5
+Fabric Block 0 Probe 3:Tf0A:M5
+Fabric Block 0 Probe 4:Tf0B:M5
+Fabric Block 1:Tf14:M5
+Fabric Block 1 Max:Tf16:M5
+Fabric Block 1 Probe 1:Tf18:M5
+Fabric Block 1 Probe 2:Tf19:M5
+Fabric Block 1 Probe 3:Tf1A:M5
+Fabric Block 1 Probe 4:Tf1B:M5
 // M5 Pro and Max populate disjoint TfC* slots.
 GPU Fabric 1:TfC0:M5
 GPU Fabric 2:TfC1:M5
