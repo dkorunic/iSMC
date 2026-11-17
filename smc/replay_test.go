@@ -385,6 +385,16 @@ var replayAllow = map[string][]string{
 		"unmapped Tp7z Tp8a Tp8b Tp8x Tp8z Tp9a Tp9b Tp9x Tp9z Ts0P Ts0a Ts0b Ts0x Ts0z",
 		"unmapped Ts1P Ts1a Ts1b Ts1x Ts1z Ts2a Ts2b Ts2x Ts2z",
 	},
+	// Base M1 (MacBookPro17,1, iSMC#33): the intel-t2 a/b/x/z quad layout. Seven
+	// P and two E quads for 4P+4E carry generic Group labels (m1-mbp13-run). Tc*
+	// copy other quads, Th0/Th2/Ts0/Ts2 follow no tier, Ta1z is the +16 trim of
+	// a dead Ta1x, TH0T ≡ TH0x; TaMP/Th1H unknown, as on base M2.
+	"m1": {
+		noECores, "cores P=0",
+		"unmapped Ta1z TaMP TH0T Th1H Tc0a Tc0b Tc0x Tc0z Tc7a Tc7b Tc7x Tc7z Tc8a Tc8b",
+		"unmapped Tc8x Tc8z Tc9a Tc9b Tc9x Tc9z Tcaa Tcab Tcax Tcaz Th0a Th0b Th0x Th0z",
+		"unmapped Th2a Th2b Th2x Th2z Ts0a Ts0b Ts0x Ts0z Ts2a Ts2b Ts2x Ts2z",
+	},
 	// Single-dump keys with no known meaning; Tc02 ≡ TCMz and Tc05 ≡ TCMb suggest
 	// die-2 CPU max/average, but one dump is not enough to label them.
 	"m1-ultra": {"unmapped TB0p TB1p TIDP TMVC TSVL Tc01 Tc02 Tc05 Tc06"},

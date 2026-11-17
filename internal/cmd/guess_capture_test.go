@@ -209,8 +209,18 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     Seven indexed Tp quads rise +10-18 °C; their trimmed x/z copies rise
 //     alike and are listed as cluster sensors, and the six a/b pairs exceed
 //     the 4 P-cores. The E load raised no key, so the E tier is empty.
+//   - m3-pro-2-run (MacBook Pro 14 M3 Pro 6P+6E, Mac15,6, iSMC#33, v0.18.6):
+//     m3-pro-run with the ft index, from a hot start (Te*/Tp* idle 62-80 °C).
+//     The P tier is exactly the twelve indexed triplets (P Groups 1-12), so
+//     Tp0g/Tp1Q leave E and the Tp3O/Tp3W bank maxima become cluster sensors.
+//     QoS did not separate the tiers (P load busied 10 CPUs). ftE0-2 = Te05/
+//     Te0H/Te0S, but the E load raised Te* at most 1.3 °C, so Te0G-I (E
+//     Group 2) is cut as a cluster sensor. Te0R-V (E Group 3) rises least under
+//     E load and most under GPU load (+9-9.5 °C vs +2.8 under P) here and in
+//     m3-pro-run (+10.3 vs +2.2); a hint it sits near the GPU, not enough to
+//     relabel.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run", "m4-mini-run", "m3-max-2-run", "m1-mbp13-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run", "m4-mini-run", "m3-max-2-run", "m1-mbp13-run", "m3-pro-2-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {
