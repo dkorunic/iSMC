@@ -467,6 +467,9 @@ var replayAllow = map[string][]string{
 	// sentinels, but the bank-A P-core 9 triplet and Tp0c also read 34-42 °C,
 	// so last-write shows the cooler bank-A value (keepReading only skips 40.0).
 	"m4-pro-5": {m4ProMaxE, m4ProVirtual, "collide CPU Performance Core 9", "collide CPU Performance Core 10"},
+	// Mac mini M4 Pro (Mac16,11, iSMC#36) with m4-pro-mini-run: bank B live.
+	// TMIA/TMIB/TNwC/TPCP exist only on this model; meaning unknown.
+	"m4-pro-6": {m4ProMaxE, "unmapped TMIA TMIB TNwC TPCP"},
 	// MacBook Pro 14 M5 (Mac17,2) with m5-mbp14-run: only four Te keys exist
 	// and E-cores 5-6 have no T* key (the Tp0p-Tp1E probes follow neither tier
 	// under load). TVC0 ≡ TVD0 byte-for-byte; TVMS is unknown, as on M4. Ts0O

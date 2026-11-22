@@ -229,8 +229,13 @@ var updateGolden = flag.Bool("update", false, "rewrite testdata/*.cores from the
 //     follow the triplets at ~0.75× under E load too, so they stay as P-cores
 //     9-11. Lowering the ratio to 1.15 moves the m4-pro, m5-air, m5-pro and
 //     m5-max-2 goldens; a 1 s onset ranking cuts a real triplet.
+//   - m4-pro-mini-run (Mac mini M4 Pro 10P+4E, Mac16,11, iSMC#36, v0.18.7,
+//     full dump report-m4-pro-6.txt): bank B live, bank A parked; same core
+//     lines as m4-pro-run. Fabric triplets Tp2I-Tp2X rise +9.0 °C mean vs
+//     +14.5 for the cores and still land as P-cores 11-15 (known gap). E load
+//     left every Te* key flat, as on m4-mini-run, so Te* go to E by name.
 func TestReplayRuns(t *testing.T) {
-	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run", "m4-mini-run", "m3-max-2-run", "m1-mbp13-run", "m3-pro-2-run", "m4-air-2-run", "m4-mini-2-run"} {
+	for _, name := range []string{"m6-run", "m1-ultra-run", "m4-air-run", "m4-pro-run", "m3-air-run", "m1-ultra-ft-run", "m3-pro-run", "m5-air-run", "m3-max-run", "m4-max-run", "m5-max-run", "imac20-2-run", "m5-mbp14-run", "m5-pro-run", "m5-max-2-run", "m4-mini-run", "m3-max-2-run", "m1-mbp13-run", "m3-pro-2-run", "m4-air-2-run", "m4-mini-2-run", "m4-pro-mini-run"} {
 		t.Run(name, func(t *testing.T) {
 			c, err := loadCapture("testdata/" + name + ".json")
 			if err != nil {

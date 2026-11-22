@@ -1460,6 +1460,29 @@ Uncore Voltage Regulator:TUVR:M4
 // Board-level probes shared with M5 Pro; only m4-pro-3 populates them on M4.
 Power Heatsink 3:TPH3:M4
 Fabric Sensor 2:TF2S:M4
+// Mac mini M4 Pro (Mac16,11, report-m4-pro-6, iSMC#36 run) only. Labels follow
+// the M6 Mac mini rows and neighbouring keys. TTD0-G rise +7-22 °C under GPU
+// load and stay flat under CPU load (TTDX = their max), unlike TPD* (CPU) and
+// TRD* (both). TSCE/TSCW replace TSCP. TMIA/TMIB/TNwC/TPCP stay unmapped.
+Power Delivery IC 27:TPDG:M4 Pro
+RF Delivery 21:TRDA:M4 Pro
+RF Delivery 22:TRDB:M4 Pro
+RF Delivery 23:TRDC:M4 Pro
+RF Delivery 24:TRDD:M4 Pro
+RF Delivery 25:TRDE:M4 Pro
+RF Delivery 26:TRDG:M4 Pro
+GPU Delivery %:TTD%:M4 Pro
+GPU Delivery 11:TTDA:M4 Pro
+GPU Delivery 12:TTDB:M4 Pro
+GPU Delivery 13:TTDC:M4 Pro
+GPU Delivery 14:TTDD:M4 Pro
+GPU Delivery 15:TTDE:M4 Pro
+GPU Delivery 16:TTDG:M4 Pro
+GPU Delivery Max:TTDX:M4 Pro
+SoC Cooling Probe East:TSCE:M4 Pro
+SoC Cooling Probe West:TSCW:M4 Pro
+Uncore Voltage S:TUVS:M4 Pro
+Voltage Probe 1:TVN0:M4 Pro
 // M5
 CPU Super Core 1:Tp00:M5 Base
 CPU Super Core 2:Tp04:M5 Base
